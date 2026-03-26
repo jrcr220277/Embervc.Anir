@@ -1,0 +1,116 @@
+﻿@implements IDisposable
+@using Anir.Client.Services.Auth
+@using Anir.Client.Services.Files
+@inject UserState UserState
+@inject IAuthService AuthService
+@inject NavigationManager Nav
+@inject Anir.Client.Services.Alerts.IAlertService AlertService
+@inject FileService Files
+@inject ILogger<UserMenu>? Logger
+
+<MudMenu @ref="_menuRef"
+         AnchorOrigin="Origin.BottomRight"
+         TransformOrigin="Origin.TopRight"
+         OffsetY="true">
+
+    <ActivatorContent Context="context">
+        <MudButton Variant="Variant.Text"
+                   Class="p-0"
+                   Style="min-width:0; padding:0;"
+                   OnClick="@((e)=>context.ToggleAsync(e))">
+
+            <MudAvatar Size="Size.Medium"
+                       Class="pa-0"
+                       Style="overflow:hidden; cursor:pointer;"
+                       Alt="@UserState.DisplayName">
+
+                @if (!string.IsNullOrWhiteSpace(AvatarUrl))
+                {
+                    <MudImage Src="@AvatarUrl"
+                              Style="width:100%; height:100%; object-fit:cover;" />
+                }
+                else
+                {
+                    @UserState.Initials
+                }
+
+            </MudAvatar>
+        </MudButton>
+    </ActivatorContent>
+
+    <ChildContent>
+
+        <MudMenuItem>
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.subtitle2">@UserState.DisplayName</MudText>
+
+                @if (!string.IsNullOrWhiteSpace(UserState.Email))
+                {
+                    <MudText Typo="Typo.caption" Class="text-secondary">
+                        @UserState.Email
+                    </MudText>
+                }
+            </MudStack>
+        </MudMenuItem>
+
+        <MudDivider />
+
+        <MudMenuItem Icon="@Icons.Material.Filled.AccountCircle"
+                     OnClick="@(()=>Nav.NavigateTo("/account/profile"))">
+            Mi perfil
+        </MudMenuItem>
+
+        <MudMenuItem Icon="@Icons.Material.Filled.LockReset"
+                     OnClick="@(()=>Nav.NavigateTo("/change-password"))">
+            Cambiar contraseña
+        </MudMenuItem>
+
+        <MudDivider />
+
+        <MudMenuItem Icon="@Icons.Material.Filled.Logout"
+                     OnClick="ConfirmLogout">
+            Cerrar sesión
+        </MudMenuItem>
+
+    </ChildContent>
+</MudMenu>
+
+@code {
+    private MudMenu? _menuRef;
+
+    // ⭐ La URL del avatar se construye automáticamente con FileService
+    private string? AvatarUrl => UserState.ImagenUrl;
+
+
+    protected override void OnInitialized()
+    {
+        UserState.OnChange += StateHasChanged;
+        Logger?.LogInformation("UserMenu inicializado. DisplayName={Name}", UserState.DisplayName);
+    }
+
+    public void Dispose()
+    {
+        UserState.OnChange -= StateHasChanged;
+    }
+
+    private async Task ConfirmLogout()
+    {
+        var ok = await AlertService.ShowConfirmation("Cerrar sesión", "¿Deseas cerrar sesión?");
+        if (ok)
+            await LogoutAsync();
+    }
+
+    private async Task LogoutAsync()
+    {
+        try
+        {
+            await AuthService.LogoutAsync();
+            await AlertService.ShowSuccess("Sesión cerrada", "Has cerrado sesión correctamente.");
+        }
+        catch (Exception ex)
+        {
+            Logger?.LogError(ex, "Logout error");
+            await AlertService.ShowError("Error", "No se pudo cerrar sesión.");
+        }
+    }
+}

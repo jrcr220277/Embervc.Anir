@@ -1,0 +1,63 @@
+﻿@using Anir.Shared
+
+<MudStack Row Class="mud-width-full"
+          AlignItems="AlignItems.Center"
+          Justify="Justify.Center"
+          Spacing="2">
+
+    <!-- Botón de subir archivo -->
+    <MudFileUpload T="IBrowserFile"
+                   @ref="_uploader"
+                   FilesChanged="HandleSelected"
+                   ShowProgress="false"
+                   ShowSize="false"
+                   ShowList="false"
+                   ClearOnClick="false">
+
+        <CustomContent>
+            <MudIconButton Icon="@Icons.Material.Filled.CloudUpload"
+                           aria-label="Subir"
+                           OnClick="@context.OpenFilePickerAsync" />
+        </CustomContent>
+
+        <SelectedTemplate />
+    </MudFileUpload>
+
+    <!-- Botón de eliminar -->
+    @if (ShowDelete)
+    {
+        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                       aria-label="Quitar"
+                       Color="Color.Error"
+                       OnClick="HandleDelete" />
+    }
+
+</MudStack>
+
+@code {
+    private MudFileUpload<IBrowserFile>? _uploader;
+
+    // Evento cuando se selecciona un archivo
+    [Parameter] public EventCallback<IBrowserFile?> OnChanged { get; set; }
+
+    // Evento cuando se presiona eliminar
+    [Parameter] public EventCallback OnDelete { get; set; }
+
+    // Mostrar o no el botón de eliminar
+    [Parameter] public bool ShowDelete { get; set; } = true;
+
+    private async Task HandleSelected(IBrowserFile? file)
+    {
+        await OnChanged.InvokeAsync(file);
+    }
+
+    private async Task HandleDelete()
+    {
+        // Notificar al padre
+        await OnDelete.InvokeAsync();
+
+        // Limpiar el uploader visualmente
+        if (_uploader is not null)
+            await _uploader.ClearAsync();
+    }
+}

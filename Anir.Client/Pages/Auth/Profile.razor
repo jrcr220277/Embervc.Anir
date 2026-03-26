@@ -1,0 +1,223 @@
+﻿@page "/account/profile"
+
+@using Anir.Client.Services.Files
+@using Anir.Shared.Contracts.User
+@using Anir.Shared.Contracts.Auth
+@using Anir.Shared.Contracts.Common
+@using Anir.Client.Components
+@using Anir.Shared.Enums
+
+@inject NavigationManager Nav
+@inject IAuthService AuthService
+@inject IAlertService Alerts
+@inject UserState UserState
+@inject FileService Files
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="pa-2">
+    <MudGrid Justify="Justify.Center" AlignItems="Center">
+        <MudItem xs="12" sm="10" md="6" lg="8" Class="d-flex flex-column align-items-center">
+
+            <!-- Encabezado -->
+            <div class="d-flex flex-column justify-center align-center mt-2">
+                <MudAvatar Size="Size.Large" Color="Color.Primary" Variant="Variant.Filled">
+                    <MudIcon Icon="@Icons.Material.Filled.ManageAccounts" Size="Size.Large" />
+                </MudAvatar>
+                <MudText Typo="Typo.h5" Class="font-weight-bold">Mi Perfil</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    Actualice su información personal
+                </MudText>
+            </div>
+
+            <EditForm EditContext="_editContext" OnValidSubmit="HandleSaveAsync">
+                <DataAnnotationsValidator />
+
+                <MudCard Class="pa-6 mt-4" Elevation="2">
+                    <MudCardContent>
+
+                        @if (isLoading)
+                        {
+                            <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Style="min-height:220px;">
+                                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+                            </MudStack>
+                        }
+                        else
+                        {
+                            <MudGrid Spacing="3">
+
+                                <!-- Foto -->
+                                <MudItem xs="12" md="3">
+                                    <MudStack Spacing="2" AlignItems="AlignItems.Center">
+                                        <MudText Typo="Typo.subtitle1" Color="Color.Secondary" Class="font-weight-bold">
+                                            Foto de Perfil
+                                        </MudText>
+
+                                        <ImageUploader @ref="_imageUploader"
+                                                       Container="users"
+                                                       Size="150"
+                                                       Rounded="false"
+                                                       Value="@_formModel.ImagenUrl"
+                                                       OnChanged="OnPhotoChanged" />
+
+
+                                    </MudStack>
+                                </MudItem>
+
+                                <!-- Datos -->
+                                <MudItem xs="12" md="9">
+                                    <MudStack Spacing="2">
+
+                                        <MudText Typo="Typo.subtitle1" Color="Color.Secondary" Class="font-weight-bold">
+                                            Datos personales
+                                        </MudText>
+
+                                        <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.FullName)"
+                                                      For="@(() => _formModel.FullName)"
+                                                      @bind-Value="_formModel.FullName"
+                                                      HelperText="@ModelMetadataHelper.GetHelperText(() => _formModel.FullName)"
+                                                      HelperTextOnFocus="true"
+                                                      Variant="Variant.Outlined"
+                                                      Required="true"
+                                                      FullWidth="true"
+                                                      Margin="Margin.Dense"
+                                                      Clearable="true" />
+
+                                        <MudText Typo="Typo.subtitle1" Color="Color.Secondary" Class="font-weight-bold">
+                                            Preferencias
+                                        </MudText>
+
+                                        <MudChipSet T="ThemeMode"
+                                                    @bind-SelectedValue="_formModel.ThemeMode"
+                                                    Variant="Variant.Text">
+
+                                            <MudChip Text="Claro"
+                                                     Value="@ThemeMode.Light"
+                                                     SelectedColor="Color.Primary"
+                                                     Icon="@Icons.Material.Filled.LightMode" />
+
+                                            <MudChip Text="Oscuro"
+                                                     Value="@ThemeMode.Dark"
+                                                     SelectedColor="Color.Primary"
+                                                     Icon="@Icons.Material.Filled.DarkMode" />
+
+                                            <MudChip Text="Auto"
+                                                     Value="@ThemeMode.Auto"
+                                                     SelectedColor="Color.Primary"
+                                                     Icon="@Icons.Material.Filled.Brightness4" />
+                                        </MudChipSet>
+
+                                    </MudStack>
+                                </MudItem>
+
+                            </MudGrid>
+                        }
+
+                    </MudCardContent>
+
+                    <MudCardActions Class="justify-end mt-2">
+                        <MudButton Loading="@isSaving"
+                                   Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   ButtonType="ButtonType.Submit">
+                            Guardar cambios
+                        </MudButton>
+                    </MudCardActions>
+
+                </MudCard>
+            </EditForm>
+
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private UpdateProfileRequest _formModel = new();
+    private EditContext? _editContext;
+
+    private bool isSaving = false;
+    private bool isLoading = true;
+
+    private ImageUploader? _imageUploader;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Si no hay usuario cargado, lo obtenemos
+        if (string.IsNullOrEmpty(UserState.Id))
+        {
+            var result = await AuthService.MeAsync();
+
+            if (result.Result == ResponseStatus.Failed || result.Value == null)
+            {
+                Nav.NavigateTo("/login", true);
+                return;
+            }
+
+            UserState.Set(result.Value);
+        }
+
+        // Cargar datos al formulario
+        _formModel.ImagenId = UserState.ImagenId;
+        _formModel.ImagenUrl = UserState.ImagenUrl;
+        _formModel.FullName = UserState.FullName ?? "";
+        _formModel.ThemeMode = UserState.ThemeMode;
+
+        _editContext = new EditContext(_formModel);
+
+        isLoading = false;
+    }
+
+
+    private void OnPhotoChanged(FileResponse? file)
+    {
+        _formModel.ImagenId = file?.Id;
+        _formModel.ImagenUrl = file?.Url;
+    }
+
+
+    private async Task HandleSaveAsync()
+    {
+        if (_editContext == null || !_editContext.Validate())
+            return;
+
+        isSaving = true;
+
+        // ⭐ 1. Subir imagen solo si el usuario seleccionó una nueva
+        if (_imageUploader is not null)
+        {
+            var uploaded = await _imageUploader.UploadIfNeededAsync();
+
+            if (uploaded is not null)
+            {
+                _formModel.ImagenId = uploaded.Id;
+                _formModel.ImagenUrl = uploaded.Url;
+            }
+        }
+
+        // ⭐ 2. Guardar perfil
+        var result = await AuthService.UpdateProfileAsync(_formModel);
+
+        if (result.Result == ResponseStatus.Failed)
+        {
+            var msg = result.PrettyMessage
+                      ?? result.ErrorMessage
+                      ?? "No se pudo actualizar el perfil.";
+
+            await Alerts.ShowError("Error", msg);
+            isSaving = false;
+            return;
+        }
+
+        await Alerts.ShowSuccess(
+            "Perfil actualizado",
+            result.PrettyMessage ?? "Los cambios se guardaron correctamente."
+        );
+
+        // ⭐ 3. Refrescar datos del usuario
+        var me = await AuthService.MeAsync();
+        if (me.Result == ResponseStatus.Success && me.Value != null)
+            UserState.Set(me.Value);
+
+        isSaving = false;
+    }
+
+
+}

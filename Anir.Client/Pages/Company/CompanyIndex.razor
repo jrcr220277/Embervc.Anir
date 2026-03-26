@@ -1,0 +1,514 @@
+﻿@page "/companies"
+@using Anir.Shared.Contracts.Companies
+@using Anir.Shared.Contracts.Common
+@using Anir.Client.Services.Company
+@using MudBlazor
+
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-2">
+
+    @if (IsInitializingPage)
+    {
+        <UiLoading Indeterminate="true" Message="Cargando empresas..." ContainerHeight="100vh" Size="Size.Large" />
+        return;
+    }
+
+    <!-- ============================================================
+         ENCABEZADO PRINCIPAL
+         ============================================================ -->
+    <MudPaper Class="pa-2 mb-2">
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <div class="d-flex align-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Domain" Color="Color.Primary" Size="Size.Large" />
+                    <div class="ml-2">
+                        <MudText Typo="Typo.h5" Color="Color.Primary">Clasificador de Empresas</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            Gestión de empresas: búsqueda, filtros y acciones masivas
+                        </MudText>
+                    </div>
+                </div>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" Class="d-flex justify-end">
+                <MudBreadcrumbs Items="_breadcrumbs" />
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <!-- ============================================================
+         ACTION BAR (Agregar, Buscar, Filtros, Reportes)
+         ============================================================ -->
+    <MudPaper Class="pa-2 mb-2">
+        <MudGrid AlignItems="Center">
+
+            <!-- Botón Agregar -->
+            <MudItem xs="12" md="3" Class="d-flex align-center">
+                <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                           StartIcon="@Icons.Material.Filled.AddCircleOutline"
+                           OnClick="OpenAddModal">
+                    Agregar
+                </MudButton>
+            </MudItem>
+
+            <!-- Buscador -->
+            <MudItem xs="12" md="6" Class="d-flex align-center justify-center">
+                <MudTextField T="string"
+                              Value="@SearchText"
+                              ValueChanged="OnSearchInput"
+                              Clearable="true"
+                              Placeholder="Buscar..."
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Immediate="true"
+                              Margin="Margin.Dense"
+                              Class="mud-width-full search-box" />
+            </MudItem>
+
+            <!-- Filtros y menú -->
+            <MudItem xs="12" md="3" Class="d-flex justify-end">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+
+                    <MudIcon Icon="@Icons.Material.Filled.FilterAlt" />
+
+                    <MudSelect T="string"
+                               Placeholder="Estado"
+                               Value="@StatusFilterValue"
+                               ValueChanged="OnStatusFilterChanged"
+                               Dense="true"
+                               Class="filter-select">
+
+                        <MudSelectItem Value=@("Todos")>Todos</MudSelectItem>
+                        <MudSelectItem Value=@("Activo")>Activo</MudSelectItem>
+                        <MudSelectItem Value=@("Inactivo")>Inactivo</MudSelectItem>
+                    </MudSelect>
+
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Dense="true">
+                        <MudMenuItem OnClick="ExportPdf">Ver reporte</MudMenuItem>
+                        <MudMenuItem OnClick="DownloadPdf">Descargar reporte</MudMenuItem>
+                        <MudDivider />
+                        <MudMenuItem OnClick="DeleteAll" Class="text-danger">
+                            <MudIcon Icon="@Icons.Material.Filled.DeleteForever" Color="Color.Error" />
+                            Eliminar todo
+                        </MudMenuItem>
+                    </MudMenu>
+
+                </MudStack>
+            </MudItem>
+
+        </MudGrid>
+    </MudPaper>
+
+    <!-- ============================================================
+         ACCIONES MASIVAS (solo si hay selección)
+         ============================================================ -->
+    <MudCollapse Expanded="@SelectedItems.Any()">
+            <MudPaper Class="pa-2 mb-2" Elevation="1">
+                <MudGrid AlignItems="Center">
+
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.subtitle2" Class="fw-bold">
+                        @($"{SelectedItems.Count} seleccionada{(SelectedItems.Count == 1 ? "" : "s")}")
+                        </MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="ml-1 d-none d-sm-inline">
+                            Acciones masivas disponibles
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6" Class="d-flex justify-end">
+                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+
+                            <!-- Botón eliminar selección -->
+                            <MudButton Color="Color.Error" Variant="Variant.Filled" Size="Size.Small"
+                                       Disabled="@IsProcessingBulkAction"
+                                       OnClick="DeleteSelected">
+
+                                @if (IsProcessingBulkAction)
+                                {
+                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Inherit" />
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.DeleteForever" Size="Size.Small" />
+                                    <span class="ml-1">Eliminar</span>
+                                }
+                            </MudButton>
+
+                            <!-- Menú adicional -->
+                            <MudMenu Icon="@Icons.Material.Filled.MoreVert" Dense="true">
+                                <MudMenuItem OnClick="SelectAllVisible">Seleccionar visibles</MudMenuItem>
+                                <MudMenuItem OnClick="ClearSelection">Limpiar selección</MudMenuItem>
+                            </MudMenu>
+
+                        </MudStack>
+                    </MudItem>
+
+                </MudGrid>
+            </MudPaper>
+        </MudCollapse>
+
+    <!-- ============================================================
+         TABLA PRINCIPAL (ServerData)
+         ============================================================ -->
+    <MudTable T="CompanyDto"
+                  ServerData="ServerReload"
+                  @ref="TableRef"
+                  Hover="true"
+                  Striped="true"
+                  Dense="true"
+                  MultiSelection="true"
+                  @bind-SelectedItems="SelectedItems"
+                  SelectOnRowClick="false"
+                  Loading="@IsLoadingTable"
+                  HorizontalScrollbar="true">
+
+            <HeaderContent>
+                <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="ShortName">Abrev.</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="Name">Nombre</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="Address">Dirección</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="MunicipalityName">Municipio</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="Active">Estado</MudTableSortLabel></MudTh>
+            <MudTh Style="text-align:end">Acciones</MudTh>
+            </HeaderContent>
+
+            <RowTemplate Context="company">
+                <MudTd>@company.ShortName</MudTd>
+                <MudTd>@company.Name</MudTd>
+                <MudTd>@company.Address</MudTd>
+                <MudTd>@company.MunicipalityName</MudTd>
+                <MudTd>
+                    <MudChip T="string" Color="@(company.Active ? Color.Success : Color.Error)" Size="Size.Small">
+                        @(company.Active ? "Activa" : "Inactiva")
+                    </MudChip>
+                </MudTd>
+            <MudTd Style="text-align:end">
+                    <MudIconButton Icon="@Icons.Material.Filled.Visibility" OnClick="@(() => ViewCompany(company))" Size="Size.Small" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" OnClick="@(() => EditCompany(company))" Size="Size.Small" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteCompany(company))" Size="Size.Small" />
+                </MudTd>
+            </RowTemplate>
+
+            <NoRecordsContent>
+                <MudText Typo="Typo.body1" Class="pa-4 text-center">
+                    No se encontraron datos para mostrar.
+                </MudText>
+            </NoRecordsContent>
+
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new int[] { 5, 10, 15, 20, 50 }"
+                               RowsPerPageString="Filas por página:"
+                               InfoFormat="{first_item}-{last_item} de {all_items}"
+                               AllItemsText="Todas"
+                               HorizontalAlignment="HorizontalAlignment.Right" />
+            </PagerContent>
+
+        </MudTable>
+
+   
+</MudContainer>
+
+@code {
+
+    // ============================================================
+    // DEPENDENCIAS
+    // ============================================================
+    [Inject] private CompanyService CompanyService { get; set; } = default!;
+    [Inject] private IDialogService DialogService { get; set; } = default!;
+    [Inject] private IAlertService AlertService { get; set; } = default!;
+    [Inject] private ILogger<CompanyIndex> Logger { get; set; } = default!;
+
+    // ============================================================
+    // ESTADO GENERAL
+    // ============================================================
+    private bool IsInitializingPage = true;
+    private bool IsLoadingTable = false;
+    private bool IsProcessingBulkAction = false;
+
+    private MudTable<CompanyDto>? TableRef;
+    private HashSet<CompanyDto> SelectedItems = new(new CompanyDtoComparer());
+
+    private string SearchText = string.Empty;
+    private string StatusFilterValue = "Todos";
+
+    private IReadOnlyList<CompanyDto> LastPageItems = Array.Empty<CompanyDto>();
+
+    private CancellationTokenSource? _searchDebounceCts;
+    private CancellationTokenSource? _serverReloadCts;
+
+    // Breadcrumbs
+    private readonly List<BreadcrumbItem> _breadcrumbs = new()
+    {
+        new BreadcrumbItem("Inicio", href: "/"),
+        new BreadcrumbItem("Empresas", href: null, disabled: true)
+    };
+
+    protected override Task OnInitializedAsync()
+    {
+        IsInitializingPage = false;
+        return Task.CompletedTask;
+    }
+
+    // ============================================================
+    // SERVER DATA (Paginación + Orden + Filtros)
+    // ============================================================
+    private async Task<TableData<CompanyDto>> ServerReload(TableState state, CancellationToken token)
+    {
+        _serverReloadCts?.Cancel();
+        _serverReloadCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+        var linkedToken = _serverReloadCts.Token;
+
+        IsLoadingTable = true;
+
+        try
+        {
+            var query = MapTableStateToQuery(state);
+
+            var response = await CompanyService.GetPagedAsync(query, linkedToken);
+
+            if (response.Result == ResponseStatus.Success && response.Value != null)
+            {
+                LastPageItems = response.Value.Items.ToList().AsReadOnly();
+
+                return new TableData<CompanyDto>
+                {
+                    Items = response.Value.Items,
+                    TotalItems = response.Value.TotalCount
+                };
+            }
+           
+            await AlertService.ShowError("Error", response.ErrorMessage ?? "Error cargando empresas");
+            return new TableData<CompanyDto>();
+        }
+        finally
+        {
+            IsLoadingTable = false;
+        }
+    }
+
+    private CompanyQueryDto MapTableStateToQuery(TableState state)
+    {
+        return new CompanyQueryDto
+        {
+            Page = state.Page + 1,
+            Size = state.PageSize,
+            Sort = state.SortLabel ?? "Name",
+            Desc = state.SortDirection == SortDirection.Descending,
+            Search = string.IsNullOrWhiteSpace(SearchText) ? null : SearchText,
+            ActiveFilter = StatusFilterValue switch
+            {
+                "Activo" => true,
+                "Inactivo" => false,
+                _ => null
+            }
+        };
+    }
+
+    // ============================================================
+    // BÚSQUEDA CON DEBOUNCE
+    // ============================================================
+    private void OnSearchInput(string value)
+    {
+        SearchText = value;
+
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts = new CancellationTokenSource();
+
+        var token = _searchDebounceCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(300, token);
+                if (!token.IsCancellationRequested && TableRef != null)
+                    await TableRef.ReloadServerData();
+            }
+            catch { }
+        });
+    }
+
+    // ============================================================
+    // FILTRO DE ESTADO
+    // ============================================================
+    private async Task OnStatusFilterChanged(string value)
+    {
+        StatusFilterValue = value;
+        if (TableRef != null) await TableRef.ReloadServerData();
+    }
+
+    // ============================================================
+    // CRUD: MODALES
+    // ============================================================
+    private async Task OpenAddModal()
+    {
+        var parameters = new DialogParameters
+        {
+            ["CurrentMode"] = CompanyModal.ModalMode.Add,
+            ["Company"] = null
+        };
+
+        var dialog = await DialogService.ShowAsync<CompanyModal>("Nueva Empresa", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && TableRef != null)
+            await TableRef.ReloadServerData();
+    }
+
+    private async Task EditCompany(CompanyDto company)
+    {
+        var parameters = new DialogParameters
+        {
+            ["CurrentMode"] = CompanyModal.ModalMode.Edit,
+            ["Company"] = company
+        };
+
+        var dialog = await DialogService.ShowAsync<CompanyModal>("Editar Empresa", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && TableRef != null)
+            await TableRef.ReloadServerData();
+    }
+
+    private async Task ViewCompany(CompanyDto company)
+    {
+        var parameters = new DialogParameters
+        {
+            ["CurrentMode"] = CompanyModal.ModalMode.View,
+            ["Company"] = company
+        };
+
+        await DialogService.ShowAsync<CompanyModal>("Detalle Empresa", parameters);
+    }
+
+    // ============================================================
+    // CRUD: ELIMINAR INDIVIDUAL
+    // ============================================================
+    private async Task DeleteCompany(CompanyDto company)
+    {
+        var confirmed = await AlertService.ShowConfirmation(
+          "Eliminar Registro",
+          $"¿Desea eliminar {company.ShortName}?");
+
+
+        if (!confirmed) return;
+
+        var response = await CompanyService.DeleteAsync(company.Id);
+
+        if (response.Result == ResponseStatus.Success)
+        {
+            SelectedItems.RemoveWhere(c => c.Id == company.Id);
+            if (TableRef != null) await TableRef.ReloadServerData();
+            await AlertService.ShowSuccess("Éxito", "Empresa eliminada correctamente.");
+        }
+        else
+        {
+            await AlertService.ShowError("Error", response.ErrorMessage ?? "No se pudo eliminar.");
+        }
+    }
+
+    // ============================================================
+    // ACCIONES MASIVAS
+    // ============================================================
+    private async Task DeleteSelected()
+    {
+        if (!SelectedItems.Any()) return;
+
+        var confirmed = await AlertService.ShowConfirmation(
+            "Eliminar seleccionadas",
+            $"¿Eliminar {SelectedItems.Count} empresas?");
+
+        if (!confirmed) return;
+
+        IsProcessingBulkAction = true;
+
+        try
+        {
+            var ids = SelectedItems.Select(x => x.Id).ToList();
+            var request = new BulkSelectionRequest { SelectAll = false, Ids = ids };
+
+            var response = await CompanyService.DeleteBatchAsync(request);
+
+            if (response.Result == ResponseStatus.Success)
+            {
+                SelectedItems.Clear();
+                if (TableRef != null) await TableRef.ReloadServerData();
+                await AlertService.ShowSuccess("Éxito", "Empresas eliminadas correctamente.");
+            }
+            else
+            {
+                await AlertService.ShowError("Error", response.ErrorMessage ?? "No se pudo eliminar.");
+            }
+        }
+        finally
+        {
+            IsProcessingBulkAction = false;
+        }
+    }
+
+    private void SelectAllVisible()
+    {
+        SelectedItems.Clear();
+        foreach (var item in LastPageItems)
+            SelectedItems.Add(item);
+    }
+
+    private void ClearSelection() => SelectedItems.Clear();
+
+    private async Task DeleteAll()
+    {
+        var confirmed = await AlertService.ShowConfirmation(
+            "Eliminar todas las empresas",
+            "Esta acción eliminará TODOS los registros del sistema. ¿Desea continuar?"
+        );
+
+        if (!confirmed)
+            return;
+
+        var request = new BulkSelectionRequest 
+        { 
+            SelectAll = true,
+            Filters = new { }
+        };
+
+        var response = await CompanyService.DeleteBatchAsync(request);
+
+        if (response.Result == ResponseStatus.Success)
+        {
+            SelectedItems.Clear();
+            if (TableRef != null)
+                await TableRef.ReloadServerData();
+
+            await AlertService.ShowSuccess("Éxito", "Todas las empresas fueron eliminadas.");
+        }
+        else
+        {
+            await AlertService.ShowError("Error", response.ErrorMessage ?? "No se pudo eliminar.");
+        }
+    }
+
+
+    // ============================================================
+    // EXPORTS (PLACEHOLDERS)
+    // ============================================================
+    private Task ExportPdf() => AlertService.ShowInformation("Pendiente", "Vista previa PDF no implementada.");
+    private Task DownloadPdf() => AlertService.ShowInformation("Pendiente", "Descarga PDF no implementada.");
+
+    // ============================================================
+    // LIMPIEZA
+    // ============================================================
+   public void Dispose()
+    {
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts?.Dispose();
+        _serverReloadCts?.Cancel();
+        _serverReloadCts?.Dispose();
+    }
+
+    // -------------------------
+    // Comparer para selección estable
+    // -------------------------
+    private class CompanyDtoComparer : IEqualityComparer<CompanyDto>
+    {
+        public bool Equals(CompanyDto? x, CompanyDto? y) => x?.Id == y?.Id;
+        public int GetHashCode(CompanyDto obj) => obj.Id.GetHashCode();
+    }
+}

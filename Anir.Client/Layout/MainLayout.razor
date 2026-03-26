@@ -1,0 +1,374 @@
+@using System
+@using System.Security.Claims
+// removed System.Linq import (not needed)
+@inherits LayoutComponentBase
+@using Anir.Shared.Enums
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthProvider
+@inject Anir.Client.Services.Auth.IAuthService AuthService
+@inject Anir.Client.Services.Auth.UserState UserState
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
+@inject ILogger<MainLayout> Logger
+@inject IDialogService DialogService
+
+<MudThemeProvider Theme="@_theme" IsDarkMode="IsDarkMode" />
+
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+
+    <MudAppBar Elevation="6" Dense="true">
+
+        @if (_isAuthenticated)
+        {
+            <MudIconButton Icon="@(_drawerOpen? Icons.Material.Filled.MenuOpen : Icons.Material.Filled.Menu)"
+                           Color="Color.Inherit"
+                           Edge="Edge.Start"
+                           OnClick="DrawerToggle" />
+        }
+
+        <MudSpacer />
+        
+        @if (_isAuthenticated)
+        {
+            <UserMenu />
+
+        }
+        else
+        {
+            <MudTooltip Text="Entrar al sistema" Arrow="true">
+                <MudIconButton Icon="@(Icons.Material.Filled.Login)"
+                               Color="Color.Inherit"
+                               OnClick="OpenLogin" />
+            </MudTooltip>
+
+            <MudTooltip Text="Cambiar tema" Arrow="true">
+                <MudIconButton Icon="@DarkLightModeButtonIcon"
+                               Color="Color.Inherit"
+                               OnClick="DarkModeToggle" />
+            </MudTooltip>
+        }
+
+    </MudAppBar>
+
+    @if (_isAuthenticated)
+    {
+        <MudDrawer @bind-Open="_drawerOpen"
+                   Color="Color.Inherit"
+                   ClipMode="DrawerClipMode.Always"
+                   Variant="DrawerVariant.Mini"
+                   Elevation="1">
+
+            <NavMenu DrawerOpen="_drawerOpen" />
+        </MudDrawer>
+    }
+
+    <MudMainContent>
+        @Body
+    </MudMainContent>
+
+</MudLayout>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code {
+    // ============================================================
+    // ESTADO Y DEPENDENCIAS
+    // ============================================================
+
+    // Indica si el usuario está autenticado
+    private bool _isAuthenticated = false;
+
+    // Estado del drawer lateral
+    private bool _drawerOpen = true;
+
+    // Modo de tema actual (por defecto Auto)
+    private ThemeMode _themeMode = ThemeMode.Auto;
+
+    // Preferencia del sistema operativo (true = dark)
+    private bool prefersDarkScheme = true;
+
+    // Tema MudBlazor con paletas personalizadas
+    private MudTheme? _theme = null;
+
+
+    // ============================================================
+    // CICLO DE VIDA
+    // ============================================================
+    protected override async Task OnInitializedAsync()
+    {
+        // Escuchar cambios de autenticación
+        AuthProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+
+        // ============================================================
+        // 1) Cargar tema cuando NO hay usuario autenticado
+        //    Se usa localStorage (tema público)
+        // ============================================================
+        try
+        {
+            var savedTheme = await JS.InvokeAsync<string>("localStorage.getItem", "themeMode");
+
+            if (!string.IsNullOrWhiteSpace(savedTheme) &&
+                Enum.TryParse<ThemeMode>(savedTheme, out var mode))
+            {
+                _themeMode = mode;
+            }
+            else
+            {
+                // Si no hay nada guardado → Auto (tema del sistema)
+                _themeMode = ThemeMode.Auto;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "No se pudo leer themeMode desde localStorage");
+            _themeMode = ThemeMode.Auto;
+        }
+
+        // Crear el tema con tus paletas personalizadas (usando paletas explícitas)
+        _theme = new()
+        {
+            PaletteLight = _lightPalette,
+            PaletteDark = _darkPalette,
+            LayoutProperties = new LayoutProperties()
+        };
+
+        // ============================================================
+        // 2) Verificar si el usuario YA está autenticado
+        // ============================================================
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        _isAuthenticated = authState.User.Identity?.IsAuthenticated ?? false;
+
+        if (_isAuthenticated)
+        {
+            // Cargar datos del usuario (incluye ThemeMode)
+            await TryPopulateUserState();
+
+            // ============================================================
+            // 3) Aplicar el tema del usuario autenticado
+            // ============================================================
+            ApplyTheme(UserState.ThemeMode);
+        }
+        else
+        {
+            // Si no está autenticado → aplicar tema público
+            ApplyTheme(_themeMode);
+
+        }
+
+        // ============================================================
+        // 4) Escuchar cambios en UserState (nombre, imagen, tema)
+        // ============================================================
+        // Registrar handler en una variable para poder desuscribir correctamente en Dispose
+        _userStateOnChangeHandler = () => ApplyTheme(UserState.ThemeMode);
+        UserState.OnChange += _userStateOnChangeHandler;
+    }
+
+
+    public void Dispose()
+    {
+        // Limpieza de eventos
+        AuthProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
+        if (_userStateOnChangeHandler != null)
+            UserState.OnChange -= _userStateOnChangeHandler;
+    }
+
+
+    // ============================================================
+    // EVENTOS DE AUTENTICACIÓN
+    // ============================================================
+    private async void OnAuthenticationStateChanged(Task<AuthenticationState> task)
+    {
+        try
+        {
+            var state = await task;
+            var isAuth = state.User.Identity?.IsAuthenticated ?? false;
+
+            if (isAuth && !_isAuthenticated)
+            {
+                // Usuario acaba de iniciar sesión
+                _isAuthenticated = true;
+
+                await TryPopulateUserState();
+
+                // Aplicar tema del usuario
+                ApplyTheme(UserState.ThemeMode);
+            }
+            else if (!isAuth && _isAuthenticated)
+            {
+                // Usuario cerró sesión
+                _isAuthenticated = false;
+
+                UserState.Clear();
+                _drawerOpen = false;
+
+                // Volver al tema público
+                ApplyTheme(_themeMode);
+
+            }
+
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error en OnAuthenticationStateChanged");
+        }
+    }
+
+
+    private async Task TryPopulateUserState()
+    {
+        try
+        {
+            // MeAsync() actualiza UserState internamente
+            await AuthService.MeAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "No se pudo poblar UserState tras autenticación");
+        }
+    }
+
+
+    // ============================================================
+    // ACCIONES
+    // ============================================================
+    public void OpenLogin() => NavManager.NavigateTo("/login");
+
+    private void DrawerToggle() => _drawerOpen = !_drawerOpen;
+
+
+    // Botón de cambiar tema cuando NO hay usuario autenticado
+    private async Task DarkModeToggle()
+    {
+        _themeMode = _themeMode switch
+        {
+            ThemeMode.Light => ThemeMode.Dark,
+            ThemeMode.Dark => ThemeMode.Auto,
+            ThemeMode.Auto => ThemeMode.Light,
+            _ => ThemeMode.Auto
+        };
+
+        if (_isAuthenticated)
+        {
+            // Si quieres guardar en servidor, aquí va
+        }
+        else
+        {
+            // Guardar preferencia pública
+            await JS.InvokeVoidAsync("localStorage.setItem", "themeMode", _themeMode.ToString());
+        }
+
+        // Aplicar tema inmediatamente
+        ApplyTheme(_themeMode);
+
+    }
+
+
+    // ============================================================
+    // APLICAR TEMA
+    // ============================================================
+    private void ApplyTheme(ThemeMode mode)
+    {
+        _themeMode = mode;
+        StateHasChanged();
+    }
+
+
+    // ============================================================
+    // PROPIEDADES
+    // ============================================================
+    private bool IsDarkMode =>
+        _themeMode switch
+        {
+            ThemeMode.Light => false,
+            ThemeMode.Dark => true,
+            ThemeMode.Auto => prefersDarkScheme,
+            _ => false
+        };
+
+    public string DarkLightModeButtonIcon =>
+        _themeMode switch
+        {
+            ThemeMode.Light => Icons.Material.Filled.LightMode,
+            ThemeMode.Dark => Icons.Material.Filled.DarkMode,
+            ThemeMode.Auto => Icons.Material.Filled.Brightness4,
+            _ => Icons.Material.Filled.LightMode
+        };
+
+
+    // ============================================================
+    // PALETAS (versión explícita, manteniendo primary dorado)
+    // ============================================================
+    // Handler almacenado para poder desuscribirlo correctamente
+    private Action? _userStateOnChangeHandler;
+
+    private readonly PaletteLight _lightPalette = new()
+    {
+        Primary = "#A8892A",
+        PrimaryLighten = "#E6C85C",
+        PrimaryDarken = "#D4AF37",
+        Secondary = "#C9A646",
+        SecondaryLighten = "#E0BB6E",
+        SecondaryDarken = "#9C7D32",
+        Background = "#F6F6F7",
+        // Unify drawer background with global background for cleaner, less noisy layout
+        DrawerBackground = "#F6F6F7",
+        DrawerText = "#222222",
+        Surface = "#FFFFFF",
+        BackgroundGray = "#EFEFEF",
+        // Use surface as appbar background for a minimal, modern look; primary reserved for actions
+        AppbarBackground = "#FFFFFF",
+        AppbarText = "#222222",
+        TextPrimary = "#222222",
+        TextSecondary = "#555555",
+        TextDisabled = "#999999",
+        Divider = "#E0E0E0",
+        LinesDefault = "#E8E8E8",
+        TableLines = "#E8E8E8",
+        Info = "#3A6EA5",
+        Success = "#3FA34D",
+        Warning = "#E6A437",
+        Error = "#D64545",
+        OverlayLight = "#FFFFFFCC"
+    };
+
+    private readonly PaletteDark _darkPalette = new()
+    {
+        Primary = "#A8892A",
+        PrimaryLighten = "#E6C85C",
+        PrimaryDarken = "#D4AF37",
+        Secondary = "#8B8B8B",
+        SecondaryLighten = "#B3B3B3",
+        SecondaryDarken = "#555555",
+        Background = "#121212",
+        // Unify drawer background with global background for cleaner, less noisy layout
+        DrawerBackground = "#121212",
+        BackgroundGray = "#111111",
+        Surface = "#1F1F1F",
+        // Use surface as appbar background for minimal header; primary used on actions
+        AppbarBackground = "#1F1F1F",
+        AppbarText = "#EAEAEA",
+        TextPrimary = "#FFFFFF",
+        TextSecondary = "#B3B3B3",
+        TextDisabled = "#777777",
+        Divider = "#2E2E2E",
+        LinesDefault = "#2E2E2E",
+        TableLines = "#2E2E2E",
+        Info = "#2196F3",
+        Success = "#4CAF50",
+        Warning = "#FFC107",
+        Error = "#F44336",
+        OverlayLight = "#00000088"
+    };
+}
+
+
+

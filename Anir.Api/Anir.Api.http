@@ -1,0 +1,7 @@
+@Anir.Api_HostAddress = https://localhost:7253
+
+GET {{Anir.Api_HostAddress}}/weatherforecast
+Accept: application/json
+
+GET {{Anir.Api_HostAddress}}/swagger/v1/swagger.json
+Accept: application/json

@@ -1,0 +1,319 @@
+﻿@using Anir.Client.Services
+@using Anir.Client.Services.Company
+@using Anir.Shared.Enums
+@using MudBlazor
+@using Anir.Shared.Contracts
+@using Anir.Shared.Contracts.Companies
+
+<MudDialog>
+
+    <!-- ============================
+         TÍTULO DEL MODAL
+         ============================ -->
+    <TitleContent>
+        <div class="d-flex align-items-center gap-2">
+            <MudIcon Icon="@(CurrentMode == ModalMode.Add ? Icons.Material.Filled.AddCircle :
+                                                             CurrentMode == ModalMode.Edit ? Icons.Material.Filled.Edit :
+                                                             Icons.Material.Filled.Visibility)"
+                     Size="Size.Medium" Color="Color.Primary" />
+
+            <MudText Typo="Typo.h6">
+                @(CurrentMode == ModalMode.Add ? "Crear Empresa" :
+                  CurrentMode == ModalMode.Edit ? "Editar Empresa" :
+                  "Detalle de la Empresa")
+            </MudText>
+        </div>
+    </TitleContent>
+
+    <!-- ============================
+         CONTENIDO DEL MODAL
+         ============================ -->
+    <DialogContent>
+
+        @if (_isLoading)
+        {
+            <UiLoading Indeterminate="true" Message="Cargando..." Size="Size.Medium" />
+        }
+        else
+        {
+            <EditForm EditContext="_editContext" OnValidSubmit="HandleSubmitAsync" id="form-entity">
+                <DataAnnotationsValidator />
+
+                <MudGrid Spacing="3">
+
+                    <!-- ============================
+                         COLUMNA IZQUIERDA: DATOS BÁSICOS
+                         ============================ -->
+                    <MudItem xs="12" md="6">
+                        <MudPaper Elevation="2" Outlined="true" Class="pa-4">
+
+                            <MudText Typo="Typo.subtitle1" Class="mb-3 font-weight-bold">
+                                Detalles de la Empresa
+                            </MudText>
+
+                            <MudTextField Label="Abreviatura"
+                                          For="@(() => _companyForm.ShortName)"
+                                          @bind-Value="_companyForm.ShortName"
+                                          Margin="Margin.Dense"
+                                          Required="true"
+                                          Clearable="true"
+                                          ReadOnly="@(IsViewMode)" />
+
+                            <MudTextField Label="Nombre"
+                                          For="@(() => _companyForm.Name)"
+                                          @bind-Value="_companyForm.Name"
+                                          Margin="Margin.Dense"
+                                          Required="true"
+                                          Clearable="true"
+                                          ReadOnly="@(IsViewMode)" />
+
+                            <MudTextField Label="Dirección"
+                                          For="@(() => _companyForm.Address)"
+                                          @bind-Value="_companyForm.Address"
+                                          Margin="Margin.Dense"
+                                          Clearable="true"
+                                          ReadOnly="@(IsViewMode)" />
+
+                        </MudPaper>
+                    </MudItem>
+
+                    <!-- ============================
+                         COLUMNA DERECHA: UBICACIÓN
+                         ============================ -->
+                    <MudItem xs="12" md="6">
+                        <MudPaper Elevation="2" Outlined="true" Class="pa-4">
+
+                            <MudText Typo="Typo.subtitle1" Class="mb-3 font-weight-bold">
+                                Ubicación y Estado
+                            </MudText>
+
+                            <!-- PROVINCIA -->
+                            <MudSelect T="int"
+                                       Label="Provincia"
+                                       @bind-Value="SelectedProvinceId"
+                                       Margin="Margin.Dense"
+                                       FullWidth="true"
+                                       Dense="true"
+                                       Disabled="@(IsViewMode)">
+
+                                <MudSelectItem T="int" Value="0">- Seleccionar -</MudSelectItem>
+
+                                @foreach (var item in AllProvinces)
+                                {
+                                    <MudSelectItem T="int" Value="@item.Id">@item.Name</MudSelectItem>
+                                }
+                            </MudSelect>
+
+                            <!-- MUNICIPIO -->
+                            <MudSelect T="int?"
+                                       Label="Municipio"
+                                       @bind-Value="_companyForm.MunicipalityId"
+                                       Margin="Margin.Dense"
+                                       FullWidth="true"
+                                       Dense="true"
+                                       Disabled="@(IsViewMode || SelectedProvinceId == 0)">
+
+                                <MudSelectItem T="int?" Value="@((int?)null)">- Seleccionar -</MudSelectItem>
+
+                                @foreach (var item in FilteredMunicipalities)
+                                {
+                                    <MudSelectItem T="int?" Value="@item.Id">@item.Name</MudSelectItem>
+                                }
+                            </MudSelect>
+
+                            <!-- ESTADO -->
+                            <MudSwitch T="bool"
+                                       @bind-Checked="_companyForm.Active"
+                                       Color="Color.Primary"
+                                       Disabled="@(IsViewMode)"
+                                       Class="mt-4"
+                                       Label="@(_companyForm.Active ? "Activo" : "Inactivo")" />
+
+                        </MudPaper>
+                    </MudItem>
+
+                </MudGrid>
+            </EditForm>
+        }
+    </DialogContent>
+
+    <!-- ============================
+         BOTONES DEL MODAL
+         ============================ -->
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancel">
+            Cancelar
+        </MudButton>
+
+        @if (!IsViewMode)
+        {
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       ButtonType="ButtonType.Submit"
+                       Form="form-entity"
+                       Disabled="@_isSaving">
+
+                @if (_isSaving)
+                {
+                    <MudProgressCircular Size="Size.Small" />
+                }
+
+                Guardar
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Cancel">
+                Cerrar
+            </MudButton>
+        }
+    </DialogActions>
+
+</MudDialog>
+
+@code {
+
+    // ============================================================
+    // INYECCIONES
+    // ============================================================
+    [Inject] private ProvinceService ProvinceService { get; set; } = default!;
+    [Inject] private MunicipalityService MunicipalityService { get; set; } = default!;
+    [Inject] private CompanyService CompanyService { get; set; } = default!;
+    [Inject] private IAlertService AlertService { get; set; } = default!;
+    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
+
+    // ============================================================
+    // PARÁMETROS DEL MODAL
+    // ============================================================
+    [Parameter] public ModalMode CurrentMode { get; set; }
+    [Parameter] public CompanyDto? Company { get; set; }
+    [Parameter] public EventCallback OnListUpdated { get; set; }
+
+    public enum ModalMode { Add, Edit, View }
+
+    // ============================================================
+    // ESTADO INTERNO
+    // ============================================================
+    private bool _isLoading = true;
+    private bool _isSaving = false;
+    private bool IsViewMode => CurrentMode == ModalMode.View;
+
+    // ============================================================
+    // FORMULARIO
+    // ============================================================
+    private CompanyDto _companyForm = new() { MunicipalityId = 0, Active = true };
+    private EditContext? _editContext;
+
+    // ============================================================
+    // DATOS DE UBICACIÓN
+    // ============================================================
+    private List<ProvinceDto> AllProvinces = new();
+    private List<MunicipalityDto> AllMunicipalities = new();
+    private List<MunicipalityDto> FilteredMunicipalities = new();
+
+    // Provincia seleccionada
+    private int SelectedProvinceId;
+
+    // ============================================================
+    // CARGA INICIAL
+    // ============================================================
+    protected override async Task OnInitializedAsync()
+    {
+        _isLoading = true;
+
+        AllProvinces = await ProvinceService.GetAllAsync() ?? new();
+        AllMunicipalities = await MunicipalityService.GetAllAsync() ?? new();
+
+        _isLoading = false;
+    }
+
+    // ============================================================
+    // CARGA DE PARÁMETROS (EDITAR / VER)
+    // ============================================================
+    protected override void OnParametersSet()
+    {
+        if (Company != null)
+        {
+            _companyForm = new CompanyDto
+            {
+                Id = Company.Id,
+                ShortName = Company.ShortName,
+                Name = Company.Name ?? string.Empty,
+                Address = Company.Address ?? string.Empty,
+                MunicipalityId = Company.MunicipalityId,
+                Active = Company.Active
+            };
+
+            SelectedProvinceId = AllMunicipalities
+                .FirstOrDefault(item => item.Id == _companyForm.MunicipalityId)
+                ?.ProvinceId ?? 0;
+        }
+        else
+        {
+            _companyForm = new CompanyDto { Active = true, MunicipalityId = 0 };
+            SelectedProvinceId = 0;
+        }
+
+        _editContext = new EditContext(_companyForm);
+        FilterMunicipalities();
+    }
+
+    // ============================================================
+    // FILTRAR MUNICIPIOS POR PROVINCIA
+    // ============================================================
+    private void FilterMunicipalities()
+    {
+        FilteredMunicipalities = AllMunicipalities
+            .Where(item => item.ProvinceId == SelectedProvinceId)
+            .OrderBy(item => item.Name)
+            .ToList();
+
+        if (!FilteredMunicipalities.Any(item => item.Id == _companyForm.MunicipalityId))
+            _companyForm.MunicipalityId = 0;
+    }
+
+    // ============================================================
+    // GUARDAR
+    // ============================================================
+    private async Task HandleSubmitAsync()
+    {
+        if (_editContext == null || !_editContext.Validate())
+            return;
+
+        _isSaving = true;
+        StateHasChanged();
+
+        try
+        {
+            ProcessResponse<CompanyDto>? response =
+                CurrentMode == ModalMode.Add
+                ? await CompanyService.CreateAsync(_companyForm)
+                : await CompanyService.UpdateAsync(_companyForm.Id, _companyForm);
+
+            if (response?.Result == ResponseStatus.Success)
+            {
+                await AlertService.ShowSuccess("Éxito", "Guardado correctamente.");
+                await OnListUpdated.InvokeAsync();
+                Dialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                await AlertService.ShowError("Error", response?.PrettyMessage ?? "Error al guardar.");
+            }
+        }
+        catch
+        {
+            await AlertService.ShowError("Error", "Error de conexión.");
+        }
+        finally
+        {
+            _isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    // ============================================================
+    // CANCELAR
+    // ============================================================
+    private void Cancel() => Dialog.Cancel();
+}

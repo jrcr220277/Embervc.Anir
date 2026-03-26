@@ -1,0 +1,80 @@
+﻿@page "/dashboard"
+@attribute [Authorize]
+@using Anir.Client.Services.Auth
+@inject UserState State
+
+@implements IDisposable
+
+<MudContainer Class="mt-6">
+
+    <MudText Typo="Typo.h4" Class="mb-4">
+        Bienvenido, @DisplayName
+    </MudText>
+
+    <MudPaper Elevation="4" Class="pa-4">
+
+        <MudStack Spacing="2" AlignItems="AlignItems.Center">
+
+            <MudStack Direction="Row" AlignItems="AlignItems.Center" Spacing="2">
+                @if (!string.IsNullOrEmpty(State.ImagenUrl))
+                {
+                    <MudAvatar Size="Size.Large" Image="@State.ImagenUrl" Alt="@DisplayName" />
+                }
+                else
+                {
+                    <MudAvatar Size="Size.Large">@Initials</MudAvatar>
+                }
+
+                <MudText Typo="Typo.h6">
+                    Panel principal
+                </MudText>
+            </MudStack>
+
+            <MudDivider />
+
+            <MudText Typo="Typo.body1">
+                Aquí irá el contenido principal del sistema ANIR.
+            </MudText>
+
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                Usuario: @DisplayName
+                <br />
+                Estado: @(State.Active ? "Activo" : "Inactivo")
+                <br />
+                Roles: @RolesText
+            </MudText>
+
+        </MudStack>
+
+    </MudPaper>
+
+</MudContainer>
+
+@code {
+    private string DisplayName => string.IsNullOrWhiteSpace(State.FullName) ? "Usuario" : State.FullName!;
+    private string RolesText => (State.Roles == null || State.Roles.Count == 0) ? "Sin roles" : string.Join(", ", State.Roles);
+    private string Initials
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(State.FullName))
+                return "U";
+
+            var parts = State.FullName!.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 1)
+                return parts[0].Substring(0, 1).ToUpperInvariant();
+
+            return (parts[0].Substring(0, 1) + parts[^1].Substring(0, 1)).ToUpperInvariant();
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        State.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        State.OnChange -= StateHasChanged;
+    }
+}

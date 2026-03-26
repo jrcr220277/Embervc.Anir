@@ -1,0 +1,180 @@
+﻿@page "/login"
+@using Anir.Shared.Enums
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="pa-2">
+    <MudGrid Justify="Justify.Center" AlignItems="Center">
+        <MudItem xs="12" sm="10" md="6" lg="5" Class="d-flex flex-column align-items-center">
+
+            <!-- Encabezado -->
+            <div class="d-flex flex-column justify-center align-center mt-2">
+                <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Large" Class="mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Large" />
+                </MudAvatar>
+
+                <MudText Typo="Typo.h5" Class="font-weight-bold">Acceso al sistema</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-n1">
+                    Introduzca sus credenciales para continuar
+                </MudText>
+            </div>
+
+            <!-- Card -->
+            <MudCard Class="pa-6 mt-4" Elevation="2">
+                <MudCardContent>
+
+                    <MudGrid Justify="Justify.FlexStart" Class="mb-2">
+                        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick="GoHome" Title="Ir a Inicio" />
+                    </MudGrid>
+
+                    @if (isLoading)
+                    {
+                        <div class="d-flex justify-center align-center" style="min-height:220px;">
+                            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+                        </div>
+                    }
+                    else
+                    {
+                        <EditForm EditContext="_editContext" OnValidSubmit="HandleLoginAsync">
+                            <DataAnnotationsValidator />
+
+                            <MudStack Spacing="2">
+
+                                <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Email)"
+                                              For="@(() => _formModel.Email)"
+                                              @bind-Value="_formModel.Email"
+                                              InputType="InputType.Email"
+                                              HelperText="@ModelMetadataHelper.GetHelperText(() => _formModel.Email)"
+                                              HelperTextOnFocus="true"
+                                              Variant="Variant.Outlined"
+                                              Required="true"
+                                              FullWidth="true"
+                                              Margin="Margin.Dense"
+                                              Adornment="Adornment.End"
+                                              AdornmentIcon="@Icons.Material.Filled.AlternateEmail"
+                                              Clearable="true" />
+
+                                <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Password)"
+                                              For="@(() => _formModel.Password)"
+                                              @bind-Value="_formModel.Password"
+                                              InputType="@(showPassword? InputType.Text: InputType.Password)"
+                                              HelperText="@ModelMetadataHelper.GetHelperText(() => _formModel.Password)"
+                                              HelperTextOnFocus="true"
+                                              Variant="Variant.Outlined"
+                                              Required="true"
+                                              FullWidth="true"
+                                              Margin="Margin.Dense"
+                                              Adornment="Adornment.End"
+                                              AdornmentIcon="@(showPassword? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                                              OnAdornmentClick="TogglePasswordVisibility"
+                                              Clearable="true" />
+
+                                <MudText Typo="Typo.body2" Align="Align.End" Class="mt-2 d-flex justify-end">
+                                    <MudLink OnClick="OnForgotPassword"
+                                             Color="Color.Secondary"
+                                             Typo="Typo.body2"
+                                             Class="d-flex align-center">
+                                        ¿Olvidaste tu contraseña?
+                                    </MudLink>
+                                </MudText>
+
+                                <MudButton Loading="@isSaving"
+                                           Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           FullWidth="true"
+                                           ButtonType="ButtonType.Submit">
+                                    Entrar
+                                </MudButton>
+
+                            </MudStack>
+                        </EditForm>
+                    }
+
+                </MudCardContent>
+            </MudCard>
+
+            <!-- Registrarse -->
+            <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-4 d-flex justify-center align-center">
+                ¿No tienes cuenta?
+                <MudLink OnClick="GoRegister"
+                         Color="Color.Secondary"
+                         Class="ml-2 d-flex align-center"
+                         Typo="Typo.body2">
+                    Regístrate
+                </MudLink>
+            </MudText>
+
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    [Inject] private IAuthService AuthService { get; set; } = default!;
+    [Inject] private AuthenticationStateProvider AuthProvider { get; set; } = default!;
+    [Inject] private NavigationManager Nav { get; set; } = default!;
+    [Inject] private IAlertService Alerts { get; set; } = default!;
+    [Inject] private UserState State { get; set; } = default!;
+
+    private LoginRequest _formModel = new();
+    private EditContext? _editContext;
+
+    private bool isSaving = false;
+    private bool isLoading = false;
+    private bool showPassword = false;
+
+    private AuthenticationProviderJWT JwtProvider => (AuthenticationProviderJWT)AuthProvider;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _editContext = new EditContext(_formModel);
+
+        var state = await AuthProvider.GetAuthenticationStateAsync();
+
+        if (state.User.Identity?.IsAuthenticated == true)
+        {
+            Nav.NavigateTo("/dashboard", true);
+            return;
+        }
+    }
+
+    private void TogglePasswordVisibility() => showPassword = !showPassword;
+    private void OnForgotPassword() => Nav.NavigateTo("/forgot-password");
+    private void GoHome() => Nav.NavigateTo("/");
+    private void GoRegister() => Nav.NavigateTo("/register");
+
+    private async Task HandleLoginAsync()
+    {
+        if (_editContext == null || !_editContext.Validate())
+            return;
+
+        isSaving = true;
+
+        var result = await AuthService.LoginAsync(_formModel);
+
+        // ❌ Si falló → mostramos mensaje del backend
+        if (result.Result == ResponseStatus.Failed)
+        {
+            var msg = result.PrettyMessage
+                      ?? result.ErrorMessage
+                      ?? "Credenciales inválidas.";
+
+            await Alerts.ShowError("Error", msg);
+
+            isSaving = false;
+            return;
+        }
+
+        // ✔ Si todo OK → procesamos el token
+        var data = result.Value!;
+
+        await JwtProvider.LoginAsync(data.Token);
+
+        await Alerts.ShowSuccess(
+            "Bienvenido",
+            result.PrettyMessage ?? "Inicio de sesión exitoso."
+        );
+
+        Nav.NavigateTo("/dashboard");
+
+        isSaving = false;
+    }
+
+}

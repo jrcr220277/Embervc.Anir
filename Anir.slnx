@@ -1,0 +1,13 @@
+<Solution>
+  <Project Path="Anir.Api/Anir.Api.csproj">
+    <BuildDependency Project="Anir.Infrastructure/Anir.Infrastructure.csproj" />
+    <BuildDependency Project="Anir.Shared/Anir.Shared.csproj" />
+  </Project>
+  <Project Path="Anir.Client/Anir.Client.csproj" Id="2a1a0d31-2540-47f6-9cbf-57f98a856551" />
+  <Project Path="Anir.Data/Anir.Data.csproj" />
+  <Project Path="Anir.Infrastructure/Anir.Infrastructure.csproj">
+    <BuildDependency Project="Anir.Shared/Anir.Shared.csproj" />
+  </Project>
+  <Project Path="Anir.Shared/Anir.Shared.csproj" />
+  <Project Path="Anir.Tests/Anir.Tests.csproj" />
+</Solution>

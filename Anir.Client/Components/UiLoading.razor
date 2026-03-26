@@ -1,0 +1,38 @@
+﻿@using MudBlazor
+@implements IDisposable
+
+<div style="@WrapperStyle" role="status" aria-live="polite" class="d-flex align-items-center justify-content-center">
+    <div class="d-flex flex-column align-items-center" style="gap:8px;">
+        @if (Indeterminate)
+        {
+            <MudProgressCircular Color="@Color" Size="@Size" Indeterminate="true" />
+        }
+        else
+        {
+            <MudProgressCircular Color="@Color" Size="@Size" Value="@ProgressValue">
+                <ChildContent>
+                    <MudStack Spacing="0" AlignItems="AlignItems.Center" Justify="Justify.Center">
+                        <MudText Typo="Typo.subtitle2">@($"{ProgressValue:0}%")</MudText>
+                    </MudStack>
+                </ChildContent>
+            </MudProgressCircular>
+        }
+
+        <MudText Typo="Typo.subtitle2" Class="text-center">@Message</MudText>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Message { get; set; } = "Cargando...";
+    [Parameter] public Color Color { get; set; } = Color.Primary;
+    [Parameter] public Size Size { get; set; } = Size.Medium;
+    [Parameter] public bool Indeterminate { get; set; } = true;
+    [Parameter] public double ProgressValue { get; set; } = 0;
+    [Parameter] public string ContainerHeight { get; set; } = "auto"; // "auto" deja que el padre controle la altura
+
+    private string WrapperStyle => ContainerHeight == "auto"
+        ? "width:100%; display:flex; align-items:center; justify-content:center;"
+        : $"height:{ContainerHeight}; width:100%; display:flex; align-items:center; justify-content:center;";
+
+    public void Dispose() { /* placeholder si en el futuro añades simulación */ }
+}

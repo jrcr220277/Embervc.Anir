@@ -1,0 +1,57 @@
+@inject UserState User
+
+
+<MudNavMenu Dense="true" Class="mt-2">
+
+    <!-- DASHBOARD (todos los usuarios) -->
+    <MudNavLink Href="/dashboard"
+                Icon="@Icons.Material.Filled.Dashboard"
+                Match="NavLinkMatch.Prefix">
+        Dashboard
+    </MudNavLink>
+
+    <!-- COMPAÑÍAS (todos los usuarios activos) -->
+    @if (User.Active)
+    {
+        <MudNavLink Href="/companies"
+                    Icon="@Icons.Material.Filled.Domain"
+                    Match="NavLinkMatch.Prefix">
+            Compañías
+        </MudNavLink>
+    }
+
+    <!-- REPORTES (todos los usuarios activos) -->
+    @if (User.Active)
+    {
+        <MudNavLink Href="/reports"
+                    Icon="@Icons.Material.Filled.Assessment"
+                    Match="NavLinkMatch.Prefix">
+            Reportes
+        </MudNavLink>
+    }
+
+    <!-- USUARIOS (solo Administrador y Supervisor) -->
+    @if (User.Roles.Contains("Administrador") || User.Roles.Contains("Supervisor"))
+    {
+        <MudNavLink Href="/users"
+                    Icon="@Icons.Material.Filled.People"
+                    Match="NavLinkMatch.Prefix">
+            Gestión de Usuarios
+        </MudNavLink>
+    }
+
+    <!-- CONFIGURACIÓN (solo Administrador) -->
+    @if (User.Roles.Contains("Administrador"))
+    {
+        <MudNavLink Href="/settings"
+                    Icon="@Icons.Material.Filled.Settings"
+                    Match="NavLinkMatch.Prefix">
+            Configuración
+        </MudNavLink>
+    }
+
+</MudNavMenu>
+
+@code {
+    [Parameter] public bool DrawerOpen { get; set; }
+}
