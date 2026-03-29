@@ -4,7 +4,7 @@
 @using Anir.Client.Services.Company
 @using MudBlazor
 
-<MudContainer MaxWidth="MaxWidth.False" Class="pa-2">
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
 
     @if (IsInitializingPage)
     {
@@ -13,65 +13,56 @@
     }
 
     <!-- ============================================================
-     ENCABEZADO PRINCIPAL
+     ENCABEZADO PRINCIPAL (Profesional, limpio, con jerarquía)
      ============================================================ -->
-    <MudPaper Class="pa-2 mb-2">
-        <MudGrid>
-            <MudItem xs="12" sm="6">
-                <div class="d-flex align-center">
-                    <!-- Icono grande -->
-                    <MudIcon Icon="@Icons.Material.Filled.Domain" Color="Color.Primary" Size="Size.Large" />
-                    <div class="ml-2">
-                        <!-- Título -->
-                        <MudText Typo="Typo.h5" Color="Color.Primary">Clasificador de Empresas</MudText>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">
-                            Gestión de empresas: búsqueda, filtros y acciones masivas
-                        </MudText>
-                    </div>
+    <MudGrid Class="mb-2">
+        <MudItem xs="12">
+            <div class="d-flex align-center">
+                <MudIcon Icon="@Icons.Material.Rounded.Domain" Color="Color.Primary" Size="Size.Large" />
+                <div class="ml-3">
+                    <MudText Typo="Typo.h5" Class="fw-bold">Clasificador de Empresas</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Gestión de empresas: búsqueda, filtros y acciones masivas
+                    </MudText>
                 </div>
-            </MudItem>
-                       
-        </MudGrid>
-    </MudPaper>
+            </div>
+        </MudItem>
+    </MudGrid>
+
+    <MudDivider Class="mb-4" />
 
     <!-- ============================================================
-     ACTION BAR (Agregar, Buscar, Filtros)
+     ACTION BAR (Profesional, alineada, con peso visual)
      ============================================================ -->
-    <MudPaper Class="pa-2 mb-2">
+    <MudPaper Elevation="0" Outlined="true" Class="pa-3 mb-4">
+
         <MudGrid AlignItems="Center">
 
-            <!-- Botón Agregar -->
-            <MudItem xs="12" md="3" Class="d-flex align-center">
-                <MudButton Color="Color.Primary" Variant="Variant.Filled"
-                           StartIcon="@Icons.Material.Filled.AddCircleOutline"
+            <MudItem xs="12" md="3">
+                <MudButton Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           StartIcon="@Icons.Material.Rounded.AddCircleOutline"
                            OnClick="OpenAddModal">
                     Agregar
                 </MudButton>
             </MudItem>
 
-            <!-- Buscador -->
-            <MudItem xs="12" md="6" Class="d-flex align-center justify-center">
+            <MudItem xs="12" md="6">
                 <MudTextField T="string"
                               Value="@SearchText"
                               ValueChanged="OnSearchInput"
                               Clearable="true"
                               Placeholder="Buscar..."
-                              Adornment="Adornment.Start"
+                              Adornment="Adornment.End"
                               AdornmentIcon="@Icons.Material.Filled.Search"
-                              Immediate="true"
-                              Margin="Margin.Dense"
-                              Class="mud-width-full search-box" />
+                              Class="mud-width-full" />
             </MudItem>
 
-            <!-- Filtro Estado -->
             <MudItem xs="12" md="3" Class="d-flex justify-end">
                 <MudSelect T="string"
-                           Placeholder="Estado"
                            Value="@StatusFilterValue"
                            ValueChanged="OnStatusFilterChanged"
-                           Dense="true"
-                           Class="filter-select">
-
+                           Dense="false">
                     <MudSelectItem Value=@("Todos")>Todos</MudSelectItem>
                     <MudSelectItem Value=@("Activo")>Activo</MudSelectItem>
                     <MudSelectItem Value=@("Inactivo")>Inactivo</MudSelectItem>
@@ -79,78 +70,45 @@
             </MudItem>
 
         </MudGrid>
+
     </MudPaper>
 
-
     <!-- ============================================================
-         ACCIONES MASIVAS (solo si hay selección o global)
+         ACCIONES MASIVAS (Banner profesional)
          ============================================================ -->
     <MudCollapse Expanded="@(SelectedItems?.Any() == true || IsGlobalSelected)">
-        <MudPaper Class="pa-3 mb-2 bulk-actions-bar" Elevation="1">
+        <MudPaper Class="pa-4 mb-4" Elevation="0">
 
             <MudGrid AlignItems="Center">
 
-                <!-- IZQUIERDA -->
                 <MudItem xs="12" sm="6" Class="d-flex align-center">
+                    <MudIconButton Icon="@(IsGlobalSelected? Icons.Material.Rounded.Deselect : Icons.Material.Rounded.SelectAll)"
+                                   Edge="Edge.Start"
+                                   Size="Size.Medium"
+                                   OnClick="ToggleGlobalSelection" />
 
-                    <!-- Botón para activar selección global -->
-                    <MudIconButton Icon="@(
-                                                      IsGlobalSelected
-                                                      ? Icons.Material.Filled.Close
-                                                          : Icons.Material.Filled.SelectAll
-                    )"
-                               Color="Color.Primary"
-                               OnClick="ToggleGlobalSelection"
-                               Title="Seleccionar todos los elementos filtrados" />
-
-
-<MudText Typo="Typo.subtitle2" Class="fw-bold ml-2">
+                    <MudText Typo="Typo.subtitle1" Class="fw-bold ml-2">
                         @BulkSelectionText
                     </MudText>
-
-                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="ml-2">
-                        Acciones masivas disponibles
-                    </MudText>
+                                      
                 </MudItem>
 
-                <!-- DERECHA -->
                 <MudItem xs="12" sm="6" Class="d-flex justify-end">
-                    <MudStack Row="true" Spacing="1">
-
-                        <MudButton Color="Color.Error"
-                                   Variant="Variant.Filled"
-                                   StartIcon="@Icons.Material.Filled.DeleteForever"
-                                   Disabled="@IsProcessingBulkAction"
-                                   OnClick="DeleteSelected">
-                            Eliminar
-                        </MudButton>
-
-                        <MudButton Color="Color.Primary"
-                                   Variant="Variant.Outlined"
-                                   StartIcon="@Icons.Material.Filled.PictureAsPdf"
-                                   OnClick="ExportPdf">
-                            PDF
-                        </MudButton>
-
-                        <MudButton Color="Color.Primary"
-                                   Variant="Variant.Outlined"
-                                   StartIcon="@Icons.Material.Filled.GridOn"
-                                   OnClick="ExportExcel">
-                            Excel
-                        </MudButton>
-
+                    <MudStack Row="true" Spacing="0">
+                        <MudIconButton OnClick="ExportPdf" Icon="@Icons.Custom.FileFormats.FilePdf" aria-label="PDF" Size="Size.Medium" Edge="Edge.End" />
+                        <MudIconButton OnClick="ExportExcel" Icon="@Icons.Custom.FileFormats.FileExcel" aria-label="Excel" Size="Size.Medium" Edge="Edge.End" />
+                        <MudIconButton OnClick="DeleteSelected" Icon="@Icons.Material.Rounded.DeleteForever" aria-label="Eliminar" Color="Color.Error" Size="Size.Medium" Edge="Edge.End" />
                     </MudStack>
                 </MudItem>
 
             </MudGrid>
+
         </MudPaper>
     </MudCollapse>
 
-
-
     <!-- ============================================================
-         TABLA PRINCIPAL (ServerData)
-         ============================================================ -->
+         TABLA PRINCIPAL (Respira, se ve limpia)
+     ============================================================ -->
     <MudTable T="CompanyDto"
               ServerData="ServerReload"
               @ref="TableRef"
@@ -178,14 +136,14 @@
             <MudTd>@company.ProvinceName</MudTd>
             <MudTd>@company.MunicipalityName</MudTd>
             <MudTd>
-                <MudChip T="string" Color="@(company.Active ? Color.Success : Color.Error)" Size="Size.Small">
+                <MudChip T="string" Color="@(company.Active? Color.Success: Color.Error)" Variant="Variant.Filled" Size="Size.Small">
                     @(company.Active ? "Activa" : "Inactiva")
                 </MudChip>
             </MudTd>
             <MudTd Style="text-align:end">
-                <MudIconButton Icon="@Icons.Material.Filled.Visibility" OnClick="@(() => ViewCompany(company))" Size="Size.Small" />
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" OnClick="@(() => EditCompany(company))" Size="Size.Small" />
-                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteCompany(company))" Size="Size.Small" />
+                <MudIconButton Icon="@Icons.Material.Rounded.Visibility" OnClick="@(() => ViewCompany(company))" Size="Size.Small" />
+                <MudIconButton Icon="@Icons.Material.Rounded.Edit" OnClick="@(() => EditCompany(company))" Size="Size.Small" />
+                <MudIconButton Icon="@Icons.Material.Rounded.Delete" Color="Color.Error" OnClick="@(() => DeleteCompany(company))" Size="Size.Small" />
             </MudTd>
         </RowTemplate>
 
@@ -206,6 +164,7 @@
     </MudTable>
 
 </MudContainer>
+
 
 
 @code {
@@ -456,9 +415,8 @@
     /// </summary>
     private string BulkSelectionText =>
     IsGlobalSelected
-        ? "Seleccionando TODAS las empresas filtradas"
-        : $"{SelectedItems.Count} seleccionada{(SelectedItems.Count == 1 ? "" : "s")}";
-
+        ? "Seleccionado todo (filtro global aplicado)"
+        : $"{SelectedItems.Count} elemento{(SelectedItems.Count == 1 ? "" : "s")} seleccionado{(SelectedItems.Count == 1 ? "" : "s")}";
  
     // ============================================================
     // ACCIONES MASIVAS
