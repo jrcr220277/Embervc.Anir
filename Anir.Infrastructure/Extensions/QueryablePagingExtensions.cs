@@ -5,7 +5,7 @@ namespace Anir.Infrastructure.Extensions;
 
 public static class QueryablePagingExtensions
 {
-    public static IQueryable<T> ApplySorting<T>(this IQueryable<T> query, QueryParams qp)
+    public static IQueryable<T> ApplySorting<T>(this IQueryable<T> query, BaseQuery qp)
     {
         if (string.IsNullOrWhiteSpace(qp.Sort))
             return query.OrderBy(e => EF.Property<object>(e, "Id")); // default seguro
@@ -36,9 +36,9 @@ public static class QueryablePagingExtensions
         return query; // fallback
     }
 
-    public static async Task<PagedResult<T>> ToPagedResultAsync<T>(
+    public static async Task<PagedResponse<T>> ToPagedResultAsync<T>(
         this IQueryable<T> query,
-        QueryParams qp,
+        BaseQuery qp,
         CancellationToken ct = default)
     {
         var total = await query.CountAsync(ct);
@@ -47,7 +47,7 @@ public static class QueryablePagingExtensions
             .Take(qp.Size)
             .ToListAsync(ct);
 
-        return new PagedResult<T>
+        return new PagedResponse<T>
         {
             Items = items,
             TotalCount = total,  // ya cambiaste Total → TotalCount

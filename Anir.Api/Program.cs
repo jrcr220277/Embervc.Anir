@@ -2,6 +2,7 @@ using Anir.Data;
 using Anir.Data.Identity;
 using Anir.Data.Seeders;
 using Anir.Infrastructure.Jwt;
+using Anir.Infrastructure.Reports;
 using Anir.Infrastructure.Settings;
 using Anir.Infrastructure.Storage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -10,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using QuestPDF.Infrastructure;
 using Serilog;
 using System.Text;
 
@@ -96,6 +98,12 @@ builder.Services.AddSingleton<IFileStorage>(sp =>
     return new FileStorageService(env.WebRootPath);
 });
 
+// ============================================================
+// REPORTS
+// ============================================================
+QuestPDF.Settings.License = LicenseType.Community;
+builder.Services.AddScoped<IPdfService, PdfService>();
+builder.Services.AddScoped<ExcelService>();
 
 // ============================================================
 // CONTROLLERS + SWAGGER

@@ -75,7 +75,7 @@ namespace Anir.Data.Migrations
                     FullName = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
                     CellPhone = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
                     Email = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true)
+                    Description = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -88,8 +88,8 @@ namespace Anir.Data.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    ShortName = table.Column<string>(type: "text", nullable: false),
-                    Name = table.Column<string>(type: "text", nullable: false),
+                    ShortName = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Name = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
                     IsCapital = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
@@ -228,7 +228,7 @@ namespace Anir.Data.Migrations
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     ProvinceId = table.Column<int>(type: "integer", nullable: false),
-                    Name = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
                     IsProvinceCapital = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
@@ -248,11 +248,11 @@ namespace Anir.Data.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    ShortName = table.Column<string>(type: "text", nullable: false),
-                    Name = table.Column<string>(type: "text", nullable: false),
-                    Address = table.Column<string>(type: "text", nullable: true),
+                    ShortName = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Name = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    Address = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: true),
                     MunicipalityId = table.Column<int>(type: "integer", nullable: true),
-                    Active = table.Column<bool>(type: "boolean", nullable: false),
+                    Active = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
                     ProvinceId = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
@@ -281,14 +281,14 @@ namespace Anir.Data.Migrations
                     Date = table.Column<DateOnly>(type: "date", nullable: false),
                     AnirNumber = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
                     Title = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
-                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    Description = table.Column<string>(type: "text", nullable: true),
                     IsPaid = table.Column<bool>(type: "boolean", nullable: false),
                     IsGeneralized = table.Column<bool>(type: "boolean", nullable: false),
                     EconomicImpact = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
-                    Recommendations = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true),
-                    ResolutionNumber = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
-                    ImageId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    PdfId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true)
+                    Recommendations = table.Column<string>(type: "text", nullable: true),
+                    ResolutionNumber = table.Column<string>(type: "text", nullable: true),
+                    ImageId = table.Column<string>(type: "text", nullable: true),
+                    PdfId = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -418,12 +418,6 @@ namespace Anir.Data.Migrations
                 name: "IX_Companies_MunicipalityId",
                 table: "Companies",
                 column: "MunicipalityId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Companies_Name",
-                table: "Companies",
-                column: "Name",
-                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Companies_ProvinceId",

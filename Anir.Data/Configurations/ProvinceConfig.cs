@@ -15,19 +15,14 @@ namespace Anir.Data.Configurations
             builder.ToTable("Provinces");
 
             builder.HasKey(p => p.Id);
+            builder.Property(p => p.Id).ValueGeneratedOnAdd();
 
-            // Índices únicos
-            builder.HasIndex(p => p.ShortName)
-                   .IsUnique();
+            builder.Property(p => p.ShortName).IsRequired().HasMaxLength(50);
+            builder.Property(p => p.Name).IsRequired().HasMaxLength(150);
 
-            builder.HasIndex(p => p.Name)
-                   .IsUnique();
-
-            // Relación con Municipalities
-            builder.HasMany(p => p.Municipalities)
-                   .WithOne(m => m.Province)
-                   .HasForeignKey(m => m.ProvinceId)
-                   .OnDelete(DeleteBehavior.Restrict);
+            builder.HasIndex(p => p.Name).IsUnique();
+            builder.HasIndex(p => p.ShortName).IsUnique();
         }
     }
+
 }

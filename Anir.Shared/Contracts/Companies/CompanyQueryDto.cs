@@ -3,7 +3,7 @@ using Anir.Shared.Contracts.Common;
 
 namespace Anir.Shared.Contracts.Companies;
 
-public class CompanyQueryDto : QueryParams
+public class CompanyQueryDto : BaseQuery
 {
     public string? Search { get; set; }
     public bool? ActiveFilter { get; set; }

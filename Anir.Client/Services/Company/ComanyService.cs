@@ -9,12 +9,12 @@ namespace Anir.Client.Services.Company;
 
 public class CompanyService : ICompanyService
 {
-    private readonly HttpClient _http;
+    private readonly HttpClient _httpClient;
     private readonly JsonSerializerOptions _jsonOptions;
 
-    public CompanyService(HttpClient http)
+    public CompanyService(HttpClient httpClient)
     {
-        _http = http;
+        _httpClient = httpClient;
 
         // ⭐ CAMBIO IMPORTANTE:
         // El backend usa PascalCase → NO usar camelCase aquí.
@@ -47,21 +47,21 @@ public class CompanyService : ICompanyService
     // ============================================================
     // GET PAGED (POST, profesional, limpio)
     // ============================================================
-    public async Task<ProcessResponse<PagedResult<CompanyDto>>> GetPagedAsync(
+    public async Task<ProcessResponse<PagedResponse<CompanyDto>>> GetPagedAsync(
         CompanyQueryDto query,
         CancellationToken ct = default)
     {
         using var content = ToJsonContent(query);
-        using var response = await _http.PostAsync("/api/company/getpaged", content, ct);
+        using var response = await _httpClient.PostAsync("/api/company/getpaged", content, ct);
 
         if (!response.IsSuccessStatusCode)
         {
-            var body = await ReadJsonAsync<ProcessResponse<PagedResult<CompanyDto>>>(response, ct);
-            return body ?? ProcessResponse<PagedResult<CompanyDto>>.Fail($"Error HTTP {(int)response.StatusCode}");
+            var body = await ReadJsonAsync<ProcessResponse<PagedResponse<CompanyDto>>>(response, ct);
+            return body ?? ProcessResponse<PagedResponse<CompanyDto>>.Fail($"Error HTTP {(int)response.StatusCode}");
         }
 
-        var result = await ReadJsonAsync<ProcessResponse<PagedResult<CompanyDto>>>(response, ct);
-        return result ?? ProcessResponse<PagedResult<CompanyDto>>.Fail("Respuesta inválida del servidor.");
+        var result = await ReadJsonAsync<ProcessResponse<PagedResponse<CompanyDto>>>(response, ct);
+        return result ?? ProcessResponse<PagedResponse<CompanyDto>>.Fail("Respuesta inválida del servidor.");
     }
 
     // ============================================================
@@ -69,7 +69,7 @@ public class CompanyService : ICompanyService
     // ============================================================
     public async Task<ProcessResponse<CompanyDto>> GetByIdAsync(int id, CancellationToken ct = default)
     {
-        using var response = await _http.GetAsync($"/api/company/{id}", ct);
+        using var response = await _httpClient.GetAsync($"/api/company/{id}", ct);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -87,7 +87,7 @@ public class CompanyService : ICompanyService
     public async Task<ProcessResponse<CompanyDto>> CreateAsync(CompanyDto dto, CancellationToken ct = default)
     {
         using var content = ToJsonContent(dto);
-        using var response = await _http.PostAsync("/api/company", content, ct);
+        using var response = await _httpClient.PostAsync("/api/company", content, ct);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -105,7 +105,7 @@ public class CompanyService : ICompanyService
     public async Task<ProcessResponse<CompanyDto>> UpdateAsync(int id, CompanyDto dto, CancellationToken ct = default)
     {
         using var content = ToJsonContent(dto);
-        using var response = await _http.PutAsync($"/api/company/{id}", content, ct);
+        using var response = await _httpClient.PutAsync($"/api/company/{id}", content, ct);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -122,7 +122,7 @@ public class CompanyService : ICompanyService
     // ============================================================
     public async Task<ProcessResponse<bool>> DeleteAsync(int id, CancellationToken ct = default)
     {
-        using var response = await _http.DeleteAsync($"/api/company/{id}", ct);
+        using var response = await _httpClient.DeleteAsync($"/api/company/{id}", ct);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -140,7 +140,7 @@ public class CompanyService : ICompanyService
     public async Task<ProcessResponse<int>> DeleteBatchAsync(BulkSelectionRequest request, CancellationToken ct = default)
     {
         using var content = ToJsonContent(request);
-        using var response = await _http.PostAsync("/api/company/batch-delete", content, ct);
+        using var response = await _httpClient.PostAsync("/api/company/batch-delete", content, ct);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -151,4 +151,19 @@ public class CompanyService : ICompanyService
         var result = await ReadJsonAsync<ProcessResponse<int>>(response, ct);
         return result ?? ProcessResponse<int>.Fail("Respuesta inválida del servidor.");
     }
+
+    public async Task<HttpResponseMessage> ExportPdfAsync(BulkSelectionRequest request, CancellationToken ct = default)
+    {
+        using var content = ToJsonContent(request);
+        return await _httpClient.PostAsync("/api/company/export-pdf", content, ct);
+    }
+
+
+    public async Task<HttpResponseMessage> ExportExcelAsync(BulkSelectionRequest request, CancellationToken ct = default)
+    {
+        using var content = ToJsonContent(request);
+        return await _httpClient.PostAsync("/api/company/export-excel", content, ct);
+    }
+
+
 }

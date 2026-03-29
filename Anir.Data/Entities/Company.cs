@@ -23,15 +23,19 @@
         /// </summary>
         public string? Address { get; set; }
 
+       
         /// <summary>
         /// Identificador del municipio al que pertenece la empresa.
         /// </summary>
         public int? MunicipalityId { get; set; }
 
+
         /// <summary>
         /// Indica si la empresa está activa en el sistema.
         /// </summary>
         public bool Active { get; set; } = true;
+
+
 
         /// <summary>
         /// Municipio al que pertenece la empresa.

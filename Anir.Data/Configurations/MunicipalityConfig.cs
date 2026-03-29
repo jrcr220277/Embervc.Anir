@@ -15,22 +15,18 @@ namespace Anir.Data.Configurations
             builder.ToTable("Municipalities");
 
             builder.HasKey(m => m.Id);
+            builder.Property(m => m.Id).ValueGeneratedOnAdd();
 
-            // Índice único compuesto: ProvinceId + Name
-            builder.HasIndex(m => new { m.ProvinceId, m.Name })
-                   .IsUnique();
+            builder.Property(m => m.Name).IsRequired().HasMaxLength(150);
+            builder.Property(m => m.ProvinceId).IsRequired();
 
-            // Relación con Province
+            builder.HasIndex(m => new { m.ProvinceId, m.Name }).IsUnique();
+
             builder.HasOne(m => m.Province)
                    .WithMany(p => p.Municipalities)
                    .HasForeignKey(m => m.ProvinceId)
                    .OnDelete(DeleteBehavior.Restrict);
-
-            // Relación con Company
-            builder.HasMany(m => m.Companies)
-                   .WithOne(c => c.Municipality)
-                   .HasForeignKey(c => c.MunicipalityId)
-                   .OnDelete(DeleteBehavior.Restrict);
         }
     }
+
 }

@@ -1,14 +1,9 @@
 ﻿using Anir.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace Anir.Data.Configurations
 {
-    /// <summary>
-    /// Configuración EF Core para la entidad Company.
-    /// Define índices, restricciones y relaciones con Municipality.
-    /// </summary>
     public class CompanyConfig : IEntityTypeConfiguration<Company>
     {
         public void Configure(EntityTypeBuilder<Company> builder)
@@ -17,18 +12,22 @@ namespace Anir.Data.Configurations
 
             builder.HasKey(c => c.Id);
 
-            // Índices únicos
-            builder.HasIndex(c => c.ShortName)
-                   .IsUnique();
+            builder.Property(c => c.Id).ValueGeneratedOnAdd(); 
 
-            builder.HasIndex(c => c.Name)
-                   .IsUnique();
+            builder.Property(c => c.ShortName).IsRequired().HasMaxLength(50);
+            builder.Property(c => c.Name).IsRequired().HasMaxLength(150);
+            builder.Property(c => c.Address).HasMaxLength(250);
+            builder.Property(c => c.Active).HasDefaultValue(true);
 
-            // Relaciones
+            builder.HasIndex(c => c.ShortName).IsUnique();
+           
             builder.HasOne(c => c.Municipality)
                    .WithMany(m => m.Companies)
                    .HasForeignKey(c => c.MunicipalityId)
+                   .IsRequired(false)
                    .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasIndex(c => c.MunicipalityId);
         }
     }
 }

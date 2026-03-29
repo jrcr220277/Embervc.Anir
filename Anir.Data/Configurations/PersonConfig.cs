@@ -14,42 +14,17 @@ namespace Anir.Data.Configurations
         {
             builder.ToTable("Persons");
 
-            // Clave primaria
             builder.HasKey(p => p.Id);
+            builder.Property(p => p.Id).ValueGeneratedOnAdd();
 
-            builder.Property(p => p.Id)
-                   .ValueGeneratedOnAdd();
+            builder.Property(p => p.Dni).IsRequired().HasMaxLength(11);
+            builder.Property(p => p.FullName).IsRequired().HasMaxLength(150);
+            builder.Property(p => p.ImagenId).HasMaxLength(200);
+            builder.Property(p => p.CellPhone).HasMaxLength(20);
+            builder.Property(p => p.Email).HasMaxLength(100);
 
-            // Índice único en DNI
-            builder.HasIndex(p => p.Dni)
-                   .IsUnique();
-
-            // Propiedades y restricciones
-            builder.Property(p => p.Dni)
-                   .IsRequired()
-                   .HasMaxLength(11);
-
-            builder.Property(p => p.FullName)
-                   .IsRequired()
-                   .HasMaxLength(150);
-
-            builder.Property(p => p.CellPhone)
-                   .HasMaxLength(20);
-
-            builder.Property(p => p.Email)
-                   .HasMaxLength(100);
-
-            builder.Property(p => p.Description)
-                   .HasMaxLength(500);
-
-            builder.Property(p => p.ImagenId)
-                   .HasMaxLength(200);
-
-            // Relaciones
-            builder.HasMany(p => p.AnirWorkPersons)
-                   .WithOne(awp => awp.Person)
-                   .HasForeignKey(awp => awp.PersonId)
-                   .OnDelete(DeleteBehavior.Restrict);
+            builder.HasIndex(p => p.Dni).IsUnique();
         }
     }
+
 }

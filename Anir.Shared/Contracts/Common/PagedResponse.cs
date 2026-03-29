@@ -1,6 +1,6 @@
 ﻿namespace Anir.Shared.Contracts.Common;
 
-public class PagedResult<T>
+public class PagedResponse<T>
 {
     public List<T> Items { get; set; } = [];
     public int TotalCount { get; set; }

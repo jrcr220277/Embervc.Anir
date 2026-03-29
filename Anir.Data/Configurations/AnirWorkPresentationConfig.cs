@@ -15,14 +15,15 @@ namespace Anir.Data.Configurations
             builder.ToTable("AnirWorkPresentations");
 
             builder.HasKey(x => x.Id);
+            builder.Property(x => x.Id).ValueGeneratedOnAdd();
 
-            builder.Property(x => x.Notes)
-                   .HasMaxLength(500);
+            builder.Property(x => x.Notes).HasMaxLength(500);
 
             builder.HasOne(x => x.AnirWork)
-                   .WithMany(w => w.AnirWorkPresentations)
+                   .WithMany(a => a.AnirWorkPresentations)
                    .HasForeignKey(x => x.AnirWorkId)
                    .OnDelete(DeleteBehavior.Cascade);
         }
     }
+
 }

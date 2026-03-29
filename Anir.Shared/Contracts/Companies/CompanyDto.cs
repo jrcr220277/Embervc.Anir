@@ -21,6 +21,9 @@ public class CompanyDto
     [Display(Name = "Dirección")]
     public string? Address { get; set; }
 
+    [Display(Name = "Provincia")]
+    public string? ProvinceName { get; set; }
+
     [Display(Name = "Municipio")]
     public int? MunicipalityId { get; set; }
 

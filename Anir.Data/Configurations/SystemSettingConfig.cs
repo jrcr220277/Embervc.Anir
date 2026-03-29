@@ -14,26 +14,16 @@ namespace Anir.Data.Configurations
         {
             builder.ToTable("SystemSettings");
 
-            builder.HasKey(e => e.Id);
+            builder.HasKey(s => s.Id);
+            builder.Property(s => s.Id).ValueGeneratedOnAdd();
 
-            builder.Property(e => e.Name)
-                   .IsRequired()
-                   .HasMaxLength(200);
-
-            builder.Property(e => e.Email)
-                   .HasMaxLength(150);
-
-            builder.Property(e => e.Phone)
-                   .HasMaxLength(50);
-
-            builder.Property(e => e.Website)
-                   .HasMaxLength(150);
-
-            builder.Property(e => e.Address)
-                   .HasMaxLength(300);
-
-            builder.Property(e => e.LogoId)
-                   .HasMaxLength(200);
+            builder.Property(s => s.Name).IsRequired().HasMaxLength(200);
+            builder.Property(s => s.LogoId).HasMaxLength(200);
+            builder.Property(s => s.Address).HasMaxLength(300);
+            builder.Property(s => s.Phone).HasMaxLength(50);
+            builder.Property(s => s.Email).HasMaxLength(150);
+            builder.Property(s => s.Website).HasMaxLength(150);
         }
     }
+
 }
