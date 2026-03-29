@@ -4,7 +4,7 @@
 @using Anir.Client.Services.Company
 @using MudBlazor
 
-<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-3">
 
     @if (IsInitializingPage)
     {
@@ -38,7 +38,8 @@
 
         <MudGrid AlignItems="Center">
 
-            <MudItem xs="12" md="3">
+            <!-- IZQUIERDA (3 columnas) -->
+            <MudItem xs="12" sm="3">
                 <MudButton Color="Color.Primary"
                            Variant="Variant.Filled"
                            StartIcon="@Icons.Material.Rounded.AddCircleOutline"
@@ -47,37 +48,44 @@
                 </MudButton>
             </MudItem>
 
-            <MudItem xs="12" md="6">
+            <!-- CENTRO (6 columnas, centrado REAL) -->
+            <MudItem xs="12" sm="6" Class="d-flex justify-center">
                 <MudTextField T="string"
                               Value="@SearchText"
                               ValueChanged="OnSearchInput"
+                              Immediate="true"
                               Clearable="true"
                               Placeholder="Buscar..."
                               Adornment="Adornment.End"
-                              AdornmentIcon="@Icons.Material.Filled.Search"
-                              Class="mud-width-full" />
+                              AdornmentIcon="@Icons.Material.Rounded.Search" />
             </MudItem>
 
-            <MudItem xs="12" md="3" Class="d-flex justify-end">
-                <MudSelect T="string"
-                           Value="@StatusFilterValue"
-                           ValueChanged="OnStatusFilterChanged"
-                           Dense="false">
-                    <MudSelectItem Value=@("Todos")>Todos</MudSelectItem>
-                    <MudSelectItem Value=@("Activo")>Activo</MudSelectItem>
-                    <MudSelectItem Value=@("Inactivo")>Inactivo</MudSelectItem>
-                </MudSelect>
+            <!-- DERECHA (3 columnas, alineado a la derecha) -->
+            <MudItem xs="12" sm="3" Class="d-flex justify-end">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudIcon Icon="@Icons.Material.Rounded.FilterList" Size="Size.Medium" />
+                    <MudSelect T="string"
+                               Value="@StatusFilterValue"
+                               ValueChanged="OnStatusFilterChanged"
+                               Style="width: 100px;">
+                        
+                        <MudSelectItem Value=@("Todos")>Todos</MudSelectItem>
+                        <MudSelectItem Value=@("Activo")>Activo</MudSelectItem>
+                        <MudSelectItem Value=@("Inactivo")>Inactivo</MudSelectItem>
+                    </MudSelect>
+                </MudStack>
             </MudItem>
 
         </MudGrid>
 
     </MudPaper>
 
+
     <!-- ============================================================
          ACCIONES MASIVAS (Banner profesional)
          ============================================================ -->
     <MudCollapse Expanded="@(SelectedItems?.Any() == true || IsGlobalSelected)">
-        <MudPaper Class="pa-4 mb-4" Elevation="0">
+        <MudPaper Class="pa-3 mb-4" Elevation="0">
 
             <MudGrid AlignItems="Center">
 
@@ -87,7 +95,7 @@
                                    Size="Size.Medium"
                                    OnClick="ToggleGlobalSelection" />
 
-                    <MudText Typo="Typo.subtitle1" Class="fw-bold ml-2">
+                    <MudText Typo="Typo.body2" Class="fw-bold ml-2">
                         @BulkSelectionText
                     </MudText>
                                       
@@ -127,7 +135,7 @@
             <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="ProvinceName">Provincia</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="MunicipalityName">Municipio</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="Active">Estado</MudTableSortLabel></MudTh>
-            <MudTh Style="text-align:end">Acciones</MudTh>
+            <MudTh Style="width: 120px; text-align:end">Acciones</MudTh>
         </HeaderContent>
 
         <RowTemplate Context="company">
@@ -140,7 +148,7 @@
                     @(company.Active ? "Activa" : "Inactiva")
                 </MudChip>
             </MudTd>
-            <MudTd Style="text-align:end">
+            <MudTd Style="width: 120px; text-align:end">
                 <MudIconButton Icon="@Icons.Material.Rounded.Visibility" OnClick="@(() => ViewCompany(company))" Size="Size.Small" />
                 <MudIconButton Icon="@Icons.Material.Rounded.Edit" OnClick="@(() => EditCompany(company))" Size="Size.Small" />
                 <MudIconButton Icon="@Icons.Material.Rounded.Delete" Color="Color.Error" OnClick="@(() => DeleteCompany(company))" Size="Size.Small" />
@@ -148,7 +156,7 @@
         </RowTemplate>
 
         <NoRecordsContent>
-            <MudText Typo="Typo.body1" Class="pa-4 text-center">
+            <MudText Typo="Typo.body2" Class="pa-4 text-center">
                 No se encontraron datos para mostrar.
             </MudText>
         </NoRecordsContent>
@@ -189,6 +197,7 @@
     private MudTable<CompanyDto>? TableRef;
     private HashSet<CompanyDto> SelectedItems = new(new CompanyDtoComparer());
 
+    private bool IsGlobalSelected = false;
     private string SearchText = string.Empty;
     private string StatusFilterValue = "Todos";
 
@@ -197,9 +206,7 @@
     private CancellationTokenSource? _searchDebounceCts;
     private CancellationTokenSource? _serverReloadCts;
 
-    // Flag para saber si está activa la selección global
-    private bool IsGlobalSelected = false;
-
+   
     protected override Task OnInitializedAsync()
     {
         IsInitializingPage = false;

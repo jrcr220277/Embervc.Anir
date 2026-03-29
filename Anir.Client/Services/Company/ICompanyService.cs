@@ -12,7 +12,6 @@ namespace Anir.Client.Services.Company
         Task<ProcessResponse<bool>> DeleteAsync(int id, CancellationToken ct = default);
         Task<ProcessResponse<int>> DeleteBatchAsync(BulkSelectionRequest request, CancellationToken ct = default);
         Task<HttpResponseMessage> ExportPdfAsync(BulkSelectionRequest request, CancellationToken ct = default);
-
         Task<HttpResponseMessage> ExportExcelAsync(BulkSelectionRequest request, CancellationToken ct = default);
     }
 }
