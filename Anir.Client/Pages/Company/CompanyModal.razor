@@ -5,25 +5,28 @@
 @using Anir.Shared.Contracts
 @using Anir.Shared.Contracts.Companies
 
-<MudDialog Style="width: 780px; max-width: 95vw;">
+<MudDialog Elevation="24" Style="width: 780px; max-width: 95vw;">
 
     <!-- ============================
-         TÍTULO DEL MODAL
-         ============================ -->
+     TÍTULO DEL MODAL (PRO)
+     ============================ -->
     <TitleContent>
-        <MudStack Direction="Row" AlignItems="AlignItems.Center" Spacing="2">
-            <MudIcon Icon="@(CurrentMode == ModalMode.Add ? Icons.Material.Filled.AddCircle :
-                                                      CurrentMode == ModalMode.Edit ? Icons.Material.Filled.Edit :
-                                                      Icons.Material.Filled.Visibility)"
-                     Size="Size.Medium" Color="Color.Primary" />
+        <MudText Typo="Typo.h6" Class="d-flex align-items-center gap-2 font-weight-medium">
 
-            <MudText Typo="Typo.h6">
-                @(CurrentMode == ModalMode.Add ? "Crear Empresa" :
-                  CurrentMode == ModalMode.Edit ? "Editar Empresa" :
-                  "Detalle de la Empresa")
-            </MudText>
-        </MudStack>
+            <MudIcon Icon="@(CurrentMode == ModalMode.Add ? Icons.Material.Filled.AddCircle :
+                                                                                 CurrentMode == ModalMode.Edit ? Icons.Material.Filled.Edit :
+                                                                                 Icons.Material.Filled.Visibility)"
+                     Size="Size.Large"
+                     Color="Color.Primary" />
+
+            @(CurrentMode == ModalMode.Add ? "Crear Empresa" :
+              CurrentMode == ModalMode.Edit ? "Editar Empresa" :
+              "Detalle de la Empresa")
+
+        </MudText>
     </TitleContent>
+
+
 
     <!-- ============================
          CONTENIDO DEL MODAL
@@ -42,16 +45,18 @@
                 <MudGrid Spacing="3">
 
                     <!-- ============================
-                         COLUMNA IZQUIERDA: DATOS BÁSICOS
+                         COLUMNA IZQUIERDA
                          ============================ -->
                     <MudItem xs="12" md="8">
                         <MudPaper Elevation="1" Outlined="true" Rounded="true" Class="pa-4 mb-4">
 
-
-                            <MudText Typo="Typo.subtitle1" Class="mb-3 font-weight-bold">
+                            <MudText Typo="Typo.subtitle1"
+                                     Color="Color.Primary"
+                                     Class="font-weight-medium mb-1">
                                 Detalles de la Empresa
                             </MudText>
-                                                      
+
+                            <MudDivider Class="mb-3" />
 
                             <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.ShortName)"
                                           For="@(() => _formModel.ShortName)"
@@ -93,24 +98,30 @@
                     </MudItem>
 
                     <!-- ============================
-                         COLUMNA DERECHA: UBICACIÓN
+                         COLUMNA DERECHA
                          ============================ -->
                     <MudItem xs="12" md="4">
                         <MudPaper Elevation="1" Outlined="true" Rounded="true" Class="pa-4 mb-4">
 
-                            <MudText Typo="Typo.subtitle1" Class="mb-3 font-weight-bold">
+                            <MudText Typo="Typo.subtitle1"
+                                     Color="Color.Primary"
+                                     Class="font-weight-medium mb-1">
                                 Ubicación y Estado
                             </MudText>
 
+                            <MudDivider Class="mb-3" />
+
                             <!-- PROVINCIA -->
                             <MudSelect T="int"
+                                       Label="Provincia"
                                        Value="SelectedProvinceId"
                                        ValueChanged="OnProvinceChanged"
+                                       Variant="Variant.Outlined"
                                        Margin="Margin.Dense"
                                        FullWidth="true"
                                        Dense="true"
+                                       Class="mb-3"
                                        Disabled="@(IsViewMode)">
-
 
                                 <MudSelectItem T="int" Value="0">- Seleccionar -</MudSelectItem>
 
@@ -124,9 +135,11 @@
                             <MudSelect T="int?"
                                        Label="Municipio"
                                        @bind-Value="_formModel.MunicipalityId"
+                                       Variant="Variant.Outlined"
                                        Margin="Margin.Dense"
                                        FullWidth="true"
                                        Dense="true"
+                                       Class="mb-3"
                                        Disabled="@(IsViewMode || SelectedProvinceId == 0)">
 
                                 <MudSelectItem T="int?" Value="@((int?)null)">- Seleccionar -</MudSelectItem>
@@ -140,9 +153,9 @@
                             <!-- ESTADO -->
                             <MudSwitch T="bool"
                                        @bind-Checked="_formModel.Active"
-                                       Color="Color.Primary"
+                                       Color="@(_formModel.Active ? Color.Success : Color.Error)"
                                        Disabled="@(IsViewMode)"
-                                       Class="mt-4"
+                                       Class="mt-5"
                                        Label="@(_formModel.Active ? "Activo" : "Inactivo")" />
 
                         </MudPaper>
@@ -154,28 +167,30 @@
     </DialogContent>
 
     <!-- ============================
-         BOTONES DEL MODAL
+         BOTONES
          ============================ -->
     <DialogActions>
-        
 
         @if (!IsViewMode)
         {
             <MudButton Variant="Variant.Filled"
                        Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Save"
+                       Size="Size.Medium"
+                       DisableElevation="true"
                        ButtonType="ButtonType.Submit"
                        Form="form-entity"
                        Disabled="@_isSaving">
 
                 @if (_isSaving)
                 {
-                    <MudProgressCircular Size="Size.Small" />
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" />
                 }
 
                 Guardar
             </MudButton>
         }
-      
+
     </DialogActions>
 
 </MudDialog>
@@ -192,7 +207,7 @@
     [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
 
     // ============================================================
-    // PARÁMETROS DEL MODAL
+    // PARÁMETROS
     // ============================================================
     [Parameter] public ModalMode CurrentMode { get; set; }
     [Parameter] public CompanyDto? Company { get; set; }
@@ -201,7 +216,7 @@
     public enum ModalMode { Add, Edit, View }
 
     // ============================================================
-    // ESTADO INTERNO
+    // ESTADO
     // ============================================================
     private bool _isLoading = true;
     private bool _isSaving = false;
@@ -214,13 +229,12 @@
     private EditContext? _editContext;
 
     // ============================================================
-    // DATOS DE UBICACIÓN
+    // UBICACIÓN
     // ============================================================
     private List<ProvinceDto> AllProvinces = new();
     private List<MunicipalityDto> AllMunicipalities = new();
     private List<MunicipalityDto> FilteredMunicipalities = new();
 
-    // Provincia seleccionada
     private int SelectedProvinceId;
 
     // ============================================================
@@ -237,7 +251,7 @@
     }
 
     // ============================================================
-    // CARGA DE PARÁMETROS (EDITAR / VER)
+    // CARGA DE PARÁMETROS
     // ============================================================
     protected override void OnParametersSet()
     {
@@ -268,17 +282,16 @@
     }
 
     // ============================================================
-    // REFRESCAR LISTA DE MUNICIPIOS AL CARBIAR PROVINCIA
+    // CAMBIO DE PROVINCIA
     // ============================================================
     private void OnProvinceChanged(int value)
     {
-        SelectedProvinceId = value;   // ← breakpoint aquí
-        FilterMunicipalities();       // ← breakpoint aquí
+        SelectedProvinceId = value;
+        FilterMunicipalities();
     }
 
-
     // ============================================================
-    // FILTRAR MUNICIPIOS POR PROVINCIA
+    // FILTRAR MUNICIPIOS
     // ============================================================
     private void FilterMunicipalities()
     {
@@ -289,7 +302,6 @@
 
         if (!FilteredMunicipalities.Any(item => item.Id == _formModel.MunicipalityId))
             _formModel.MunicipalityId = null;
-
     }
 
     // ============================================================
@@ -297,7 +309,7 @@
     // ============================================================
     private async Task HandleSubmitAsync()
     {
-        if (_editContext == null || !_editContext.Validate())
+        if (_editContext is null || !_editContext.Validate())
             return;
 
         _isSaving = true;
@@ -305,21 +317,26 @@
 
         try
         {
-            ProcessResponse<CompanyDto>? response = CurrentMode == ModalMode.Add
-                ? await CompanyService.CreateAsync(_formModel)
-                : await CompanyService.UpdateAsync(_formModel.Id, _formModel);
+            ProcessResponse<CompanyDto>? response;
+
+            if (CurrentMode == ModalMode.Add)
+            {
+                response = await CompanyService.CreateAsync(_formModel);
+            }
+            else
+            {
+                response = await CompanyService.UpdateAsync(_formModel.Id, _formModel);
+            }
 
             if (response?.Result == ResponseStatus.Success)
             {
                 await AlertService.ShowSuccess("Éxito", "Guardado correctamente.");
                 await OnListUpdated.InvokeAsync();
                 Dialog.Close(DialogResult.Ok(true));
+                return;
             }
-            else
-            {
-                await AlertService.ShowError("Error", response?.ErrorMessage ?? response?.PrettyMessage ?? "Error al guardar.");
 
-            }
+            await AlertService.ShowError("Error", response?.ErrorMessage ?? response?.PrettyMessage ?? "Error al guardar.");
         }
         catch
         {
@@ -331,5 +348,6 @@
             StateHasChanged();
         }
     }
+
 
 }

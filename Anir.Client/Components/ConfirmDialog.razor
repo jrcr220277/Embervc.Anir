@@ -1,0 +1,198 @@
+﻿<!--
+    COMPONENTE: ConfirmDialog
+    PROPÓSITO:
+    - Mostrar un diálogo de confirmación reutilizable.
+    - Iconos y colores automáticos según el tipo de diálogo.
+    - Icono del botón de acción automático según el tipo.
+    - Se usa desde cualquier página llamando al método estático Show().
+
+    ============================================================
+    CASOS DE USO (A–E)
+    ============================================================
+
+    A) Confirmación normal
+       ----------------------------------------------------------
+       var confirmed = await ConfirmDialog.Show(
+           DialogService,
+           "Confirmar acción",
+           "¿Desea continuar?"
+       );
+
+       if (!confirmed)
+           return;
+
+    B) Confirmación de eliminación (DELETE)
+       ----------------------------------------------------------
+       var confirmed = await ConfirmDialog.Show(
+           DialogService,
+           "Eliminar Empresa",
+           $"¿Eliminar {company.ShortName}?",
+           type: ConfirmDialogType.Delete,
+           confirmText: "Eliminar",
+           centerMessage: true
+       );
+
+       if (!confirmed)
+           return;
+
+    C) Confirmación masiva (DELETE)
+       ----------------------------------------------------------
+       var confirmed = await ConfirmDialog.Show(
+           DialogService,
+           "Eliminar seleccionadas",
+           IsGlobalSelected
+               ? "¿Eliminar TODAS las empresas filtradas?"
+               : $"¿Eliminar {SelectedItems.Count} empresas?",
+           type: ConfirmDialogType.Delete,
+           confirmText: "Eliminar",
+           centerMessage: true
+       );
+
+       if (!confirmed)
+           return;
+
+    D) Advertencia (WARNING)
+       ----------------------------------------------------------
+       var confirmed = await ConfirmDialog.Show(
+           DialogService,
+           "Advertencia",
+           "Esta acción no se puede deshacer.",
+           type: ConfirmDialogType.Warning,
+           confirmText: "Entiendo"
+       );
+
+       if (!confirmed)
+           return;
+
+    E) Éxito (SUCCESS)
+       ----------------------------------------------------------
+       var confirmed = await ConfirmDialog.Show(
+           DialogService,
+           "Finalizado",
+           "La operación se completó correctamente.",
+           type: ConfirmDialogType.Success,
+           confirmText: "Aceptar"
+       );
+
+       if (!confirmed)
+           return;
+
+    ============================================================
+    NOTA SOBRE EL TEXTO DEL MENSAJE
+    ============================================================
+    - Por defecto, el texto va alineado a la izquierda (estándar Material Design).
+    - Para mensajes cortos tipo “¿Eliminar X?”, se puede centrar con centerMessage: true.
+-->
+
+@using MudBlazor
+@using Anir.Shared.Enums
+
+<MudDialog>
+
+    <!-- TÍTULO -->
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+            <MudIcon Icon="@ResolvedAlertIcon" Color="@ResolvedColor" />
+            <MudText Typo="Typo.h6">@Title</MudText>
+        </MudStack>
+    </TitleContent>
+
+    <!-- MENSAJE -->
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="@MessageCss">@Message</MudText>
+    </DialogContent>
+
+    <!-- BOTONES -->
+    <DialogActions>
+        <MudButton Color="Color.Default" StartIcon="@Icons.Material.Filled.Close" OnClick="Cancel">
+            @CancelText
+        </MudButton>
+
+        <MudButton Color="@ResolvedColor" Variant="Variant.Filled" StartIcon="@ResolvedActionIcon" OnClick="Confirm">
+            @ConfirmText
+        </MudButton>
+    </DialogActions>
+
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public string Title { get; set; } = "Confirmar";
+    [Parameter] public string Message { get; set; } = "";
+    [Parameter] public string ConfirmText { get; set; } = "Aceptar";
+    [Parameter] public string CancelText { get; set; } = "Cancelar";
+    [Parameter] public bool CenterMessage { get; set; } = false;
+
+    [Parameter] public ConfirmDialogType Type { get; set; } = ConfirmDialogType.Default;
+
+    private string MessageCss => CenterMessage ? "text-center" : "";
+
+    // COLOR AUTOMÁTICO
+    private Color ResolvedColor => Type switch
+    {
+        ConfirmDialogType.Delete => Color.Error,
+        ConfirmDialogType.Warning => Color.Warning,
+        ConfirmDialogType.Success => Color.Success,
+        ConfirmDialogType.Info => Color.Info,
+        _ => Color.Primary
+    };
+
+    // ICONO DEL TÍTULO (ESTILO ALERT)
+    private string ResolvedAlertIcon => Type switch
+    {
+        ConfirmDialogType.Delete => Icons.Material.Filled.Error,          // rojo
+        ConfirmDialogType.Warning => Icons.Material.Filled.Warning,       // amarillo
+        ConfirmDialogType.Success => Icons.Material.Filled.CheckCircle,   // verde
+        ConfirmDialogType.Info => Icons.Material.Filled.Info,             // azul
+        _ => Icons.Material.Filled.HelpOutline
+    };
+
+    // ICONO DEL BOTÓN (ACCIÓN)
+    private string ResolvedActionIcon => Type switch
+    {
+        ConfirmDialogType.Delete => Icons.Material.Filled.Delete,
+        ConfirmDialogType.Warning => Icons.Material.Filled.WarningAmber,
+        ConfirmDialogType.Success => Icons.Material.Filled.Check,
+        ConfirmDialogType.Info => Icons.Material.Filled.Info,
+        _ => Icons.Material.Filled.Done
+    };
+
+    void Confirm() => MudDialog.Close(DialogResult.Ok(true));
+    void Cancel() => MudDialog.Cancel();
+
+    public static async Task<bool> Show(
+        IDialogService dialogService,
+        string title,
+        string message,
+        ConfirmDialogType type = ConfirmDialogType.Default,
+        string confirmText = "Aceptar",
+        string cancelText = "Cancelar",
+        bool centerMessage = false)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Title"] = title,
+            ["Message"] = message,
+            ["Type"] = type,
+            ["ConfirmText"] = confirmText,
+            ["CancelText"] = cancelText,
+            ["CenterMessage"] = centerMessage
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = false,
+            BackdropClick = false,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            Position = DialogPosition.Center
+        };
+
+        var dialog = await dialogService.ShowAsync<ConfirmDialog>("", parameters, options);
+        var result = await dialog.Result;
+
+        return result.Data is true;
+    }
+}
+

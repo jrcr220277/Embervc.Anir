@@ -1,4 +1,5 @@
-﻿using MudBlazor;
+﻿using Microsoft.AspNetCore.Components;
+using MudBlazor;
 
 namespace Anir.Client.Services.Alerts
 {
@@ -19,11 +20,20 @@ namespace Anir.Client.Services.Alerts
                 title,
                 message,
                 yesText: "Aceptar",
-                cancelText: "Cancelar"
+                cancelText: "Cancelar",
+                options: new DialogOptions
+                {
+                    MaxWidth = MaxWidth.Small,
+                    FullWidth = true,
+                    BackdropClick = false,
+                    CloseButton = false,
+                    Position = DialogPosition.Center
+                }
             );
 
             return result == true;
         }
+
 
         public Task ShowSuccess(string title, string message)
         {

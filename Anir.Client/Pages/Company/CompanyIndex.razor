@@ -63,7 +63,7 @@
             <!-- DERECHA (3 columnas, alineado a la derecha) -->
             <MudItem xs="12" sm="3" Class="d-flex justify-end">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                    <MudIcon Icon="@Icons.Material.Rounded.FilterList" Size="Size.Medium" />
+                    <MudIcon Icon="@Icons.Material.Rounded.FilterAlt" Size="Size.Medium" />
                     <MudSelect T="string"
                                Value="@StatusFilterValue"
                                ValueChanged="OnStatusFilterChanged"
@@ -85,7 +85,7 @@
          ACCIONES MASIVAS (Banner profesional)
          ============================================================ -->
     <MudCollapse Expanded="@(SelectedItems?.Any() == true || IsGlobalSelected)">
-        <MudPaper Class="pa-3 mb-4" Elevation="0">
+        <MudPaper Class="pa-4 mb-4" Elevation="0">
 
             <MudGrid AlignItems="Center">
 
@@ -379,18 +379,27 @@
     // ============================================================
     private async Task DeleteCompany(CompanyDto company)
     {
-        var confirmed = await AlertService.ShowConfirmation(
-          "Eliminar Registro",
-          $"¿Desea eliminar {company.ShortName}?");
+        var confirmed = await ConfirmDialog.Show(
+            DialogService,
+            "Eliminar Empresa",
+            $"¿Eliminar {company.ShortName}?",
+            type: ConfirmDialogType.Delete,
+            confirmText: "Eliminar",
+            centerMessage: true
+        );
 
-        if (!confirmed) return;
+        if (!confirmed)
+            return;
 
         var response = await CompanyService.DeleteAsync(company.Id);
 
         if (response.Result == ResponseStatus.Success)
         {
             SelectedItems.RemoveWhere(c => c.Id == company.Id);
-            if (TableRef != null) await TableRef.ReloadServerData();
+
+            if (TableRef != null)
+                await TableRef.ReloadServerData();
+
             await AlertService.ShowSuccess("Éxito", "Empresa eliminada correctamente.");
         }
         else
@@ -398,6 +407,7 @@
             await AlertService.ShowError("Error", response.ErrorMessage ?? "No se pudo eliminar.");
         }
     }
+
 
     // ============================================================
     // SELECCIÓN
@@ -430,14 +440,21 @@
     // ============================================================
     private async Task DeleteSelected()
     {
-        var confirmed = await AlertService.ShowConfirmation(
-            "Eliminar seleccionadas",
-            IsGlobalSelected
-                ? "¿Eliminar TODAS las empresas filtradas?"
-                : $"¿Eliminar {SelectedItems.Count} empresas?"
-        );
+        var confirmed = await ConfirmDialog.Show(
+        DialogService,
+        "Eliminar seleccionadas",
+        IsGlobalSelected
+            ? "¿Eliminar TODAS las empresas filtradas?"
+            : $"¿Eliminar {SelectedItems.Count} empresas?",
+        type: ConfirmDialogType.Delete,
+        confirmText: "Eliminar",
+        centerMessage: true
+    );
 
-        if (!confirmed) return;
+        if (!confirmed)
+            return;
+
+        IsProcessingBulkAction = true;
 
         IsProcessingBulkAction = true;
 
