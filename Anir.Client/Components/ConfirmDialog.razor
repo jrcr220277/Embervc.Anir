@@ -2,8 +2,10 @@
     COMPONENTE: ConfirmDialog
     PROPÓSITO:
     - Mostrar un diálogo de confirmación reutilizable.
-    - Iconos y colores automáticos según el tipo de diálogo.
+    - Icono grande centrado (56px) estilo MudAlert.
+    - Colores automáticos según el tipo.
     - Icono del botón de acción automático según el tipo.
+    - Diseño moderno único (sin variantes).
     - Se usa desde cualquier página llamando al método estático Show().
 
     ============================================================
@@ -80,38 +82,67 @@
     ============================================================
     NOTA SOBRE EL TEXTO DEL MENSAJE
     ============================================================
-    - Por defecto, el texto va alineado a la izquierda (estándar Material Design).
-    - Para mensajes cortos tipo “¿Eliminar X?”, se puede centrar con centerMessage: true.
+    - El texto se puede centrar con centerMessage: true.
+    - El diseño siempre usa icono grande centrado (56px).
 -->
+
+
+
 
 @using MudBlazor
 @using Anir.Shared.Enums
 
 <MudDialog>
 
-    <!-- TÍTULO -->
-    <TitleContent>
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-            <MudIcon Icon="@ResolvedAlertIcon" Color="@ResolvedColor" />
-            <MudText Typo="Typo.h6">@Title</MudText>
-        </MudStack>
-    </TitleContent>
-
-    <!-- MENSAJE -->
+    <!-- CONTENIDO PRINCIPAL -->
     <DialogContent>
-        <MudText Typo="Typo.body2" Class="@MessageCss">@Message</MudText>
+        <MudStack AlignItems="AlignItems.Center" Spacing="3" Class="pa-4">
+
+            <!-- ICONO GRANDE (56px) -->
+            <MudIcon Icon="@ResolvedAlertIcon"
+                     Color="@ResolvedAlertColor"
+                     Size="Size.Large"
+                     Style="font-size:56px;" />
+
+            <!-- TÍTULO -->
+            <MudText Typo="Typo.h5"
+                     Align="Align.Center"
+                     Class="mt-1">
+                @Title
+            </MudText>
+
+            <!-- MENSAJE -->
+            <MudText Typo="Typo.body2"
+                     Align="Align.Center"
+                     Class="@MessageCss">
+                @Message
+            </MudText>
+
+        </MudStack>
     </DialogContent>
 
-    <!-- BOTONES -->
+    <!-- BOTONES REFINADOS -->
     <DialogActions>
-        <MudButton Color="Color.Default" StartIcon="@Icons.Material.Filled.Close" OnClick="Cancel">
-            @CancelText
-        </MudButton>
+      
 
-        <MudButton Color="@ResolvedColor" Variant="Variant.Filled" StartIcon="@ResolvedActionIcon" OnClick="Confirm">
-            @ConfirmText
-        </MudButton>
+            <MudButton Color="Color.Default"
+                       StartIcon="@Icons.Material.Filled.Close"
+                       OnClick="Cancel">
+                @CancelText
+            </MudButton>
+
+            <MudButton Color="@ResolvedButtonColor"
+                       Variant="Variant.Filled"
+                       StartIcon="@ResolvedActionIcon"
+                       OnClick="Confirm">
+                @ConfirmText
+            </MudButton>
+
+      
     </DialogActions>
+
+
+
 
 </MudDialog>
 
@@ -128,8 +159,18 @@
 
     private string MessageCss => CenterMessage ? "text-center" : "";
 
-    // COLOR AUTOMÁTICO
-    private Color ResolvedColor => Type switch
+    // ICONO PRINCIPAL (ESTILO ALERT)
+    private string ResolvedAlertIcon => Type switch
+    {
+        ConfirmDialogType.Delete => Icons.Material.Filled.Error,
+        ConfirmDialogType.Warning => Icons.Material.Filled.Warning,
+        ConfirmDialogType.Success => Icons.Material.Filled.CheckCircle,
+        ConfirmDialogType.Info => Icons.Material.Filled.Info,
+        _ => Icons.Material.Filled.HelpOutline
+    };
+
+    // COLOR DEL ICONO PRINCIPAL
+    private Color ResolvedAlertColor => Type switch
     {
         ConfirmDialogType.Delete => Color.Error,
         ConfirmDialogType.Warning => Color.Warning,
@@ -138,24 +179,21 @@
         _ => Color.Primary
     };
 
-    // ICONO DEL TÍTULO (ESTILO ALERT)
-    private string ResolvedAlertIcon => Type switch
-    {
-        ConfirmDialogType.Delete => Icons.Material.Filled.Error,          // rojo
-        ConfirmDialogType.Warning => Icons.Material.Filled.Warning,       // amarillo
-        ConfirmDialogType.Success => Icons.Material.Filled.CheckCircle,   // verde
-        ConfirmDialogType.Info => Icons.Material.Filled.Info,             // azul
-        _ => Icons.Material.Filled.HelpOutline
-    };
-
-    // ICONO DEL BOTÓN (ACCIÓN)
+    // ICONO DEL BOTÓN DE ACCIÓN
     private string ResolvedActionIcon => Type switch
     {
         ConfirmDialogType.Delete => Icons.Material.Filled.Delete,
-        ConfirmDialogType.Warning => Icons.Material.Filled.WarningAmber,
         ConfirmDialogType.Success => Icons.Material.Filled.Check,
-        ConfirmDialogType.Info => Icons.Material.Filled.Info,
+        ConfirmDialogType.Warning => Icons.Material.Filled.Done,
+        ConfirmDialogType.Info => Icons.Material.Filled.Done,
         _ => Icons.Material.Filled.Done
+    };
+
+    // COLOR DEL BOTÓN DE ACCIÓN
+    private Color ResolvedButtonColor => Type switch
+    {
+        ConfirmDialogType.Delete => Color.Error,
+        _ => Color.Primary
     };
 
     void Confirm() => MudDialog.Close(DialogResult.Ok(true));
@@ -195,4 +233,3 @@
         return result.Data is true;
     }
 }
-

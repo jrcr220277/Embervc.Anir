@@ -1,12 +1,4 @@
 ﻿@implements IDisposable
-@using Anir.Client.Services.Auth
-@using Anir.Client.Services.Files
-@inject UserState UserState
-@inject IAuthService AuthService
-@inject NavigationManager Nav
-@inject Anir.Client.Services.Alerts.IAlertService AlertService
-@inject FileService Files
-@inject ILogger<UserMenu>? Logger
 
 <MudMenu @ref="_menuRef"
          AnchorOrigin="Origin.BottomRight"
@@ -76,6 +68,14 @@
 </MudMenu>
 
 @code {
+    [Inject] NavigationManager Nav { get; set; } = default!;
+    [Inject] IDialogService DialogService { get; set; } = default!;
+    [Inject] IAlertService AlertService { get; set; } = default!;
+    [Inject] IAuthService AuthService { get; set; } = default!;
+    [Inject] ILogger<UserMenu> Logger { get; set; } = default!;
+    [Inject] FileService Files { get; set; } = default!;
+    [Inject] UserState UserState { get; set; } = default!;
+
     private MudMenu? _menuRef;
 
     // ⭐ La URL del avatar se construye automáticamente con FileService
@@ -95,9 +95,19 @@
 
     private async Task ConfirmLogout()
     {
-        var ok = await AlertService.ShowConfirmation("Cerrar sesión", "¿Deseas cerrar sesión?");
-        if (ok)
-            await LogoutAsync();
+        var confirmed = await ConfirmDialog.Show(
+            DialogService,
+            "Cerrar sesión",
+            "¿Deseas cerrar sesión?",
+            type: ConfirmDialogType.Info,
+            confirmText: "Cerrar sesión",
+            centerMessage: true
+        );
+
+        if (!confirmed)
+            return;
+
+        await LogoutAsync();
     }
 
     private async Task LogoutAsync()
