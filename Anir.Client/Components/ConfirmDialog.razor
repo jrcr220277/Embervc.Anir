@@ -98,51 +98,49 @@
     <DialogContent>
         <MudStack AlignItems="AlignItems.Center" Spacing="3" Class="pa-4">
 
-            <!-- ICONO GRANDE (56px) -->
+            <!-- ICONO PRINCIPAL (56px) -->
             <MudIcon Icon="@ResolvedAlertIcon"
                      Color="@ResolvedAlertColor"
                      Size="Size.Large"
                      Style="font-size:56px;" />
 
             <!-- TÍTULO -->
-            <MudText Typo="Typo.h5"
-                     Align="Align.Center"
-                     Class="mt-1">
+            <MudText Typo="Typo.h5" Align="Align.Center" Class="mt-1">
                 @Title
             </MudText>
 
             <!-- MENSAJE -->
             <MudText Typo="Typo.body2"
-                     Align="Align.Center"
-                     Class="@MessageCss">
+                     Align="@((CenterMessage ? Align.Center : Align.Left))"
+                     Class="px-2">
                 @Message
             </MudText>
 
         </MudStack>
     </DialogContent>
 
-    <!-- BOTONES REFINADOS -->
+    <!-- ACCIONES (ESTÁNDAR MATERIAL DESIGN 3) -->
     <DialogActions>
-      
 
+        <!-- BOTÓN SECUNDARIO (SIEMPRE A LA IZQUIERDA, SIN ICONO) -->
+        @if (ShowCancelButton)
+        {
             <MudButton Color="Color.Default"
-                       StartIcon="@Icons.Material.Filled.Close"
+                       Variant="Variant.Text"
                        OnClick="Cancel">
                 @CancelText
             </MudButton>
+        }
 
-            <MudButton Color="@ResolvedButtonColor"
-                       Variant="Variant.Filled"
-                       StartIcon="@ResolvedActionIcon"
-                       OnClick="Confirm">
-                @ConfirmText
-            </MudButton>
+        <!-- BOTÓN PRIMARIO (SIEMPRE A LA DERECHA, ICONO SOLO SI APLICA) -->
+        <MudButton Color="@ResolvedButtonColor"
+                   Variant="Variant.Filled"
+                   StartIcon="@ResolvedActionIcon"
+                   OnClick="Confirm">
+            @ConfirmText
+        </MudButton>
 
-      
     </DialogActions>
-
-
-
 
 </MudDialog>
 
@@ -154,12 +152,11 @@
     [Parameter] public string ConfirmText { get; set; } = "Aceptar";
     [Parameter] public string CancelText { get; set; } = "Cancelar";
     [Parameter] public bool CenterMessage { get; set; } = false;
+    [Parameter] public bool ShowCancelButton { get; set; } = true;
 
     [Parameter] public ConfirmDialogType Type { get; set; } = ConfirmDialogType.Default;
 
-    private string MessageCss => CenterMessage ? "text-center" : "";
-
-    // ICONO PRINCIPAL (ESTILO ALERT)
+    // ICONO PRINCIPAL
     private string ResolvedAlertIcon => Type switch
     {
         ConfirmDialogType.Delete => Icons.Material.Filled.Error,
@@ -179,17 +176,15 @@
         _ => Color.Primary
     };
 
-    // ICONO DEL BOTÓN DE ACCIÓN
-    private string ResolvedActionIcon => Type switch
+    // ICONO DEL BOTÓN PRIMARIO (SOLO SI APLICA)
+    private string? ResolvedActionIcon => Type switch
     {
         ConfirmDialogType.Delete => Icons.Material.Filled.Delete,
         ConfirmDialogType.Success => Icons.Material.Filled.Check,
-        ConfirmDialogType.Warning => Icons.Material.Filled.Done,
-        ConfirmDialogType.Info => Icons.Material.Filled.Done,
-        _ => Icons.Material.Filled.Done
+        _ => null // Aceptar / Continuar / Guardar → sin icono
     };
 
-    // COLOR DEL BOTÓN DE ACCIÓN
+    // COLOR DEL BOTÓN PRIMARIO
     private Color ResolvedButtonColor => Type switch
     {
         ConfirmDialogType.Delete => Color.Error,
@@ -206,7 +201,8 @@
         ConfirmDialogType type = ConfirmDialogType.Default,
         string confirmText = "Aceptar",
         string cancelText = "Cancelar",
-        bool centerMessage = false)
+        bool centerMessage = false,
+        bool showCancelButton = true)
     {
         var parameters = new DialogParameters
         {
@@ -215,7 +211,8 @@
             ["Type"] = type,
             ["ConfirmText"] = confirmText,
             ["CancelText"] = cancelText,
-            ["CenterMessage"] = centerMessage
+            ["CenterMessage"] = centerMessage,
+            ["ShowCancelButton"] = showCancelButton
         };
 
         var options = new DialogOptions

@@ -20,7 +20,7 @@
 
 <MudLayout>
 
-    <MudAppBar Elevation="6" Dense="true">
+    <MudAppBar Elevation="6" Dense="true" Class="pa-0">
 
         @if (_isAuthenticated)
         {
@@ -60,7 +60,7 @@
                    Color="Color.Inherit"
                    ClipMode="DrawerClipMode.Always"
                    Variant="DrawerVariant.Mini"
-                   Elevation="1">
+                   Elevation="2">
 
             <NavMenu DrawerOpen="_drawerOpen" />
         </MudDrawer>
@@ -312,62 +312,205 @@
 
     private readonly PaletteLight _lightPalette = new()
     {
-        Primary = "#A8892A",
-        PrimaryLighten = "#E6C85C",
-        PrimaryDarken = "#D4AF37",
-        Secondary = "#C9A646",
-        SecondaryLighten = "#E0BB6E",
-        SecondaryDarken = "#9C7D32",
-        Background = "#F6F6F7",
-        // Unify drawer background with global background for cleaner, less noisy layout
-        DrawerBackground = "#F6F6F7",
-        DrawerText = "#222222",
-        Surface = "#FFFFFF",
-        BackgroundGray = "#EFEFEF",
-        // Use surface as appbar background for a minimal, modern look; primary reserved for actions
-        AppbarBackground = "#FFFFFF",
-        AppbarText = "#222222",
-        TextPrimary = "#222222",
-        TextSecondary = "#555555",
-        TextDisabled = "#999999",
-        Divider = "#E0E0E0",
-        LinesDefault = "#E8E8E8",
-        TableLines = "#E8E8E8",
-        Info = "#3A6EA5",
-        Success = "#3FA34D",
-        Warning = "#E6A437",
-        Error = "#D64545",
-        OverlayLight = "#FFFFFFCC"
+        // ============================================================
+        // CAPA 1 — FONDO GENERAL (Slate Light / Gris Azulado Suave)
+        // ============================================================
+        Background = "#F3F4F6",          // Gris azulado claro — fondo principal moderno
+        BackgroundGray = "#E7E9EC",      // Gris más oscuro — headers, secciones
+        DrawerBackground = "#F3F4F6",    // Igual que Background — menú limpio y moderno
+
+        DrawerText = "#1F2937",          // Gris carbón — texto del menú
+        DrawerIcon = "#1F2937",          // Íconos del menú
+
+        // ============================================================
+        // CAPA 2 — SUPERFICIES (tarjetas, tablas, modales)
+        // ============================================================
+        Surface = "#FFFFFF",             // Blanco puro — tarjetas y modales
+                                         // (contraste perfecto con Background)
+
+        // ============================================================
+        // APPBAR
+        // ============================================================
+        AppbarBackground = "#FFFFFF",    // Igual que Surface — barra superior limpia
+        AppbarText = "#1F2937",          // Gris carbón — texto del AppBar
+
+        // ============================================================
+        // PRIMARY (Ubuntu Accent)
+        // ============================================================
+        Primary = "#E95420",             // Naranja Ubuntu — acento cálido y profesional
+        PrimaryDarken = "#C34114",       // Naranja quemado — hover/active
+        PrimaryLighten = "#FF8A5C",      // Naranja claro — estados suaves
+
+        // ============================================================
+        // SECUNDARIOS
+        // ============================================================
+        Secondary = "#6D6D6D",           // Gris neutro — botones secundarios
+        SecondaryDarken = "#4F4F4F",
+        SecondaryLighten = "#9E9E9E",
+
+        // ============================================================
+        // TEXTO
+        // ============================================================
+        TextPrimary = "#1A1A1A",         // Negro suave — texto principal
+        TextSecondary = "#555555",       // Gris medio — texto secundario
+        TextDisabled = "#999999",        // Gris claro — texto deshabilitado
+
+        // ============================================================
+        // LÍNEAS Y DIVISORES (más visibles)
+        // ============================================================
+        Divider = "#D1D5DB",             // Slate 300 — líneas visibles y elegantes
+        DividerLight = "rgba(0,0,0,0.06)", // Líneas suaves
+        LinesDefault = "#D1D5DB",        // Líneas generales
+        LinesInputs = "rgba(0,0,0,0.25)", // Bordes de inputs
+        TableLines = "#D1D5DB",          // Líneas de tablas
+
+        // ============================================================
+        // TABLAS (hover y striped PRO)
+        // ============================================================
+        TableStriped = "rgba(0,0,0,0.02)", // Filas alternas — sutil y elegante
+        TableHover = "rgba(0,0,0,0.06)",   // Hover visible — contraste real
+
+        // ============================================================
+        // OVERLAYS (modales)
+        // ============================================================
+        OverlayDark = "rgba(0,0,0,0.40)",  // Oscurece fondo — modal resalta
+        OverlayLight = "rgba(255,255,255,0.50)",
+
+        // ============================================================
+        // ESTADOS (Success, Warning, Error, Info)
+        // ============================================================
+        Success = "#1B873F",             // Verde éxito
+        SuccessDarken = "#0F6A2F",
+        SuccessLighten = "#4CD96B",
+
+        Warning = "#E6A437",             // Amarillo advertencia
+        WarningDarken = "#C1872A",
+        WarningLighten = "#F7C66A",
+
+        Error = "#D64545",               // Rojo error
+        ErrorDarken = "#B83232",
+        ErrorLighten = "#E97A7A",
+
+        Info = "#3A6EA5",                // Azul informativo
+        InfoDarken = "#2E5684",
+        InfoLighten = "#7AA3D1",
+
+        // ============================================================
+        // GRAYS (coherentes con Slate Light)
+        // ============================================================
+        GrayDefault = "#9CA3AF",         // Slate 400 — gris base
+        GrayLight = "#D1D5DB",           // Slate 300 — gris claro
+        GrayLighter = "#E5E7EB",         // Slate 200 — gris muy claro
+        GrayDark = "#6B7280",            // Slate 500 — gris oscuro
+        GrayDarker = "#4B5563"           // Slate 600 — gris profundo
     };
+
+
+
+
 
     private readonly PaletteDark _darkPalette = new()
     {
-        Primary = "#A8892A",
-        PrimaryLighten = "#E6C85C",
-        PrimaryDarken = "#D4AF37",
-        Secondary = "#8B8B8B",
-        SecondaryLighten = "#B3B3B3",
-        SecondaryDarken = "#555555",
-        Background = "#121212",
-        // Unify drawer background with global background for cleaner, less noisy layout
-        DrawerBackground = "#121212",
-        BackgroundGray = "#111111",
-        Surface = "#1F1F1F",
-        // Use surface as appbar background for minimal header; primary used on actions
-        AppbarBackground = "#1F1F1F",
-        AppbarText = "#EAEAEA",
-        TextPrimary = "#FFFFFF",
-        TextSecondary = "#B3B3B3",
-        TextDisabled = "#777777",
-        Divider = "#2E2E2E",
-        LinesDefault = "#2E2E2E",
-        TableLines = "#2E2E2E",
-        Info = "#2196F3",
-        Success = "#4CAF50",
-        Warning = "#FFC107",
-        Error = "#F44336",
-        OverlayLight = "#00000088"
+        // ============================================================
+        // CAPA 1 — FONDO GENERAL (Gunmetal / Slate 900)
+        // ============================================================
+        Background = "#1E293B",          // Azul-gris oscuro (Slate 900) — fondo principal
+        BackgroundGray = "#2A3244",      // Slate 800 — secciones secundarias, headers
+        DrawerBackground = "#1E293B",    // Igual que Background — menú lateral moderno
+
+        DrawerText = "rgba(255,255,255,0.75)",   // Blanco suave — texto del menú
+        DrawerIcon = "rgba(255,255,255,0.75)",   // Blanco suave — íconos del menú
+
+        // ============================================================
+        // CAPA 2 — SUPERFICIES (tarjetas, tablas, modales)
+        // ============================================================
+        Surface = "#273447",             // Slate 850 — tarjetas, tablas, modales (más claro que fondo)
+
+        // ============================================================
+        // APPBAR (Slate 950)
+        // ============================================================
+        AppbarBackground = "#1B2433",    // Azul carbón profundo — barra superior
+        AppbarText = "rgba(255,255,255,0.85)",   // Blanco fuerte — texto del AppBar
+
+        // ============================================================
+        // PRIMARY (Ubuntu Accent)
+        // ============================================================
+        Primary = "#E95420",             // Naranja Ubuntu — acento cálido, elegante y visible
+        PrimaryDarken = "#C34114",       // Naranja quemado — hover/active
+        PrimaryLighten = "#FF8A5C",      // Naranja claro — estados suaves
+
+        // ============================================================
+        // SECUNDARIOS
+        // ============================================================
+        Secondary = "#A0A0A0",           // Gris neutro — botones secundarios
+        SecondaryDarken = "#7A7A7A",     // Gris oscuro — hover
+        SecondaryLighten = "#C8C8C8",    // Gris claro — estados suaves
+
+        // ============================================================
+        // TEXTO
+        // ============================================================
+        TextPrimary = "#FFFFFF",         // Blanco puro — texto principal
+        TextSecondary = "#C0C0C0",       // Gris claro — texto secundario
+        TextDisabled = "#7A7A7A",        // Gris apagado — texto deshabilitado
+
+        // ============================================================
+        // LÍNEAS Y DIVISORES (más visibles)
+        // ============================================================
+        Divider = "#4B5563",             // Slate 600 — líneas visibles entre paneles
+        DividerLight = "rgba(255,255,255,0.10)", // Líneas suaves
+        LinesDefault = "#4B5563",        // Líneas generales
+        LinesInputs = "rgba(255,255,255,0.40)",  // Bordes de inputs
+        TableLines = "#4B5563",          // Líneas de tablas
+
+        // ============================================================
+        // TABLAS (hover y striped PRO)
+        // ============================================================
+        TableStriped = "rgba(255,255,255,0.03)", // Filas alternas — sutil y elegante
+        TableHover = "rgba(255,255,255,0.16)",   // Hover visible — contraste real
+
+        // ============================================================
+        // OVERLAYS (modales)
+        // ============================================================
+        OverlayDark = "rgba(0,0,0,0.55)",        // Oscurece fondo — modal resalta
+        OverlayLight = "rgba(255,255,255,0.50)", // No se usa en dark mode
+
+        // ============================================================
+        // ESTADOS (Success, Warning, Error, Info)
+        // ============================================================
+        Success = "#4CAF50",             // Verde éxito
+        SuccessDarken = "#099A6C",       // Hover
+        SuccessLighten = "#0DE29C",      // Suave
+
+        Warning = "#FFC107",             // Amarillo advertencia
+        WarningDarken = "#D68F00",
+        WarningLighten = "#FFB624",
+
+        Error = "#EF5350",               // Rojo error
+        ErrorDarken = "#F42F1E",
+        ErrorLighten = "#F87786",
+
+        Info = "#2196F3",                // Azul informativo
+        InfoDarken = "#0A85FF",
+        InfoLighten = "#5CADFF",
+
+        // ============================================================
+        // GRAYS (coherentes con Slate)
+        // ============================================================
+        GrayDefault = "#9CA3AF",         // Slate 400 — gris base
+        GrayLight = "#D1D5DB",           // Slate 300 — gris claro
+        GrayLighter = "#E5E7EB",         // Slate 200 — gris muy claro
+        GrayDark = "#6B7280",            // Slate 500 — gris oscuro
+        GrayDarker = "#4B5563"           // Slate 600 — gris profundo
     };
+
+
+
+
+
+
+
+
+
 }
 
 
