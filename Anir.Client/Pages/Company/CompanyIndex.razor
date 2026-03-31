@@ -85,34 +85,52 @@
          ACCIONES MASIVAS (Banner profesional)
          ============================================================ -->
     <MudCollapse Expanded="@(SelectedItems?.Any() == true || IsGlobalSelected)">
-        <MudPaper Class="pa-4 mb-4" Elevation="0">
+        <MudPaper Outlined="true" Elevation="0" Class="px-4 mb-3 d-flex align-center justify-space-between flex-wrap gap-2">
 
-            <MudGrid AlignItems="Center">
-
-                <MudItem xs="12" sm="6" Class="d-flex align-center">
+            <div class="d-flex align-center">
+                <MudTooltip Text="Seleccionar todo" Arrow="true">
                     <MudIconButton Icon="@(IsGlobalSelected? Icons.Material.Rounded.Deselect : Icons.Material.Rounded.SelectAll)"
                                    Edge="Edge.Start"
                                    Size="Size.Medium"
-                                   OnClick="ToggleGlobalSelection" />
+                                   OnClick="@(() => ToggleGlobalSelection())" />
+                </MudTooltip>
 
-                    <MudText Typo="Typo.body2" Class="fw-bold ml-2">
-                        @BulkSelectionText
-                    </MudText>
-                                      
-                </MudItem>
 
-                <MudItem xs="12" sm="6" Class="d-flex justify-end">
-                    <MudStack Row="true" Spacing="0">
-                        <MudIconButton OnClick="ExportPdf" Icon="@Icons.Custom.FileFormats.FilePdf" aria-label="PDF" Size="Size.Medium" Edge="Edge.End" />
-                        <MudIconButton OnClick="ExportExcel" Icon="@Icons.Custom.FileFormats.FileExcel" aria-label="Excel" Size="Size.Medium" Edge="Edge.End" />
-                        <MudIconButton OnClick="DeleteSelected" Icon="@Icons.Material.Rounded.DeleteForever" aria-label="Eliminar" Color="Color.Error" Size="Size.Medium" Edge="Edge.End" />
-                    </MudStack>
-                </MudItem>
+                <MudText Typo="Typo.body2" Class="font-weight-medium ml-2">
+                    @BulkSelectionText
+                </MudText>
+            </div>
 
-            </MudGrid>
+            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                <MudTooltip Text="Exportar PDF" Arrow="true">
+                    <MudIconButton OnClick="@(() => ExportPdf())"
+                                   Icon="@Icons.Custom.FileFormats.FilePdf"
+                                   Color="Color.Default"
+                                   Size="Size.Medium"
+                                   aria-label="PDF" />
+                </MudTooltip>
+
+                <MudTooltip Text="Exportar Excel" Arrow="true">
+                    <MudIconButton OnClick="@(() => ExportExcel())"
+                                   Icon="@Icons.Custom.FileFormats.FileExcel"
+                                   Color="Color.Default"
+                                   Size="Size.Medium"
+                                   aria-label="Excel" />
+                </MudTooltip>
+
+                <MudTooltip Text="Eliminar seleccionados" Arrow="true">
+                    <MudIconButton OnClick="@(() => DeleteSelected())"
+                                   Icon="@Icons.Material.Rounded.DeleteForever"
+                                   Color="Color.Error"
+                                   Size="Size.Medium"
+                                   aria-label="Eliminar" />
+                </MudTooltip>
+            </MudStack>
 
         </MudPaper>
     </MudCollapse>
+
+
 
     <!-- ============================================================
          TABLA PRINCIPAL (Respira, se ve limpia)
@@ -149,9 +167,15 @@
                 </MudChip>
             </MudTd>
             <MudTd Style="width: 120px; text-align:end">
-                <MudIconButton Icon="@Icons.Material.Rounded.Visibility" OnClick="@(() => ViewCompany(company))" Size="Size.Small" />
-                <MudIconButton Icon="@Icons.Material.Rounded.Edit" OnClick="@(() => EditCompany(company))" Size="Size.Small" />
-                <MudIconButton Icon="@Icons.Material.Rounded.Delete" Color="Color.Error" OnClick="@(() => DeleteCompany(company))" Size="Size.Small" />
+                 <MudTooltip Text="Ver registro" Arrow="true">
+                    <MudIconButton Icon="@Icons.Material.Rounded.Visibility" OnClick="@(() => ViewCompany(company))" Size="Size.Small" />
+                </MudTooltip>
+                <MudTooltip Text="Editar registro" Arrow="true">
+                    <MudIconButton Icon="@Icons.Material.Rounded.Edit" OnClick="@(() => EditCompany(company))" Size="Size.Small" />
+                </MudTooltip>
+                <MudTooltip Text="Eliminar registro" Arrow="true">
+                    <MudIconButton Icon="@Icons.Material.Rounded.Delete" Color="Color.Error" OnClick="@(() => DeleteCompany(company))" Size="Size.Small" />
+                </MudTooltip>
             </MudTd>
         </RowTemplate>
 
@@ -196,8 +220,10 @@
 
     private MudTable<CompanyDto>? TableRef;
     private HashSet<CompanyDto> SelectedItems = new(new CompanyDtoComparer());
-
+    
     private bool IsGlobalSelected = false;
+    private int _totalFilteredCount = 0;
+
     private string SearchText = string.Empty;
     private string StatusFilterValue = "Todos";
 
@@ -233,6 +259,7 @@
             if (response.Result == ResponseStatus.Success && response.Value != null)
             {
                 LastPageItems = response.Value.Items.ToList().AsReadOnly();
+                _totalFilteredCount = response.Value.TotalCount;
 
                 return new TableData<CompanyDto>
                 {
@@ -426,35 +453,34 @@
     }
 
     /// <summary>
-    /// Texto dinámico para mostrar cantidad seleccionada.
-    /// - Si es global: muestra el total de la tabla.
-    /// - Si es local: muestra el conteo de SelectedItems.
+    /// Texto dinámico para mostrar la selección:
+    /// - Local: cuántos elementos en SelectedItems.
+    /// - Global: cuántos registros en el filtro.
+    /// - Ninguno: mensaje claro.
     /// </summary>
     private string BulkSelectionText =>
-    IsGlobalSelected
-        ? "Seleccionado todo (filtro global aplicado)"
-        : $"{SelectedItems.Count} elemento{(SelectedItems.Count == 1 ? "" : "s")} seleccionado{(SelectedItems.Count == 1 ? "" : "s")}";
- 
+        IsGlobalSelected
+            ? $"Selección global: {_totalFilteredCount} empresa{(SelectedItems.Count == 1 ? "" : "s")} seleccionada{(SelectedItems.Count == 1 ? "" : "s")} del resultado actual"
+            : $"{SelectedItems.Count} empresa{(SelectedItems.Count == 1 ? "" : "s")} seleccionada{(SelectedItems.Count == 1 ? "" : "s")} del resultado actual";
+
     // ============================================================
     // ACCIONES MASIVAS
     // ============================================================
     private async Task DeleteSelected()
     {
         var confirmed = await ConfirmDialog.Show(
-        DialogService,
-        "Eliminar seleccionadas",
-        IsGlobalSelected
-            ? "¿Eliminar TODAS las empresas filtradas?"
-            : $"¿Eliminar {SelectedItems.Count} empresas?",
-        type: ConfirmDialogType.Delete,
-        confirmText: "Eliminar",
-        centerMessage: true
-    );
+            DialogService,
+            "Eliminar seleccionadas",
+            IsGlobalSelected
+                ? $"¿Eliminar todas las {_totalFilteredCount} empresas del filtro?"
+                : $"¿Eliminar {SelectedItems.Count} empresa{(SelectedItems.Count == 1 ? "" : "s")} seleccionada{(SelectedItems.Count == 1 ? "" : "s")}?",
+            type: ConfirmDialogType.Delete,
+            confirmText: "Eliminar",
+            centerMessage: true
+        );
 
         if (!confirmed)
             return;
-
-        IsProcessingBulkAction = true;
 
         IsProcessingBulkAction = true;
 
