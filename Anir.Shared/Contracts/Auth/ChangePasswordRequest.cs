@@ -12,20 +12,18 @@ namespace Anir.Shared.Contracts.Auth
         [Required(ErrorMessage = "La contraseña actual es obligatoria.")]
         [DataType(DataType.Password)]
         [Display(Name = "Contraseña actual")]
-        [PasswordPropertyText]
         public string CurrentPassword { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "La nueva contraseña es obligatoria.")]
         [DataType(DataType.Password)]
-        [Display(Name = "Nueva contraseña")]
-        [MinLength(6, ErrorMessage = "La nueva contraseña debe tener al menos {1} caracteres.")]
-        [MaxLength(256, ErrorMessage = "La nueva contraseña no puede exceder {1} caracteres.")]
+        [StringLength(100, MinimumLength = 6, ErrorMessage = "La contraseña debe tener entre {2} y {1} caracteres.")]
+        [Display(Name = "Contraseña nueva")]
         public string NewPassword { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Confirme la nueva contraseña.")]
         [DataType(DataType.Password)]
-        [Display(Name = "Confirmar nueva contraseña")]
         [Compare(nameof(NewPassword), ErrorMessage = "La nueva contraseña y la confirmación no coinciden.")]
+        [Display(Name = "Confirmar nueva contraseña")]
         public string ConfirmPassword { get; set; } = string.Empty;
     }
 }

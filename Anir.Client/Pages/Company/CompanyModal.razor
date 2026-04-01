@@ -4,6 +4,7 @@
 @using MudBlazor
 @using Anir.Shared.Contracts
 @using Anir.Shared.Contracts.Companies
+@using System.ComponentModel.DataAnnotations
 
 <MudDialog Elevation="24" Style="width: 780px; max-width: 95vw;">
 
@@ -11,21 +12,31 @@
      TÍTULO DEL MODAL (PRO)
      ============================ -->
     <TitleContent>
-        <MudText Typo="Typo.h6" Class="d-flex align-items-center gap-2 font-weight-medium">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
 
-            <MudIcon Icon="@(CurrentMode == ModalMode.Add ? Icons.Material.Filled.AddCircle :
-                                                                                 CurrentMode == ModalMode.Edit ? Icons.Material.Filled.Edit :
-                                                                                 Icons.Material.Filled.Visibility)"
-                     Size="Size.Large"
-                     Color="Color.Primary" />
+            <!-- Avatar semántico -->
+                             
+            <MudIcon Icon="@(CurrentMode == ModalMode.Add ? Icons.Material.Filled.Add : CurrentMode == ModalMode.Edit ? Icons.Material.Filled.Edit :  Icons.Material.Filled.Visibility)" 
+                        Style="font-size: 2rem;" />
+          
 
-            @(CurrentMode == ModalMode.Add ? "Crear Empresa" :
-              CurrentMode == ModalMode.Edit ? "Editar Empresa" :
-              "Detalle de la Empresa")
+            <!-- Título y subtítulo -->
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.body1" Class="font-weight-medium">
+                    @(CurrentMode == ModalMode.Add ? "Crear Empresa" :
+                      CurrentMode == ModalMode.Edit ? "Editar Empresa" :
+                      "Detalle de la Empresa")
+                </MudText>
 
-        </MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    @(CurrentMode == ModalMode.Add ? "Complete los datos para registrar una nueva empresa" :
+                      CurrentMode == ModalMode.Edit ? "Modifique los datos de la empresa seleccionada" :
+                      "Visualización de la información de la empresa")
+                </MudText>
+            </MudStack>
+
+        </MudStack>
     </TitleContent>
-
 
 
     <!-- ============================
@@ -39,7 +50,8 @@
         }
         else
         {
-            <EditForm EditContext="_editContext" OnValidSubmit="HandleSubmitAsync" id="form-entity">
+            <EditForm Model="_formModel" OnValidSubmit="HandleSubmitAsync" id="form-entity">
+
                 <DataAnnotationsValidator />
 
                 <MudGrid Spacing="3">
@@ -48,10 +60,10 @@
                          COLUMNA IZQUIERDA
                          ============================ -->
                     <MudItem xs="12" md="8">
-                        <MudPaper Elevation="1" Outlined="true" Rounded="true" Class="pa-4 mb-4">
+                        <MudPaper Elevation="1" Outlined="true" Rounded="true" Class="pa-3 mb-3">
 
                             <MudText Typo="Typo.subtitle1"
-                                     Color="Color.Primary"
+                                     Color="Color.Secondary"
                                      Class="font-weight-medium mb-1">
                                 Detalles de la Empresa
                             </MudText>
@@ -101,10 +113,10 @@
                          COLUMNA DERECHA
                          ============================ -->
                     <MudItem xs="12" md="4">
-                        <MudPaper Elevation="1" Outlined="true" Rounded="true" Class="pa-4 mb-4">
+                        <MudPaper Elevation="1" Outlined="true" Rounded="true" Class="pa-3 mb-3">
 
                             <MudText Typo="Typo.subtitle1"
-                                     Color="Color.Primary"
+                                     Color="Color.Secondary"
                                      Class="font-weight-medium mb-1">
                                 Ubicación y Estado
                             </MudText>
@@ -149,14 +161,17 @@
                                     <MudSelectItem T="int?" Value="@item.Id">@item.Name</MudSelectItem>
                                 }
                             </MudSelect>
-
-                            <!-- ESTADO -->
+                           
+                             <!-- ESTADO -->
                             <MudSwitch T="bool"
-                                       @bind-Checked="_formModel.Active"
-                                       Color="@(_formModel.Active ? Color.Success : Color.Error)"
+                                       @bind-Value="_formModel.Active"
+                                       Color="Color.Default"
+                                       ThumbIcon="@(_formModel.Active ? Icons.Material.Filled.Check : Icons.Material.Filled.Close)"
+                                       ThumbIconColor="@(_formModel.Active ? Color.Success : Color.Default)"
                                        Disabled="@(IsViewMode)"
-                                       Class="mt-5"
+                                       Class="mt-3"
                                        Label="@(_formModel.Active ? "Activo" : "Inactivo")" />
+
 
                         </MudPaper>
                     </MudItem>
@@ -164,6 +179,7 @@
                 </MudGrid>
             </EditForm>
         }
+        
     </DialogContent>
 
     <!-- ============================
@@ -226,8 +242,7 @@
     // FORMULARIO
     // ============================================================
     private CompanyDto _formModel = new() { MunicipalityId = 0, Active = true };
-    private EditContext? _editContext;
-
+    
     // ============================================================
     // UBICACIÓN
     // ============================================================
@@ -247,14 +262,7 @@
         AllProvinces = await ProvinceService.GetAllAsync() ?? new();
         AllMunicipalities = await MunicipalityService.GetAllAsync() ?? new();
 
-        _isLoading = false;
-    }
-
-    // ============================================================
-    // CARGA DE PARÁMETROS
-    // ============================================================
-    protected override void OnParametersSet()
-    {
+        // Cargar modelo AQUÍ (no en OnParametersSet)
         if (Company != null)
         {
             _formModel = new CompanyDto
@@ -277,10 +285,14 @@
             SelectedProvinceId = 0;
         }
 
-        _editContext = new EditContext(_formModel);
+       
         FilterMunicipalities();
+
+        _isLoading = false;
+        StateHasChanged();
     }
 
+   
     // ============================================================
     // CAMBIO DE PROVINCIA
     // ============================================================
@@ -309,9 +321,6 @@
     // ============================================================
     private async Task HandleSubmitAsync()
     {
-        if (_editContext is null || !_editContext.Validate())
-            return;
-
         _isSaving = true;
         StateHasChanged();
 
@@ -348,6 +357,7 @@
             StateHasChanged();
         }
     }
+
 
 
 }

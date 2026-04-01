@@ -1,140 +1,145 @@
 ﻿<!--
-    COMPONENTE: ConfirmDialog
+    COMPONENTE: ConfirmDialog (versión profesional ANIR)
     PROPÓSITO:
-    - Mostrar un diálogo de confirmación reutilizable.
-    - Icono grande centrado (56px) estilo MudAlert.
-    - Colores automáticos según el tipo.
-    - Icono del botón de acción automático según el tipo.
-    - Diseño moderno único (sin variantes).
-    - Se usa desde cualquier página llamando al método estático Show().
+    - Diálogo de confirmación reutilizable en toda la aplicación.
+    - Diseño compacto y consistente con los modales de ANIR.
+    - Avatar semántico a la izquierda con icono según el tipo.
+    - Título principal + subtítulo (mensaje).
+    - Botones Material Design 3 alineados a la derecha.
+    - Tipos simples por string: "delete", "warning", "success", "info", "default".
+    - Se invoca desde cualquier página con ConfirmDialog.Show().
 
     ============================================================
-    CASOS DE USO (A–E)
+    CASOS DE USO (EJEMPLOS)
     ============================================================
 
-    A) Confirmación normal
-       ----------------------------------------------------------
+    1) Confirmación normal
        var confirmed = await ConfirmDialog.Show(
            DialogService,
            "Confirmar acción",
-           "¿Desea continuar?"
+           "¿Deseas continuar?",
+           type: "default",
+           confirmText: "Aceptar"
        );
 
-       if (!confirmed)
-           return;
-
-    B) Confirmación de eliminación (DELETE)
-       ----------------------------------------------------------
+    2) Eliminación
        var confirmed = await ConfirmDialog.Show(
            DialogService,
            "Eliminar Empresa",
            $"¿Eliminar {company.ShortName}?",
-           type: ConfirmDialogType.Delete,
+           type: "delete",
            confirmText: "Eliminar",
            centerMessage: true
        );
 
-       if (!confirmed)
-           return;
-
-    C) Confirmación masiva (DELETE)
-       ----------------------------------------------------------
+    3) Eliminación masiva
        var confirmed = await ConfirmDialog.Show(
            DialogService,
            "Eliminar seleccionadas",
            IsGlobalSelected
                ? "¿Eliminar TODAS las empresas filtradas?"
                : $"¿Eliminar {SelectedItems.Count} empresas?",
-           type: ConfirmDialogType.Delete,
+           type: "delete",
            confirmText: "Eliminar",
            centerMessage: true
        );
 
-       if (!confirmed)
-           return;
-
-    D) Advertencia (WARNING)
-       ----------------------------------------------------------
+    4) Advertencia
        var confirmed = await ConfirmDialog.Show(
            DialogService,
            "Advertencia",
            "Esta acción no se puede deshacer.",
-           type: ConfirmDialogType.Warning,
+           type: "warning",
            confirmText: "Entiendo"
        );
 
-       if (!confirmed)
-           return;
-
-    E) Éxito (SUCCESS)
-       ----------------------------------------------------------
+    5) Éxito
        var confirmed = await ConfirmDialog.Show(
            DialogService,
            "Finalizado",
            "La operación se completó correctamente.",
-           type: ConfirmDialogType.Success,
+           type: "success",
            confirmText: "Aceptar"
        );
 
-       if (!confirmed)
-           return;
+    6) Información (logout)
+       var confirmed = await ConfirmDialog.Show(
+           DialogService,
+           "Cerrar sesión",
+           "¿Deseas cerrar sesión?",
+           type: "info",
+           confirmText: "Cerrar sesión",
+           centerMessage: true
+       );
+
+    7) Sin botón cancelar
+       var confirmed = await ConfirmDialog.Show(
+           DialogService,
+           "Información",
+           "Debes aceptar para continuar.",
+           type: "info",
+           confirmText: "Entendido",
+           showCancelButton: false
+       );
 
     ============================================================
-    NOTA SOBRE EL TEXTO DEL MENSAJE
+    NOTAS IMPORTANTES
     ============================================================
-    - El texto se puede centrar con centerMessage: true.
-    - El diseño siempre usa icono grande centrado (56px).
+
+    - El parámetro 'type' se normaliza automáticamente (mayúsculas, espacios, etc.).
+    - Colores e iconos se resuelven según el tipo:
+        "delete"  → rojo + icono eliminar
+        "warning" → amarillo + advertencia
+        "success" → verde + check
+        "info"    → azul + info
+        "default" → primario + help
+    - Diseño compacto: avatar pequeño, spacing reducido, botones pequeños.
+    - Este componente NO usa enum para simplificar y permitir agregar nuevos tipos fácilmente.
 -->
-
-
-
-
-@using MudBlazor
-@using Anir.Shared.Enums
 
 <MudDialog>
 
     <!-- CONTENIDO PRINCIPAL -->
     <DialogContent>
-        <MudStack AlignItems="AlignItems.Center" Spacing="3" Class="pa-4">
 
-            <!-- ICONO PRINCIPAL (56px) -->
-            <MudIcon Icon="@ResolvedAlertIcon"
-                     Color="@ResolvedAlertColor"
-                     Size="Size.Large"
-                     Style="font-size:56px;" />
+        <MudStack Class="pa-3" Row="true" AlignItems="AlignItems.Center" Spacing="2">
 
-            <!-- TÍTULO -->
-            <MudText Typo="Typo.h5" Align="Align.Center" Class="mt-1">
-                @Title
-            </MudText>
+            <!-- AVATAR SEMÁNTICO -->
+            <MudIcon Icon="@ResolvedIcon" Color="@ResolvedColor" Style="font-size: 3rem;" />
+           
+            <!-- TÍTULO + MENSAJE -->
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.subtitle1" Class="font-weight-medium">
+                    @Title
+                </MudText>
 
-            <!-- MENSAJE -->
-            <MudText Typo="Typo.body2"
-                     Align="@((CenterMessage ? Align.Center : Align.Left))"
-                     Class="px-2">
-                @Message
-            </MudText>
+                <MudText Typo="Typo.body2"
+                         Color="Color.Secondary"
+                         Align="@((CenterMessage ? Align.Center : Align.Left))">
+                    @Message
+                </MudText>
+
+            </MudStack>
 
         </MudStack>
+
     </DialogContent>
 
-    <!-- ACCIONES (ESTÁNDAR MATERIAL DESIGN 3) -->
+    <!-- ACCIONES -->
     <DialogActions>
 
-        <!-- BOTÓN SECUNDARIO (SIEMPRE A LA IZQUIERDA, SIN ICONO) -->
         @if (ShowCancelButton)
         {
-            <MudButton Color="Color.Default"
-                       Variant="Variant.Text"
+            <MudButton Variant="Variant.Text"
+                       Color="Color.Default"
                        OnClick="Cancel">
                 @CancelText
             </MudButton>
         }
 
-        <!-- BOTÓN PRIMARIO (SIEMPRE A LA DERECHA, ICONO SOLO SI APLICA) -->
-        <MudButton Color="@ResolvedButtonColor"
-                   Variant="Variant.Filled"
+        <MudButton Variant="Variant.Filled"
+               
+                   Color="@ResolvedColor"
                    StartIcon="@ResolvedActionIcon"
                    OnClick="Confirm">
             @ConfirmText
@@ -154,51 +159,47 @@
     [Parameter] public bool CenterMessage { get; set; } = false;
     [Parameter] public bool ShowCancelButton { get; set; } = true;
 
-    [Parameter] public ConfirmDialogType Type { get; set; } = ConfirmDialogType.Default;
+    // Tipo normalizado (evita errores de mayúsculas, espacios, etc.)
+    [Parameter] public string Type { get; set; } = "default";
+    private string NormalizedType => (Type ?? "default").Trim().ToLower();
 
-    // ICONO PRINCIPAL
-    private string ResolvedAlertIcon => Type switch
+    // COLOR DEL AVATAR Y BOTÓN
+    private Color ResolvedColor => NormalizedType switch
     {
-        ConfirmDialogType.Delete => Icons.Material.Filled.Error,
-        ConfirmDialogType.Warning => Icons.Material.Filled.Warning,
-        ConfirmDialogType.Success => Icons.Material.Filled.CheckCircle,
-        ConfirmDialogType.Info => Icons.Material.Filled.Info,
-        _ => Icons.Material.Filled.HelpOutline
-    };
-
-    // COLOR DEL ICONO PRINCIPAL
-    private Color ResolvedAlertColor => Type switch
-    {
-        ConfirmDialogType.Delete => Color.Error,
-        ConfirmDialogType.Warning => Color.Warning,
-        ConfirmDialogType.Success => Color.Success,
-        ConfirmDialogType.Info => Color.Info,
+        "delete" => Color.Error,
+        "warning" => Color.Warning,
+        "success" => Color.Success,
+        "info" => Color.Info,
         _ => Color.Primary
     };
 
-    // ICONO DEL BOTÓN PRIMARIO (SOLO SI APLICA)
-    private string? ResolvedActionIcon => Type switch
+    // ICONO DEL AVATAR
+    private string ResolvedIcon => NormalizedType switch
     {
-        ConfirmDialogType.Delete => Icons.Material.Filled.Delete,
-        ConfirmDialogType.Success => Icons.Material.Filled.Check,
-        _ => null // Aceptar / Continuar / Guardar → sin icono
+        "delete" => Icons.Material.TwoTone.Delete,
+        "warning" => Icons.Material.TwoTone.Warning,
+        "success" => Icons.Material.TwoTone.CheckCircle,
+        "info" => Icons.Material.TwoTone.Info,
+        _ => Icons.Material.TwoTone.HelpOutline
     };
 
-    // COLOR DEL BOTÓN PRIMARIO
-    private Color ResolvedButtonColor => Type switch
+    // ICONO DEL BOTÓN (solo si aplica)
+    private string? ResolvedActionIcon => NormalizedType switch
     {
-        ConfirmDialogType.Delete => Color.Error,
-        _ => Color.Primary
+        "delete" => Icons.Material.Filled.Delete,
+        "success" => Icons.Material.Filled.Check,
+        _ => null
     };
 
     void Confirm() => MudDialog.Close(DialogResult.Ok(true));
     void Cancel() => MudDialog.Cancel();
 
+    // MÉTODO ESTÁTICO PARA INVOCAR EL DIÁLOGO
     public static async Task<bool> Show(
         IDialogService dialogService,
         string title,
         string message,
-        ConfirmDialogType type = ConfirmDialogType.Default,
+        string type = "default",
         string confirmText = "Aceptar",
         string cancelText = "Cancelar",
         bool centerMessage = false,
@@ -220,7 +221,6 @@
             CloseButton = false,
             BackdropClick = false,
             MaxWidth = MaxWidth.Small,
-            FullWidth = true,
             Position = DialogPosition.Center
         };
 

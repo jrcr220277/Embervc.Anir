@@ -18,7 +18,8 @@
     <MudGrid Class="mb-2">
         <MudItem xs="12">
             <div class="d-flex align-center">
-                <MudIcon Icon="@Icons.Material.Rounded.Domain" Color="Color.Primary" Size="Size.Large" />
+                <MudIcon Icon="@Icons.Material.TwoTone.Domain" Style="font-size: 3rem;" />
+             
                 <div class="ml-3">
                     <MudText Typo="Typo.h5" Class="fw-bold">Clasificador de Empresas</MudText>
                     <MudText Typo="Typo.body2" Color="Color.Secondary">
@@ -100,14 +101,17 @@
                     @BulkSelectionText
                 </MudText>
             </div>
+            
 
             <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+               
                 <MudTooltip Text="Exportar PDF" Arrow="true">
                     <MudIconButton OnClick="@(() => ExportPdf())"
                                    Icon="@Icons.Custom.FileFormats.FilePdf"
                                    Color="Color.Default"
                                    Size="Size.Medium"
-                                   aria-label="PDF" />
+                                   aria-label="PDF"
+                                   Variant="Variant.Text" />
                 </MudTooltip>
 
                 <MudTooltip Text="Exportar Excel" Arrow="true">
@@ -162,7 +166,7 @@
             <MudTd>@company.ProvinceName</MudTd>
             <MudTd>@company.MunicipalityName</MudTd>
             <MudTd>
-                <MudChip T="string" Color="@(company.Active? Color.Success: Color.Error)" Variant="Variant.Filled" Size="Size.Small">
+                <MudChip T="string" Color="@(company.Active? Color.Success: Color.Error)" Variant="Variant.Text" Size="Size.Small">
                     @(company.Active ? "Activa" : "Inactiva")
                 </MudChip>
             </MudTd>
@@ -410,7 +414,7 @@
             DialogService,
             "Eliminar Empresa",
             $"¿Eliminar {company.ShortName}?",
-            type: ConfirmDialogType.Delete,
+            type: "Delete",
             confirmText: "Eliminar",
             centerMessage: true
         );
@@ -474,7 +478,7 @@
             IsGlobalSelected
                 ? $"¿Eliminar todas las {_totalFilteredCount} empresas del filtro?"
                 : $"¿Eliminar {SelectedItems.Count} empresa{(SelectedItems.Count == 1 ? "" : "s")} seleccionada{(SelectedItems.Count == 1 ? "" : "s")}?",
-            type: ConfirmDialogType.Delete,
+            type: "Delete",
             confirmText: "Eliminar",
             centerMessage: true
         );

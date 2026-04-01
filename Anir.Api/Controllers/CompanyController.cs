@@ -137,8 +137,6 @@ public class CompanyController : ControllerBase
     }
 
 
-
-
     // ============================================================
     // GET BY ID
     // Obtiene una empresa por su identificador.
