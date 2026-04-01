@@ -7,8 +7,8 @@ using Anir.Shared.Contracts.Companies;
 using Anir.Shared.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Linq.Expressions;
 using System.Text.Json;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Anir.Api.Controllers;
 
@@ -16,6 +16,9 @@ namespace Anir.Api.Controllers;
 [Route("api/[controller]")]
 public class CompanyController : ControllerBase
 {
+    private const string ENTITY = "Persona";
+
+
     private readonly ApplicationDbContext _db;
     private readonly ILogger<CompanyController> _logger;
     private readonly IPdfService _pdfService;
@@ -29,38 +32,68 @@ public class CompanyController : ControllerBase
         _excelService = excelService;
     }
 
+    // ============================================================
+    // MÉTODOS PRIVADOS DE MAPEOS (LOS ÚNICOS QUE PEDISTE)
+    // ============================================================
+
+    // Crear - Actualizar
+    private static void MapDtoToEntity(CompanyDto dto, Company entity)
+    {
+        entity.ShortName = dto.ShortName;
+        entity.Name = dto.Name;
+        entity.Address = dto.Address;
+        entity.MunicipalityId = dto.MunicipalityId;
+        entity.Active = dto.Active;
+    }
+
+    // Leer - listar - paginar 
+    private static CompanyDto MapEntityToDto(Company c)
+    {
+        return new CompanyDto
+        {
+            Id = c.Id,
+            ShortName = c.ShortName,
+            Name = c.Name,
+            Address = c.Address,
+            MunicipalityId = c.MunicipalityId,
+            MunicipalityName = c.Municipality?.Name,
+            ProvinceName = c.Municipality?.Province?.Name,
+            Active = c.Active
+        };
+    }
 
     // ============================================================
-    // POST PAGED (ÚNICO MÉTODO PARA PAGINAR)
+    // POST PAGED
     // ============================================================
     [HttpPost("getpaged")]
     public async Task<ActionResult<ProcessResponse<PagedResponse<CompanyDto>>>> GetPaged(
-    [FromBody] CompanyQueryDto queryDto,
-    CancellationToken ct = default)
+        [FromBody] CompanyQueryDto queryDto,
+        CancellationToken ct = default)
     {
         try
         {
             if (!ModelState.IsValid)
                 return BadRequest(ProcessResponse<PagedResponse<CompanyDto>>.Fail("Datos inválidos."));
 
-            var companiesQuery = _db.Companies
+            // 🔥 ÚNICA LÍNEA QUE CAMBIAS CUANDO COPIAS ESTE CONTROLADOR
+            var query = _db.Companies
                 .Include(c => c.Municipality)
-                .ThenInclude(m => m.Province) // necesario para ordenar por provincia
+                .ThenInclude(m => m.Province)
                 .AsNoTracking();
 
             // ------------------------------------------------------------
-            // Búsqueda portable (case-insensitive)
+            // Búsqueda
             // ------------------------------------------------------------
             if (!string.IsNullOrWhiteSpace(queryDto.Search))
             {
-                var searchTerm = queryDto.Search.Trim().ToLower();
+                var s = queryDto.Search.Trim().ToLower();
 
-                companiesQuery = companiesQuery.Where(c =>
-                    c.ShortName.ToLower().Contains(searchTerm) ||
-                    c.Name.ToLower().Contains(searchTerm) ||
-                    (c.Address != null && c.Address.ToLower().Contains(searchTerm)) ||
-                    (c.Municipality != null && c.Municipality.Name.ToLower().Contains(searchTerm)) ||
-                    (c.Municipality != null && c.Municipality.Province != null && c.Municipality.Province.Name.ToLower().Contains(searchTerm))
+                query = query.Where(c =>
+                    c.ShortName.ToLower().Contains(s) ||
+                    c.Name.ToLower().Contains(s) ||
+                    (c.Address != null && c.Address.ToLower().Contains(s)) ||
+                    (c.Municipality != null && c.Municipality.Name.ToLower().Contains(s)) ||
+                    (c.Municipality != null && c.Municipality.Province != null && c.Municipality.Province.Name.ToLower().Contains(s))
                 );
             }
 
@@ -68,326 +101,185 @@ public class CompanyController : ControllerBase
             // Filtros
             // ------------------------------------------------------------
             if (queryDto.ActiveFilter.HasValue)
-                companiesQuery = companiesQuery.Where(c => c.Active == queryDto.ActiveFilter.Value);
+                query = query.Where(c => c.Active == queryDto.ActiveFilter.Value);
 
             if (queryDto.MunicipalityId.HasValue)
-                companiesQuery = companiesQuery.Where(c => c.MunicipalityId == queryDto.MunicipalityId.Value);
+                query = query.Where(c => c.MunicipalityId == queryDto.MunicipalityId.Value);
 
             // ------------------------------------------------------------
-            // Ordenamiento dinámico
+            // Ordenamiento (🔥 usando tu extensión mejorada)
             // ------------------------------------------------------------
-            IOrderedQueryable<Company> orderedQuery;
-           
-            switch (queryDto.Sort)
-            {
-                case "MunicipalityName":
-                    orderedQuery = queryDto.Desc
-                        ? companiesQuery.OrderByDescending(c => c.Municipality.Name)
-                        : companiesQuery.OrderBy(c => c.Municipality.Name);
-                    break;
-
-                case "ProvinceName":
-                    orderedQuery = queryDto.Desc
-                        ? companiesQuery.OrderByDescending(c => c.Municipality.Province.Name)
-                        : companiesQuery.OrderBy(c => c.Municipality.Province.Name);
-                    break;
-
-                case "Name":
-                    orderedQuery = queryDto.Desc
-                        ? companiesQuery.OrderByDescending(c => c.Name)
-                        : companiesQuery.OrderBy(c => c.Name);
-                    break;
-
-                case "ShortName":
-                    orderedQuery = queryDto.Desc
-                        ? companiesQuery.OrderByDescending(c => c.ShortName)
-                        : companiesQuery.OrderBy(c => c.ShortName);
-                    break;
-                case "Active":
-                    orderedQuery = queryDto.Desc
-                        ? companiesQuery.OrderByDescending(c => c.Active)
-                        : companiesQuery.OrderBy(c => c.Active);
-                    break;
-                default:
-                    orderedQuery = queryDto.Desc
-                        ? companiesQuery.OrderByDescending(c => c.ShortName)
-                        : companiesQuery.OrderBy(c => c.ShortName);
-                    break;
-            }
+            var orderedQuery = query.ApplySorting(queryDto);
 
             // ------------------------------------------------------------
             // Paginado + proyección
             // ------------------------------------------------------------
             var pagedResult = await orderedQuery
-                .Select(c => new CompanyDto
-                {
-                    Id = c.Id,
-                    ShortName = c.ShortName,
-                    Name = c.Name,
-                    Address = c.Address,
-                    ProvinceName = c.Municipality!.Province!.Name,
-                    MunicipalityId = c.MunicipalityId,
-                    MunicipalityName = c.Municipality!.Name,
-                    Active = c.Active
-                })
+                .Select(c => MapEntityToDto(c))
                 .ToPagedResultAsync(queryDto, ct);
 
             return Ok(ProcessResponse<PagedResponse<CompanyDto>>.Success(pagedResult));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error obteniendo listado de empresas");
-            return StatusCode(500, ProcessResponse<PagedResponse<CompanyDto>>.Fail(
-                "Ocurrió un error al obtener las empresas."));
+            _logger.LogError(ex, $"Ocurrió un error al obtener la {ENTITY.ToLower()}.");
+            return StatusCode(500, ProcessResponse<PagedResponse<CompanyDto>>.Fail($"Ocurrió un error al obtener la {ENTITY.ToLower()}."));
         }
     }
+
 
 
     // ============================================================
     // GET BY ID
-    // Obtiene una empresa por su identificador.
-    // Este método sigue el patrón estándar que se replicará
-    // para cualquier entidad del sistema (Person, Product, etc.)
     // ============================================================
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<ProcessResponse<CompanyDto>>> GetById(int id, CancellationToken ct = default)
+    public async Task<ActionResult<ProcessResponse<CompanyDto>>> GetById(
+        int id,
+        CancellationToken ct = default)
     {
         try
         {
-            // Consulta de la entidad:
-            // - Include para cargar Municipio (relación necesaria para el DTO)
-            // - FirstOrDefaultAsync para obtener un único registro
-            var company = await _db.Companies
-                .Include(company => company.Municipality)
-                .FirstOrDefaultAsync(company => company.Id == id, ct);
+            // Incluimos solo lo necesario para el DTO
+            var entity = await _db.Companies
+                .Include(c => c.Municipality)
+                .ThenInclude(m => m.Province)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == id, ct);
 
-            // Si no existe, devolvemos 404 con un mensaje estándar
-            if (company == null)
-            {
-                _logger.LogWarning("Empresa no encontrada {Id}", id);
-                return NotFound(ProcessResponse<CompanyDto>.Fail("Empresa no encontrada."));
-            }
+            if (entity == null)
+                return NotFound(ProcessResponse<CompanyDto>.Fail($"{ENTITY} no encontrada."));
 
-            // Proyección manual a DTO:
-            // Esto garantiza que nunca exponemos entidades directamente
-            var dto = new CompanyDto
-            {
-                Id = company.Id,
-                ShortName = company.ShortName,
-                Name = company.Name,
-                Address = company.Address,
-                MunicipalityId = company.MunicipalityId,
-                MunicipalityName = company.Municipality?.Name,
-                Active = company.Active
-            };
+            var dto = MapEntityToDto(entity);
 
-            // Respuesta estándar de éxito
             return Ok(ProcessResponse<CompanyDto>.Success(dto));
         }
         catch (Exception ex)
         {
-            // Logueo del error para diagnóstico
-            _logger.LogError(ex, "Error obteniendo empresa {Id}", id);
-
-            // Respuesta estándar de error interno
-            return StatusCode(500, ProcessResponse<CompanyDto>.Fail(
-                "Ocurrió un error al obtener la empresa."));
+            _logger.LogError(ex, "Error obteniendo {Entity} {Id}", ENTITY, id);
+            return StatusCode(500,
+                ProcessResponse<CompanyDto>.Fail($"Ocurrió un error al obtener la {ENTITY.ToLower()}."));
         }
     }
 
-
     // ============================================================
     // CREATE
-    // Crea una nueva empresa en el sistema.
-    // Este patrón es replicable para cualquier entidad.
     // ============================================================
     [HttpPost]
-    public async Task<ActionResult<ProcessResponse<CompanyDto>>> Create([FromBody] CompanyDto dto, CancellationToken ct = default)
+    public async Task<ActionResult<ProcessResponse<CompanyDto>>> Create(
+        [FromBody] CompanyDto dto,
+        CancellationToken ct = default)
     {
         if (!ModelState.IsValid)
             return BadRequest(ProcessResponse<CompanyDto>.Fail("Datos inválidos."));
 
-        var entity = new Company
-        {
-            ShortName = dto.ShortName,
-            Name = dto.Name,
-            Address = dto.Address,
-            MunicipalityId = dto.MunicipalityId,
-            Active = dto.Active
-        };
+        var entity = new Company();
+        MapDtoToEntity(dto, entity);
 
         try
         {
             _db.Companies.Add(entity);
             await _db.SaveChangesAsync(ct);
 
+            // Actualizamos el DTO con los datos generados
             dto.Id = entity.Id;
             dto.MunicipalityName = await _db.Municipalities
                 .Where(m => m.Id == entity.MunicipalityId)
                 .Select(m => m.Name)
                 .FirstOrDefaultAsync(ct);
 
-            return Ok(ProcessResponse<CompanyDto>.Success(dto, "Empresa creada correctamente."));
-        }
-        catch (DbUpdateException ex)
-        {
-            var inner = ex.InnerException ?? ex;
-
-            if (DatabaseErrorHelper.IsUniqueViolation(inner))
-                return Conflict(ProcessResponse<CompanyDto>.Fail("Ya existe una empresa con esos datos."));
-                       
-            _logger.LogError(ex, "Error inesperado de base de datos");
-            return StatusCode(500, ProcessResponse<CompanyDto>.Fail("Error al guardar en la base de datos."));
+            return Ok(ProcessResponse<CompanyDto>.Success(dto, $"{ENTITY} creada correctamente."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error inesperado al crear empresa");
-            return StatusCode(500, ProcessResponse<CompanyDto>.Fail("Ocurrió un error al crear la empresa."));
+            _logger.LogError(ex, "Error inesperado al crear {Entity}", ENTITY);
+            return StatusCode(500,
+                ProcessResponse<CompanyDto>.Fail($"Ocurrió un error al crear la {ENTITY.ToLower()}."));
         }
     }
 
     // ============================================================
     // UPDATE
-    // Actualiza una empresa existente en el sistema.
-    // Este patrón es replicable para cualquier entidad.
     // ============================================================
     [HttpPut("{id:int}")]
-    public async Task<ActionResult<ProcessResponse<CompanyDto>>> Update(
-    int id,
-    [FromBody] CompanyDto dto,
-    CancellationToken ct = default)
+    public async Task<ActionResult<ProcessResponse<CompanyDto>>> Update(int id, [FromBody] CompanyDto dto, CancellationToken ct = default)
     {
+        // Validación de coherencia entre ruta y cuerpo
         if (id != dto.Id)
-            return BadRequest(ProcessResponse<CompanyDto>.Fail("El ID de la ruta no coincide con el del cuerpo."));
+            return BadRequest(ProcessResponse<CompanyDto>.Fail(
+                "El ID de la ruta no coincide con el del cuerpo."));
 
-        if (!ModelState.IsValid)
-            return BadRequest(ProcessResponse<CompanyDto>.Fail("Datos inválidos."));
-
+        // Buscar entidad existente
         var entity = await _db.Companies.FindAsync(new object?[] { id }, ct);
 
         if (entity == null)
-        {
-            _logger.LogWarning("Empresa no encontrada {Id}", id);
-            return NotFound(ProcessResponse<CompanyDto>.Fail("Empresa no encontrada."));
-        }
+            return NotFound(ProcessResponse<CompanyDto>.Fail($"{ENTITY} no encontrada."));
 
-        // Validación opcional de duplicados (si quieres feedback rápido)
-        var exists = await _db.Companies.AnyAsync(c =>
-            c.Id != id &&
-            c.Name == dto.Name &&
-            c.MunicipalityId == dto.MunicipalityId, ct);
-
-        if (exists)
-            return Conflict(ProcessResponse<CompanyDto>.Fail("Ya existe otra empresa con ese nombre en ese municipio."));
-
-        // Actualizar entidad
-        entity.ShortName = dto.ShortName;
-        entity.Name = dto.Name;
-        entity.Address = dto.Address;
-        entity.MunicipalityId = dto.MunicipalityId;
-        entity.Active = dto.Active;
+        // Mapear cambios del DTO a la entidad
+        MapDtoToEntity(dto, entity);
 
         try
         {
             await _db.SaveChangesAsync(ct);
 
-            return Ok(ProcessResponse<CompanyDto>.Success(dto, "Empresa actualizada correctamente."));
-        }
-        catch (DbUpdateConcurrencyException ex)
-        {
-            _logger.LogError(ex, "Conflicto de concurrencia al actualizar empresa {Id}", id);
-            return Conflict(ProcessResponse<CompanyDto>.Fail("La empresa fue modificada por otro usuario."));
-        }
-        catch (DbUpdateException ex)
-        {
-            var inner = ex.InnerException ?? ex;
-
-            if (DatabaseErrorHelper.IsUniqueViolation(inner))
-                return Conflict(ProcessResponse<CompanyDto>.Fail("Ya existe una empresa con esos datos."));
-
-            _logger.LogError(ex, "Error de base de datos al actualizar empresa {Id}", id);
-            return StatusCode(500, ProcessResponse<CompanyDto>.Fail("Error al guardar en la base de datos."));
+            return Ok(ProcessResponse<CompanyDto>.Success(dto, $"{ENTITY} actualizada correctamente."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error inesperado al actualizar empresa {Id}", id);
-            return StatusCode(500, ProcessResponse<CompanyDto>.Fail("Ocurrió un error al actualizar la empresa."));
+            _logger.LogError(ex, "Error inesperado al actualizar {Entity}", ENTITY);
+
+            return StatusCode(500,
+                ProcessResponse<CompanyDto>.Fail(
+                    $"Ocurrió un error al actualizar la {ENTITY.ToLower()}."));
         }
     }
 
-
-
     // ============================================================
     // DELETE
-    // Elimina una empresa por su identificador.
-    // Este patrón es replicable para cualquier entidad.
     // ============================================================
     [HttpDelete("{id:int}")]
-    public async Task<ActionResult<ProcessResponse<bool>>> Delete(
-        int id,
-        CancellationToken ct = default)
+    public async Task<ActionResult<ProcessResponse<bool>>> Delete(int id, CancellationToken ct = default)
     {
         try
         {
-            // ------------------------------------------------------------
-            // Obtener la entidad a eliminar
-            // ------------------------------------------------------------
             var entity = await _db.Companies.FindAsync(new object?[] { id }, ct);
 
             if (entity == null)
-            {
-                return NotFound(ProcessResponse<bool>.Fail(
-                    "Empresa no encontrada."));
-            }
+                return NotFound(ProcessResponse<bool>.Fail($"{ENTITY} no encontrada."));
 
-            // ------------------------------------------------------------
-            // Eliminación
-            // ------------------------------------------------------------
             _db.Companies.Remove(entity);
             await _db.SaveChangesAsync(ct);
 
-            // Respuesta estándar de éxito
             return Ok(ProcessResponse<bool>.Success(
                 true,
-                "Empresa eliminada correctamente."));
-        }
-        catch (DbUpdateException ex)
-        {
-            // Errores relacionados con restricciones de BD (FK, etc.)
-            _logger.LogError(ex, "Error de base de datos al eliminar empresa {Id}", id);
-
-            return Conflict(ProcessResponse<bool>.Fail(
-                "No se pudo eliminar la empresa. Puede tener datos relacionados."));
+                $"{ENTITY} eliminada correctamente."));
         }
         catch (Exception ex)
         {
-            // Errores inesperados
-            _logger.LogError(ex, "Error inesperado al eliminar empresa {Id}", id);
+            _logger.LogError(ex, "Error inesperado al eliminar {Entity}", ENTITY);
 
-            return StatusCode(500, ProcessResponse<bool>.Fail(
-                "Ocurrió un error al eliminar la empresa."));
+            return StatusCode(500,
+                ProcessResponse<bool>.Fail(
+                    $"Ocurrió un error al eliminar la {ENTITY.ToLower()}."));
         }
     }
 
 
     // ============================================================
     // BATCH DELETE
-    // Elimina múltiples empresas según selección directa o filtros.
-    // Este patrón es replicable para cualquier entidad.
     // ============================================================
     [HttpPost("batch-delete")]
     public async Task<ActionResult<ProcessResponse<int>>> DeleteBatch(
-     [FromBody] BulkSelectionRequest request,
-     CancellationToken ct = default)
+        [FromBody] BulkSelectionRequest request,
+        CancellationToken ct = default)
     {
         try
         {
-            if (request == null)
-                return BadRequest(ProcessResponse<int>.Fail("Request inválido."));
-
             IQueryable<Company> query = _db.Companies;
-            List<Company> companiesToDelete;
+            List<Company> itemsToDelete;
 
+            // ------------------------------------------------------------
+            // MODO SELECT ALL (el usuario quiere eliminar TODO el filtro)
+            // ------------------------------------------------------------
             if (request.SelectAll)
             {
                 var filterDto = JsonSerializer.Deserialize<CompanyQueryDto>(
@@ -397,109 +289,111 @@ public class CompanyController : ControllerBase
                 if (filterDto == null)
                     return BadRequest(ProcessResponse<int>.Fail("Filtros inválidos."));
 
+                // Búsqueda
                 if (!string.IsNullOrWhiteSpace(filterDto.Search))
                 {
-                    var searchTerm = filterDto.Search.Trim().ToLower();
+                    var s = filterDto.Search.Trim().ToLower();
                     query = query.Where(c =>
-                        c.ShortName.ToLower().Contains(searchTerm) ||
-                        c.Name.ToLower().Contains(searchTerm) ||
-                        (c.Address != null && c.Address.ToLower().Contains(searchTerm))
+                        c.ShortName.ToLower().Contains(s) ||
+                        c.Name.ToLower().Contains(s) ||
+                        (c.Address != null && c.Address.ToLower().Contains(s))
                     );
                 }
 
+                // Filtros
                 if (filterDto.ActiveFilter.HasValue)
                     query = query.Where(c => c.Active == filterDto.ActiveFilter.Value);
 
                 if (filterDto.MunicipalityId.HasValue)
                     query = query.Where(c => c.MunicipalityId == filterDto.MunicipalityId.Value);
 
-                companiesToDelete = await query.ToListAsync(ct);
+                itemsToDelete = await query.ToListAsync(ct);
             }
+            // ------------------------------------------------------------
+            // MODO IDS ESPECÍFICOS
+            // ------------------------------------------------------------
             else
             {
                 if (request.Ids == null || request.Ids.Count == 0)
                     return BadRequest(ProcessResponse<int>.Fail("No se recibieron Ids para eliminar."));
 
-                companiesToDelete = await query
+                itemsToDelete = await query
                     .Where(c => request.Ids.Contains(c.Id))
                     .ToListAsync(ct);
             }
 
-            if (!companiesToDelete.Any())
-                return NotFound(ProcessResponse<int>.Fail("No se encontraron empresas para eliminar."));
+            // ------------------------------------------------------------
+            // VALIDACIÓN
+            // ------------------------------------------------------------
+            if (!itemsToDelete.Any())
+                return NotFound(ProcessResponse<int>.Fail($"No se encontraron {ENTITY.ToLower()}s para eliminar."));
 
-            _db.Companies.RemoveRange(companiesToDelete);
+            // ------------------------------------------------------------
+            // ELIMINACIÓN
+            // ------------------------------------------------------------
+            _db.Companies.RemoveRange(itemsToDelete);
             var affectedRows = await _db.SaveChangesAsync(ct);
 
             return Ok(ProcessResponse<int>.Success(
                 affectedRows,
-                $"Se eliminaron {companiesToDelete.Count} empresas."));
-        }
-        catch (DbUpdateException ex)
-        {
-            _logger.LogError(ex, "Error de base de datos en eliminación masiva de empresas");
-            return Conflict(ProcessResponse<int>.Fail("No se pudieron eliminar las empresas. Verifique relaciones."));
+                $"Se eliminaron {itemsToDelete.Count} {ENTITY.ToLower()}s."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error inesperado en eliminación masiva de empresas");
-            return StatusCode(500, ProcessResponse<int>.Fail("Ocurrió un error al eliminar las empresas."));
+            _logger.LogError(ex, "Error inesperado en eliminación masiva de {Entity}s", ENTITY);
+
+            return StatusCode(500,
+                ProcessResponse<int>.Fail($"Ocurrió un error al eliminar las {ENTITY.ToLower()}s."));
         }
     }
 
+
+    // ============================================================
+    // EXPORT PDF
+    // ============================================================
+    // ============================================================
+    // EXPORT PDF
+    // ============================================================
     [HttpPost("export-pdf")]
     public async Task<IActionResult> ExportPdf([FromBody] BulkSelectionRequest request, CancellationToken ct = default)
     {
         IQueryable<Company> query = _db.Companies;
 
-        if (request.Ids != null && request.Ids.Any())
+        if (request.Ids is { Count: > 0 })
             query = query.Where(c => request.Ids.Contains(c.Id));
 
-        var companies = await query.Select(c => new CompanyDto
-        {
-            Id = c.Id,
-            Name = c.Name,
-            MunicipalityName = c.Municipality!.Name,
-            ProvinceName = c.Municipality!.Province!.Name,
-            Active = c.Active
-        }).ToListAsync(ct);
+        var items = await query
+            .Select(c => MapEntityToDto(c))
+            .ToListAsync(ct);
 
-        var doc = new CompanyReportPdf(companies);
+        var doc = new CompanyReportPdf(items);
         var pdfBytes = await _pdfService.GenerateAsync(doc, ct);
 
-        // Inline: el navegador abre el PDF directamente
         return File(pdfBytes, "application/pdf");
-
     }
 
 
-
+    // ============================================================
+    // EXPORT EXCEL
+    // ============================================================
     [HttpPost("export-excel")]
     public async Task<IActionResult> ExportExcel([FromBody] BulkSelectionRequest request, CancellationToken ct = default)
     {
         IQueryable<Company> query = _db.Companies;
 
-        if (request.Ids != null && request.Ids.Any())
+        if (request.Ids is { Count: > 0 })
             query = query.Where(c => request.Ids.Contains(c.Id));
 
-        var companies = await query.Select(c => new CompanyDto
-        {
-            Id = c.Id,
-            Name = c.Name,
-            MunicipalityName = c.Municipality!.Name,
-            ProvinceName = c.Municipality!.Province!.Name,
-            Active = c.Active
-        }).ToListAsync(ct);
+        var items = await query
+            .Select(c => MapEntityToDto(c))
+            .ToListAsync(ct);
 
-        var excelBytes = _excelService.GenerateCompaniesExcel(companies);
+        var excelBytes = _excelService.GenerateCompaniesExcel(items);
 
-        // Esto hace que el navegador lo descargue
-        return File(excelBytes,
+        return File(
+            excelBytes,
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             "CompaniesReport.xlsx");
     }
-
-
-
 
 }

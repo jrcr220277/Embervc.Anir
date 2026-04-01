@@ -154,8 +154,8 @@
         <HeaderContent>
             <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="ShortName">Abrev.</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="Name">Nombre</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="ProvinceName">Provincia</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="MunicipalityName">Municipio</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="Municipality.Province.Name">Provincia</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="Municipality.Name">Municipio</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="Active">Estado</MudTableSortLabel></MudTh>
             <MudTh Style="width: 120px; text-align:end">Acciones</MudTh>
         </HeaderContent>
@@ -171,7 +171,7 @@
                 </MudChip>
             </MudTd>
             <MudTd Style="width: 120px; text-align:end">
-                 <MudTooltip Text="Ver registro" Arrow="true">
+                <MudTooltip Text="Ver registro" Arrow="true">
                     <MudIconButton Icon="@Icons.Material.Rounded.Visibility" OnClick="@(() => ViewCompany(company))" Size="Size.Small" />
                 </MudTooltip>
                 <MudTooltip Text="Editar registro" Arrow="true">
