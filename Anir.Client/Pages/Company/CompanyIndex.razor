@@ -283,12 +283,22 @@
 
     private CompanyQueryDto MapTableStateToQuery(TableState state)
     {
+        var sortLabel = string.IsNullOrWhiteSpace(state.SortLabel)
+            ? "Name"
+            : state.SortLabel;
+
+        var desc = state.SortDirection switch
+        {
+            SortDirection.Descending => true,
+            _ => false // None y Ascending → ASC
+        };
+
         return new CompanyQueryDto
         {
             Page = state.Page + 1,
             Size = state.PageSize,
-            Sort = state.SortLabel ?? "Name",
-            Desc = state.SortDirection == SortDirection.Descending,
+            Sort = sortLabel,
+            Desc = desc,
             Search = string.IsNullOrWhiteSpace(SearchText) ? null : SearchText,
             ActiveFilter = StatusFilterValue switch
             {
@@ -298,6 +308,7 @@
             }
         };
     }
+
 
     // ============================================================
     // BÚSQUEDA CON DEBOUNCE

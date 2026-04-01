@@ -103,9 +103,15 @@ public class CompanyController : ControllerBase
                         ? companiesQuery.OrderByDescending(c => c.ShortName)
                         : companiesQuery.OrderBy(c => c.ShortName);
                     break;
-
+                case "Active":
+                    orderedQuery = queryDto.Desc
+                        ? companiesQuery.OrderByDescending(c => c.Active)
+                        : companiesQuery.OrderBy(c => c.Active);
+                    break;
                 default:
-                    orderedQuery = companiesQuery.OrderBy(c => c.ShortName); // fallback seguro
+                    orderedQuery = queryDto.Desc
+                        ? companiesQuery.OrderByDescending(c => c.ShortName)
+                        : companiesQuery.OrderBy(c => c.ShortName);
                     break;
             }
 
