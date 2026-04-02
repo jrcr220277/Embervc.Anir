@@ -75,7 +75,8 @@ namespace Anir.Data.Migrations
                     FullName = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
                     CellPhone = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
                     Email = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    Description = table.Column<string>(type: "text", nullable: true)
+                    Description = table.Column<string>(type: "text", nullable: true),
+                    Active = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {

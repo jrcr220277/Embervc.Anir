@@ -16,8 +16,8 @@ namespace Anir.Api.Controllers;
 [Route("api/[controller]")]
 public class CompanyController : ControllerBase
 {
-    private const string ENTITY = "Persona";
-
+    // Para poner nombre amiglable de la entidad en los mensajes usarios
+    private const string ENTITY = "Empresa";
 
     private readonly ApplicationDbContext _db;
     private readonly ILogger<CompanyController> _logger;
@@ -47,18 +47,18 @@ public class CompanyController : ControllerBase
     }
 
     // Leer - listar - paginar 
-    private static CompanyDto MapEntityToDto(Company c)
+    private static CompanyDto MapEntityToDto(Company entity)
     {
         return new CompanyDto
         {
-            Id = c.Id,
-            ShortName = c.ShortName,
-            Name = c.Name,
-            Address = c.Address,
-            MunicipalityId = c.MunicipalityId,
-            MunicipalityName = c.Municipality?.Name,
-            ProvinceName = c.Municipality?.Province?.Name,
-            Active = c.Active
+            Id = entity.Id,
+            ShortName = entity.ShortName,
+            Name = entity.Name,
+            Address = entity.Address,
+            MunicipalityId = entity.MunicipalityId,
+            MunicipalityName = entity.Municipality?.Name,
+            ProvinceName = entity.Municipality?.Province?.Name,
+            Active = entity.Active
         };
     }
 
@@ -257,95 +257,51 @@ public class CompanyController : ControllerBase
         {
             _logger.LogError(ex, "Error inesperado al eliminar {Entity}", ENTITY);
 
-            return StatusCode(500,
-                ProcessResponse<bool>.Fail(
-                    $"Ocurrió un error al eliminar la {ENTITY.ToLower()}."));
+            return StatusCode(500, ProcessResponse<bool>.Fail($"Ocurrió un error al eliminar la {ENTITY.ToLower()}."));
         }
     }
 
 
-    // ============================================================
-    // BATCH DELETE
-    // ============================================================
     [HttpPost("batch-delete")]
     public async Task<ActionResult<ProcessResponse<int>>> DeleteBatch(
-        [FromBody] BulkSelectionRequest request,
-        CancellationToken ct = default)
+     [FromBody] BulkSelectionRequest request,
+     CancellationToken ct = default)
     {
         try
         {
-            IQueryable<Company> query = _db.Companies;
             List<Company> itemsToDelete;
 
-            // ------------------------------------------------------------
-            // MODO SELECT ALL (el usuario quiere eliminar TODO el filtro)
-            // ------------------------------------------------------------
             if (request.SelectAll)
             {
-                var filterDto = JsonSerializer.Deserialize<CompanyQueryDto>(
-                    ((JsonElement)request.Filters).GetRawText(),
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-                if (filterDto == null)
-                    return BadRequest(ProcessResponse<int>.Fail("Filtros inválidos."));
-
-                // Búsqueda
-                if (!string.IsNullOrWhiteSpace(filterDto.Search))
-                {
-                    var s = filterDto.Search.Trim().ToLower();
-                    query = query.Where(c =>
-                        c.ShortName.ToLower().Contains(s) ||
-                        c.Name.ToLower().Contains(s) ||
-                        (c.Address != null && c.Address.ToLower().Contains(s))
-                    );
-                }
-
-                // Filtros
-                if (filterDto.ActiveFilter.HasValue)
-                    query = query.Where(c => c.Active == filterDto.ActiveFilter.Value);
-
-                if (filterDto.MunicipalityId.HasValue)
-                    query = query.Where(c => c.MunicipalityId == filterDto.MunicipalityId.Value);
-
-                itemsToDelete = await query.ToListAsync(ct);
+                // ⭐ TU LÓGICA: BORRAR TODO
+                itemsToDelete = await _db.Companies.ToListAsync(ct);
             }
-            // ------------------------------------------------------------
-            // MODO IDS ESPECÍFICOS
-            // ------------------------------------------------------------
             else
             {
                 if (request.Ids == null || request.Ids.Count == 0)
                     return BadRequest(ProcessResponse<int>.Fail("No se recibieron Ids para eliminar."));
 
-                itemsToDelete = await query
+                itemsToDelete = await _db.Companies
                     .Where(c => request.Ids.Contains(c.Id))
                     .ToListAsync(ct);
             }
 
-            // ------------------------------------------------------------
-            // VALIDACIÓN
-            // ------------------------------------------------------------
             if (!itemsToDelete.Any())
-                return NotFound(ProcessResponse<int>.Fail($"No se encontraron {ENTITY.ToLower()}s para eliminar."));
+                return NotFound(ProcessResponse<int>.Fail($"No se encontraro {ENTITY.ToLower()} para eliminar."));
 
-            // ------------------------------------------------------------
-            // ELIMINACIÓN
-            // ------------------------------------------------------------
             _db.Companies.RemoveRange(itemsToDelete);
             var affectedRows = await _db.SaveChangesAsync(ct);
 
-            return Ok(ProcessResponse<int>.Success(
-                affectedRows,
-                $"Se eliminaron {itemsToDelete.Count} {ENTITY.ToLower()}s."));
+            return Ok(ProcessResponse<int>.Success(affectedRows, $"Se eliminaron {itemsToDelete.Count} {ENTITY.ToLower()}."));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error inesperado en eliminación masiva de {Entity}s", ENTITY);
-
+            _logger.LogError(ex, $"Error inesperado en eliminación masiva de {ENTITY.ToLower()}");
             return StatusCode(500,
-                ProcessResponse<int>.Fail($"Ocurrió un error al eliminar las {ENTITY.ToLower()}s."));
+                ProcessResponse<int>.Fail($"Ocurrió un error al eliminar las {ENTITY.ToLower()}."));
         }
     }
+
 
 
     // ============================================================

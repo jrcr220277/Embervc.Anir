@@ -215,6 +215,9 @@ namespace Anir.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("CellPhone")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");

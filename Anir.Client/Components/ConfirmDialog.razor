@@ -130,7 +130,7 @@
 
         @if (ShowCancelButton)
         {
-            <MudButton Variant="Variant.Text"
+            <MudButton Variant="Variant.Filled"
                        Color="Color.Default"
                        OnClick="Cancel">
                 @CancelText
@@ -138,8 +138,7 @@
         }
 
         <MudButton Variant="Variant.Filled"
-               
-                   Color="@ResolvedColor"
+                   Color="@ResolvedColorButton"
                    StartIcon="@ResolvedActionIcon"
                    OnClick="Confirm">
             @ConfirmText
@@ -163,13 +162,23 @@
     [Parameter] public string Type { get; set; } = "default";
     private string NormalizedType => (Type ?? "default").Trim().ToLower();
 
-    // COLOR DEL AVATAR Y BOTÓN
+    // COLOR DEL AVATAR 
     private Color ResolvedColor => NormalizedType switch
     {
         "delete" => Color.Error,
         "warning" => Color.Warning,
         "success" => Color.Success,
         "info" => Color.Info,
+        _ => Color.Primary
+    };
+
+    // COLOR DEL BOTON
+    private Color ResolvedColorButton => NormalizedType switch
+    {
+        "delete" => Color.Error,
+        "warning" => Color.Default,
+        "success" => Color.Default,
+        "info" => Color.Default,
         _ => Color.Primary
     };
 

@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Anir.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260328060804_InitialCreate")]
+    [Migration("20260402134814_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -217,6 +217,9 @@ namespace Anir.Data.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("CellPhone")
                         .HasMaxLength(20)

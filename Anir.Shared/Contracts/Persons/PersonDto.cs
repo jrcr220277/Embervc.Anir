@@ -32,6 +32,9 @@ public class PersonDto
     [Display(Name = "Descripción")]
     public string? Description { get; set; }
 
+    [Display(Name = "Activo")]
+    public bool Active { get; set; } = true;
+
     // Solo para mostrar en grilla/detalle
     [Display(Name = "Trabajos ANIR")]
     public int? AnirWorkCount { get; set; }
