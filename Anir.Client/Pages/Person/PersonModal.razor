@@ -13,7 +13,7 @@
          HEADER ENTERPRISE PULIDO
     ========================================================== -->
     <TitleContent>
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="pa-2">
+        <MudStack Row="true" AlignItems="AlignItems.Center">
 
             <MudAvatar Size="Size.Large" Variant="Variant.Filled">
                 <MudIcon Icon="@(CurrentMode == ModalMode.Add ? Icons.Material.TwoTone.AddCircle
@@ -42,121 +42,140 @@
 
 
     <!-- =========================================================
-         CONTENIDO ENTERPRISE PULIDO
+     CONTENIDO ENTERPRISE PULIDO (MudGrid)
     ========================================================== -->
     <DialogContent>
 
         <EditForm Model="_formModel" OnValidSubmit="HandleSubmitAsync" id="form-entity">
             <DataAnnotationsValidator />
 
-            <MudStack Spacing="4">
+            <MudGrid Spacing="3">
 
                 <!-- =========================================================
-                     BLOQUE SUPERIOR: FOTO + DATOS CLAVE
+                 COLUMNA IZQUIERDA: FOTO
                 ========================================================== -->
-                <MudPaper Elevation="0" Class="pa-4" Style="border-radius:12px;">
-
-                    <MudStack Row="true" Spacing="4" AlignItems="AlignItems.Start">
-
-                        <!-- FOTO -->
+                <MudItem xs="12" sm="4" md="3">
+                    <MudPaper Elevation="0" Class="pa-2" Outlined="true">
+                        <UiSectionHeader Text="Imagen de perfil" Color="Color.Info" ShowBottomBorder="false" />
+                        
                         <PhotoUploader Value="@_formModel.ImagenUrl"
                                        IsProfile="true"
-                                       Size="160"
+                                       Size="150"
                                        OnChanged="OnPhotoChanged" />
+                    </MudPaper>
+                </MudItem>
 
-                        <!-- DATOS CLAVE -->
-                        <MudStack Spacing="3" Class="flex-grow-1">
+                <!-- =========================================================
+                 COLUMNA DERECHA: DATOS PRIMARIOS + DESCRIPCIÓN
+                ========================================================== -->
+                <MudItem xs="12" sm="8" md="9">
+                    <MudPaper Elevation="0" Class="pa-2" Outlined="true">
+                        
+                        <!-- =======================
+                         DATOS PRIMARIOS
+                    ======================== -->
+                        <UiSectionHeader Text="Datos primarios" Color="Color.Info" ShowBottomBorder="false" />
+
+                        <MudGrid>
 
                             <!-- DNI -->
-                            <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Dni)"
-                                          For="@(() => _formModel.Dni)"
-                                          @bind-Value="_formModel.Dni"
-                                          HelperText="@ModelMetadataHelper.GetHelperText(() => _formModel.Dni)"
-                                          HelperTextOnFocus="true"
-                                          Variant="Variant.Outlined"
-                                          Required="true"
-                                          FullWidth="true"
-                                          Margin="Margin.Dense"
-                                          Clearable="true"
-                                          ReadOnly="@(IsViewMode)" />
+                            <MudItem xs="12" sm="6">
+                                <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Dni)"
+                                              For="@(() => _formModel.Dni)"
+                                              @bind-Value="_formModel.Dni"
+                                              HelperText="@ModelMetadataHelper.GetHelperText(() => _formModel.Dni)"
+                                              HelperTextOnFocus="true"
+                                              Variant="Variant.Text"
+                                              Required="true"
+                                              FullWidth="true"
+                                              Margin="Margin.Dense"
+                                              Clearable="true"
+                                              ReadOnly="@(IsViewMode)" />
+                            </MudItem>
 
                             <!-- Nombre -->
-                            <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.FullName)"
-                                          For="@(() => _formModel.FullName)"
-                                          @bind-Value="_formModel.FullName"
-                                          HelperText="@ModelMetadataHelper.GetHelperText(() => _formModel.FullName)"
-                                          HelperTextOnFocus="true"
-                                          Variant="Variant.Outlined"
-                                          Required="true"
-                                          FullWidth="true"
-                                          Margin="Margin.Dense"
-                                          Clearable="true"
-                                          ReadOnly="@(IsViewMode)" />
+                            <MudItem xs="12" sm="6">
+                                <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.FullName)"
+                                              For="@(() => _formModel.FullName)"
+                                              @bind-Value="_formModel.FullName"
+                                              HelperText="@ModelMetadataHelper.GetHelperText(() => _formModel.FullName)"
+                                              HelperTextOnFocus="true"
+                                              Variant="Variant.Text"
+                                              Required="true"
+                                              FullWidth="true"
+                                              Margin="Margin.Dense"
+                                              Clearable="true"
+                                              ReadOnly="@(IsViewMode)" />
+                            </MudItem>
 
-                            <!-- Email + Teléfono -->
-                            <MudStack Row="true" Spacing="3">
+                            <!-- Email -->
+                            <MudItem xs="12" sm="7">
                                 <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Email)"
                                               For="@(() => _formModel.Email)"
                                               @bind-Value="_formModel.Email"
                                               HelperText="@ModelMetadataHelper.GetHelperText(() => _formModel.Email)"
                                               HelperTextOnFocus="true"
-                                              Variant="Variant.Outlined"
+                                              Variant="Variant.Text"
                                               FullWidth="true"
                                               Margin="Margin.Dense"
                                               Clearable="true"
-                                              ReadOnly="@(IsViewMode)"
-                                              Class="flex-grow-1" />
+                                              ReadOnly="@(IsViewMode)" />
+                            </MudItem>
 
+                            <!-- Teléfono -->
+                            <MudItem xs="12" sm="5">
                                 <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.CellPhone)"
                                               For="@(() => _formModel.CellPhone)"
                                               @bind-Value="_formModel.CellPhone"
                                               HelperText="@ModelMetadataHelper.GetHelperText(() => _formModel.CellPhone)"
                                               HelperTextOnFocus="true"
-                                              Variant="Variant.Outlined"
+                                              Variant="Variant.Text"
                                               FullWidth="true"
                                               Margin="Margin.Dense"
                                               Clearable="true"
-                                              ReadOnly="@(IsViewMode)"
-                                              Style="width: 180px;" />
-                            </MudStack>
+                                              ReadOnly="@(IsViewMode)" />
+                            </MudItem>
 
                             <!-- Estado -->
-                            <MudSwitch T="bool"
-                                       @bind-Value="_formModel.Active"
-                                       Color="Color.Primary"
-                                       Label="@(_formModel.Active ? "Activo" : "Inactivo")" />
+                            <MudItem xs="12">
+                                <MudSwitch T="bool"
+                                           @bind-Value="_formModel.Active"
+                                           Color="Color.Primary"
+                                           Label="@(_formModel.Active ? "Activo" : "Inactivo")" />
+                            </MudItem>
 
-                        </MudStack>
+                        </MudGrid>
 
-                    </MudStack>
+                    </MudPaper>
 
-                </MudPaper>
+                    <!-- =========================================================
+                     INFORMACIÓN EXTRA (DESCRIPCIÓN)
+                    ========================================================== -->
+                    <MudPaper Class="pa-2 mt-3" Outlined="true">
 
+                        <UiSectionHeader Text="Información de interés" Color="Color.Info" ShowBottomBorder="false" />
 
-                <!-- =========================================================
-                     SECCIÓN: INFORMACIÓN EXTRA (PULIDA)
-                ========================================================== -->
-                <MudPaper Elevation="0" Class="pa-4" Style="border-radius:12px;">
-                    <UiSectionHeader Text="Información de interés" ShowBottomBorder="true" />
+                        <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Description)"
+                                      For="@(() => _formModel.Description)"
+                                      @bind-Value="_formModel.Description"
+                                      HelperText="@ModelMetadataHelper.GetHelperText(() => _formModel.Description)"
+                                      HelperTextOnFocus="true"
+                                      Variant="Variant.Text"
+                                      FullWidth="true"
+                                      Margin="Margin.Dense"
+                                      Lines="3"
+                                      Clearable="true"
+                                      ReadOnly="@(IsViewMode)" />
+                    </MudPaper>
 
-                    <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Description)"
-                                  For="@(() => _formModel.Description)"
-                                  @bind-Value="_formModel.Description"
-                                  HelperText="@ModelMetadataHelper.GetHelperText(() => _formModel.Description)"
-                                  HelperTextOnFocus="true"
-                                  Variant="Variant.Outlined"
-                                  FullWidth="true"
-                                  Margin="Margin.Dense"
-                                  Lines="3"
-                                  Clearable="true"
-                                  ReadOnly="@(IsViewMode)" />
-                </MudPaper>
+                </MudItem>
 
-            </MudStack>
+            </MudGrid>
 
         </EditForm>
 
     </DialogContent>
+
 
 
     <!-- =========================================================
