@@ -2,7 +2,7 @@ using Anir.Data;
 using Anir.Data.Identity;
 using Anir.Data.Seeders;
 using Anir.Infrastructure.Jwt;
-using Anir.Infrastructure.Reports;
+using Anir.Infrastructure.Reports.Template.Excel;
 using Anir.Infrastructure.Settings;
 using Anir.Infrastructure.Storage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -103,7 +103,8 @@ builder.Services.AddSingleton<IFileStorage>(sp =>
 // ============================================================
 QuestPDF.Settings.License = LicenseType.Community;
 builder.Services.AddScoped<IPdfService, PdfService>();
-builder.Services.AddScoped<ExcelService>();
+builder.Services.AddScoped<CompanyReportExcel>();
+builder.Services.AddScoped<PersonReportExcel>();
 
 // ============================================================
 // CONTROLLERS + SWAGGER

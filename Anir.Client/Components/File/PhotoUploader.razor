@@ -1,0 +1,125 @@
+﻿@using Anir.Client.Services
+@using Anir.Shared
+@inject FileService FileService
+@inject IAlertService AlertService
+
+<MudStack AlignItems="AlignItems.Center" Spacing="2">
+
+    <MudAvatar Rounded="@(!IsProfile)"
+               Style="@($"width:{Size}px;height:{Size}px;overflow:hidden;")">
+
+        @if (PreviewUrl != null)
+        {
+            <MudImage Src="@PreviewUrl" Fluid="true" />
+        }
+        else if (!string.IsNullOrEmpty(Value))
+        {
+            <MudImage Src="@Value" Fluid="true" />
+        }
+        else
+        {
+            <MudIcon Icon="@DefaultIcon" Style="font-size:4rem;" />
+        }
+    </MudAvatar>
+
+    <MudStack Row="true" Spacing="1">
+
+        <MudFileUpload T="IBrowserFile"
+                       FilesChanged="HandleSelected"
+                       ShowList="false"
+                       ShowSize="false"
+                       ShowProgress="false"
+                       SuppressOnChangeWhenInvalid="true"
+                       SelectedTemplate="@(file => null)">
+            <CustomContent>
+                <MudIconButton Disabled="@IsUploading"
+                           OnClick="@context.OpenFilePickerAsync"
+                    Icon="@Icons.Material.Filled.CloudUpload" />
+                
+            </CustomContent>
+        </MudFileUpload>
+
+        @if (ShowDelete && (PreviewUrl != null || !string.IsNullOrEmpty(Value)))
+        {
+            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                           Color="Color.Error"
+                           Disabled="@IsUploading"
+                           OnClick="HandleDelete" />
+        }
+
+    </MudStack>
+
+</MudStack>
+
+@code {
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public int Size { get; set; } = 150;
+    [Parameter] public bool ShowDelete { get; set; } = true;
+    [Parameter] public EventCallback<FileResponse?> OnChanged { get; set; }
+    [Parameter] public bool IsProfile { get; set; } = true;
+
+    private const long MaxFileSize = 10 * 1024 * 1024;
+    private string? PreviewUrl;
+    private bool IsUploading = false;
+
+    private string DefaultIcon =>
+        IsProfile ? Icons.Material.Filled.Person : Icons.Material.Filled.Image;
+
+    private async Task HandleSelected(IBrowserFile? file)
+    {
+        if (file == null)
+        {
+            PreviewUrl = Value;
+            await OnChanged.InvokeAsync(null);
+            return;
+        }
+
+        if (file.Size > MaxFileSize)
+        {
+            await AlertService.ShowError("Imagen demasiado grande",
+                $"Máximo permitido: {MaxFileSize / (1024 * 1024)} MB.");
+            return;
+        }
+
+        try
+        {
+            IsUploading = true;
+            StateHasChanged();
+
+            using var stream = file.OpenReadStream(MaxFileSize);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+
+            PreviewUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+
+            var result = await FileService.UploadAsync(file);
+
+            await OnChanged.InvokeAsync(result);
+        }
+        finally
+        {
+            IsUploading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleDelete()
+    {
+        if (!string.IsNullOrEmpty(Value))
+        {
+            try
+            {
+                var uri = new Uri(Value);
+                var fileId = uri.LocalPath.TrimStart('/');
+                await FileService.DeleteAsync(fileId);
+            }
+            catch
+            {
+                await FileService.DeleteAsync(Value);
+            }
+        }
+
+        PreviewUrl = null;
+        await OnChanged.InvokeAsync(null);
+    }
+}

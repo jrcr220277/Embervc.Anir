@@ -1,15 +1,19 @@
 ﻿using Anir.Data;
 using Anir.Data.Entities;
 using Anir.Infrastructure.Extensions;
-using Anir.Infrastructure.Reports;
+using Anir.Infrastructure.Reports.Template.Excel;
 using Anir.Shared.Contracts.Common;
 using Anir.Shared.Contracts.Companies;
 using Anir.Shared.Contracts.Persons;
 using Anir.Shared.Helpers;
+using DocumentFormat.OpenXml.VariantTypes;
+using DocumentFormat.OpenXml.Vml.Office;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using static System.Runtime.InteropServices.JavaScript.JSType;
+using Anir.Infrastructure.Storage;
+
 
 namespace Anir.Api.Controllers;
 
@@ -23,21 +27,24 @@ public class PersonController : ControllerBase
     private readonly ApplicationDbContext _db;
     private readonly ILogger<PersonController> _logger;
     private readonly IPdfService _pdfService;
-    private readonly ExcelService _excelService;
+    private readonly PersonReportExcel _excelService;
+    private readonly IFileStorage _storage;
 
-    public PersonController(ApplicationDbContext db, ILogger<PersonController> logger, IPdfService pdfService, ExcelService excelService)
+
+    public PersonController(ApplicationDbContext db, ILogger<PersonController> logger, IPdfService pdfService, PersonReportExcel excelService, IFileStorage storage)
     {
         _db = db;
         _logger = logger;
         _pdfService = pdfService;
         _excelService = excelService;
+        _storage = storage;
     }
 
     // ============================================================
-    // MÉTODOS PRIVADOS DE MAPEOS (LOS ÚNICOS QUE PEDISTE)
+    // MÉTODOS PRIVADOS DE MAPEOS
     // ============================================================
 
-    // Crear - Actualizar
+    // Crear - Actualizar (DTO → Entidad)
     private static void MapDtoToEntity(PersonDto dto, Person entity)
     {
         entity.ImagenId = dto.ImagenId;
@@ -49,13 +56,14 @@ public class PersonController : ControllerBase
         entity.Active = dto.Active;
     }
 
-    // Leer - listar - paginar 
-    private static PersonDto MapEntityToDto(Person entity)
+    // Leer (Entidad → DTO) — SOLO en memoria
+    private PersonDto MapEntityToDto(Person entity)
     {
         return new PersonDto
         {
             Id = entity.Id,
             ImagenId = entity.ImagenId,
+            ImagenUrl = string.IsNullOrWhiteSpace(entity.ImagenId) ? null: $"{Request.Scheme}://{Request.Host}/{entity.ImagenId}",
             Dni = entity.Dni,
             FullName = entity.FullName,
             CellPhone = entity.CellPhone,
@@ -69,56 +77,81 @@ public class PersonController : ControllerBase
     // POST PAGED
     // ============================================================
     [HttpPost("getpaged")]
-    public async Task<ActionResult<ProcessResponse<PagedResponse<PersonDto>>>> GetPaged([FromBody] PersonQueryDto queryDto,  CancellationToken ct = default)
+    public async Task<ActionResult<ProcessResponse<PagedResponse<PersonDto>>>> GetPaged(
+        [FromBody] PersonQueryDto queryDto,
+        CancellationToken ct = default)
     {
         try
         {
             if (!ModelState.IsValid)
-                return BadRequest(ProcessResponse<PagedResponse<CompanyDto>>.Fail("Datos inválidos."));
+                return BadRequest(ProcessResponse<PagedResponse<PersonDto>>.Fail("Datos inválidos."));
 
-            // 🔥 ÚNICA LÍNEA QUE CAMBIAS CUANDO COPIAS ESTE CONTROLADOR
-            var query = _db.Persons
-                .AsNoTracking();
+            // ------------------------------------------------------------
+            // Base Query
+            // ------------------------------------------------------------
+            var query = _db.Persons.AsNoTracking();
 
             // ------------------------------------------------------------
             // Búsqueda
             // ------------------------------------------------------------
             if (!string.IsNullOrWhiteSpace(queryDto.Search))
             {
-                var s = queryDto.Search.Trim().ToLower();
+                var s = queryDto.Search.Trim();
 
-                query = query.Where(entity =>
-                    entity.Dni.ToLower().Contains(s) ||
-                    entity.FullName.ToLower().Contains(s) 
-                   
-                );
+                query = query.Where(x =>
+                    x.Dni.Contains(s) ||
+                    x.FullName.Contains(s));
             }
 
             // ------------------------------------------------------------
             // Filtros
             // ------------------------------------------------------------
             if (queryDto.ActiveFilter.HasValue)
-                query = query.Where(entity => entity.Active == queryDto.ActiveFilter.Value);
+                query = query.Where(x => x.Active == queryDto.ActiveFilter.Value);
 
-           
             // ------------------------------------------------------------
-            // Ordenamiento (🔥 usando tu extensión mejorada)
+            // Ordenamiento
             // ------------------------------------------------------------
             var orderedQuery = query.ApplySorting(queryDto);
 
             // ------------------------------------------------------------
-            // Paginado + proyección
+            // Proyección segura (EF Core friendly)
             // ------------------------------------------------------------
-            var pagedResult = await orderedQuery
-                .Select(entity => MapEntityToDto(entity))
-                .ToPagedResultAsync(queryDto, ct);
+            var projectedQuery = orderedQuery.Select(x => new PersonDto
+            {
+                Id = x.Id,
+                ImagenId = x.ImagenId,
+                Dni = x.Dni,
+                FullName = x.FullName,
+                CellPhone = x.CellPhone,
+                Email = x.Email,
+                Description = x.Description,
+                Active = x.Active
+            });
 
-            return Ok(ProcessResponse<PagedResponse<PersonDto>>.Success(pagedResult));
+            // ------------------------------------------------------------
+            // Paginado
+            // ------------------------------------------------------------
+            var paged = await projectedQuery.ToPagedResultAsync(queryDto, ct);
+
+            // ------------------------------------------------------------
+            // Agregar URL de imagen (solo en memoria)
+            // ------------------------------------------------------------
+            foreach (var item in paged.Items)
+            {
+                item.ImagenUrl = string.IsNullOrWhiteSpace(item.ImagenId)
+                    ? null
+                    : $"{Request.Scheme}://{Request.Host}/{item.ImagenId}";
+            
+            }
+
+            return Ok(ProcessResponse<PagedResponse<PersonDto>>.Success(paged));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Ocurrió un error al obtener la {ENTITY.ToLower()}.");
-            return StatusCode(500, ProcessResponse<PagedResponse<PersonDto>>.Fail($"Ocurrió un error al obtener la {ENTITY.ToLower()}."));
+            _logger.LogError(ex, "Error obteniendo {Entity}", ENTITY);
+            return StatusCode(500,
+                ProcessResponse<PagedResponse<PersonDto>>.Fail($"Ocurrió un error al obtener la {ENTITY.ToLower()}."));
         }
     }
 
@@ -188,21 +221,31 @@ public class PersonController : ControllerBase
     [HttpPut("{id:int}")]
     public async Task<ActionResult<ProcessResponse<PersonDto>>> Update(int id, [FromBody] PersonDto dto, CancellationToken ct = default)
     {
-        // Validación de coherencia entre ruta y cuerpo
         if (id != dto.Id)
             return BadRequest(ProcessResponse<PersonDto>.Fail("El ID de la ruta no coincide con el del cuerpo."));
 
-        // Buscar entidad existente
         var entity = await _db.Persons.FindAsync(id, ct);
 
         if (entity == null)
             return NotFound(ProcessResponse<PersonDto>.Fail($"{ENTITY} no encontrada."));
 
-        // Mapear cambios del DTO a la entidad
-        MapDtoToEntity(dto, entity);
-
         try
         {
+            // ⭐ 1. Si la imagen cambió, eliminar la anterior del HDD
+            if (!string.IsNullOrWhiteSpace(entity.ImagenId) &&
+                entity.ImagenId != dto.ImagenId)
+            {
+                var parts = entity.ImagenId.Split('/');
+                var folder = parts[0];
+                var fileName = parts[1];
+
+                await _storage.DeleteAsync(fileName, folder);
+            }
+
+            // ⭐ 2. Mapear cambios del DTO a la entidad
+            MapDtoToEntity(dto, entity);
+
+            // ⭐ 3. Guardar cambios
             await _db.SaveChangesAsync(ct);
 
             return Ok(ProcessResponse<PersonDto>.Success(dto, $"{ENTITY} actualizada correctamente."));
@@ -215,6 +258,7 @@ public class PersonController : ControllerBase
                 ProcessResponse<PersonDto>.Fail($"Ocurrió un error al actualizar la {ENTITY.ToLower()}."));
         }
     }
+
 
     // ============================================================
     // DELETE
@@ -284,53 +328,49 @@ public class PersonController : ControllerBase
         }
     }
 
+    // ============================================================
+    // EXPORT PDF
+    // ============================================================
+    [HttpPost("export-pdf")]
+    public async Task<IActionResult> ExportPdf([FromBody] BulkSelectionRequest request, CancellationToken ct = default)
+    {
+        IQueryable<Person> query = _db.Persons;
 
-    //// ============================================================
-    //// EXPORT PDF
-    //// ============================================================
-    //// ============================================================
-    //// EXPORT PDF
-    //// ============================================================
-    //[HttpPost("export-pdf")]
-    //public async Task<IActionResult> ExportPdf([FromBody] BulkSelectionRequest request, CancellationToken ct = default)
-    //{
-    //    IQueryable<Company> query = _db.Companies;
+        if (request.Ids is { Count: > 0 })
+            query = query.Where(c => request.Ids.Contains(c.Id));
 
-    //    if (request.Ids is { Count: > 0 })
-    //        query = query.Where(c => request.Ids.Contains(c.Id));
+        var items = await query
+            .Select(c => MapEntityToDto(c))
+            .ToListAsync(ct);
 
-    //    var items = await query
-    //        .Select(c => MapEntityToDto(c))
-    //        .ToListAsync(ct);
+        var doc = new PersonReportPdf(items);
+        var pdfBytes = await _pdfService.GenerateAsync(doc, ct);
 
-    //    var doc = new CompanyReportPdf(items);
-    //    var pdfBytes = await _pdfService.GenerateAsync(doc, ct);
-
-    //    return File(pdfBytes, "application/pdf");
-    //}
+        return File(pdfBytes, "application/pdf");
+    }
 
 
-    //// ============================================================
-    //// EXPORT EXCEL
-    //// ============================================================
-    //[HttpPost("export-excel")]
-    //public async Task<IActionResult> ExportExcel([FromBody] BulkSelectionRequest request, CancellationToken ct = default)
-    //{
-    //    IQueryable<Company> query = _db.Companies;
+    // ============================================================
+    // EXPORT EXCEL
+    // ============================================================
+    [HttpPost("export-excel")]
+    public async Task<IActionResult> ExportExcel([FromBody] BulkSelectionRequest request, CancellationToken ct = default)
+    {
+        IQueryable<Person> query = _db.Persons;
 
-    //    if (request.Ids is { Count: > 0 })
-    //        query = query.Where(c => request.Ids.Contains(c.Id));
+        if (request.Ids is { Count: > 0 })
+            query = query.Where(c => request.Ids.Contains(c.Id));
 
-    //    var items = await query
-    //        .Select(c => MapEntityToDto(c))
-    //        .ToListAsync(ct);
+        var items = await query
+            .Select(c => MapEntityToDto(c))
+            .ToListAsync(ct);
 
-    //    var excelBytes = _excelService.GenerateCompaniesExcel(items);
+        var excelBytes = _excelService.GeneratePersonsExcel(items);
 
-    //    return File(
-    //        excelBytes,
-    //        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    //        "CompaniesReport.xlsx");
-    //}
+        return File(
+            excelBytes,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "CompaniesReport.xlsx");
+    }
 
 }

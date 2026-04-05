@@ -1,4 +1,4 @@
-﻿namespace Anir.Infrastructure.Storage;
+﻿using Anir.Infrastructure.Storage;
 
 public class FileStorageService : IFileStorage
 {

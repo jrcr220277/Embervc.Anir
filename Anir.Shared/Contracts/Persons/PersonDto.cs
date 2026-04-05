@@ -9,6 +9,8 @@ public class PersonDto
     [Display(Name = "Imagen")]
     public string? ImagenId { get; set; }
 
+    public string? ImagenUrl { get; set; }
+
     [Required(ErrorMessage = "El documento de identidad es obligatorio.")]
     [StringLength(11, ErrorMessage = "El documento no puede exceder {1} caracteres.")]
     [Display(Name = "Documento de identidad")]

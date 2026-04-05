@@ -51,13 +51,9 @@
                                             Foto de Perfil
                                         </MudText>
 
-                                        <ImageUploader @ref="_imageUploader"
-                                                       Container="users"
-                                                       Size="150"
-                                                       Rounded="false"
-                                                       Value="@_formModel.ImagenUrl"
-                                                       OnChanged="OnPhotoChanged" />
-
+                                        <PhotoUploader Value="@_formModel.ImagenUrl"
+                                                       OnChanged="OnPhotoChanged"
+                                                       Size="150" />
 
                                     </MudStack>
                                 </MudItem>
@@ -136,8 +132,6 @@
     private bool isSaving = false;
     private bool isLoading = true;
 
-    private ImageUploader? _imageUploader;
-
     protected override async Task OnInitializedAsync()
     {
         // Si no hay usuario cargado, lo obtenemos
@@ -179,18 +173,6 @@
             return;
 
         isSaving = true;
-
-        // ⭐ 1. Subir imagen solo si el usuario seleccionó una nueva
-        if (_imageUploader is not null)
-        {
-            var uploaded = await _imageUploader.UploadIfNeededAsync();
-
-            if (uploaded is not null)
-            {
-                _formModel.ImagenId = uploaded.Id;
-                _formModel.ImagenUrl = uploaded.Url;
-            }
-        }
 
         // ⭐ 2. Guardar perfil
         var result = await AuthService.UpdateProfileAsync(_formModel);

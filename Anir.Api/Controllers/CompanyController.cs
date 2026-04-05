@@ -1,7 +1,7 @@
 ﻿using Anir.Data;
 using Anir.Data.Entities;
 using Anir.Infrastructure.Extensions;
-using Anir.Infrastructure.Reports;
+using Anir.Infrastructure.Reports.Template.Excel;
 using Anir.Shared.Contracts.Common;
 using Anir.Shared.Contracts.Companies;
 using Anir.Shared.Helpers;
@@ -22,9 +22,9 @@ public class CompanyController : ControllerBase
     private readonly ApplicationDbContext _db;
     private readonly ILogger<CompanyController> _logger;
     private readonly IPdfService _pdfService;
-    private readonly ExcelService _excelService;
+    private readonly CompanyReportExcel _excelService;
 
-    public CompanyController(ApplicationDbContext db, ILogger<CompanyController> logger, IPdfService pdfService, ExcelService excelService)
+    public CompanyController(ApplicationDbContext db, ILogger<CompanyController> logger, IPdfService pdfService, CompanyReportExcel excelService)
     {
         _db = db;
         _logger = logger;

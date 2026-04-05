@@ -1,0 +1,46 @@
+﻿@using Anir.Client.Services.Files
+@using Anir.Shared
+@inject FileService FileService
+@inject IJSRuntime JS
+
+<MudStack Spacing="2">
+
+    @if (!string.IsNullOrEmpty(Value))
+    {
+        <MudButton Variant="Variant.Outlined"
+                   StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                   OnClick="OpenPdf">
+            Ver PDF
+        </MudButton>
+    }
+
+    <MudFileUpload T="IBrowserFile"
+                   FilesChanged="HandleSelected"
+                   ShowList="false"
+                   ShowSize="false"
+                   ShowProgress="false" />
+
+</MudStack>
+
+@code {
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<FileResponse?> OnChanged { get; set; }
+
+    private async Task HandleSelected(IBrowserFile? file)
+    {
+        if (file == null)
+        {
+            await OnChanged.InvokeAsync(null);
+            return;
+        }
+
+        var result = await FileService.UploadAsync(file);
+        await OnChanged.InvokeAsync(result);
+    }
+
+    private async Task OpenPdf()
+    {
+        if (!string.IsNullOrEmpty(Value))
+            await JS.InvokeVoidAsync("open", Value, "_blank");
+    }
+}

@@ -4,6 +4,7 @@ using Anir.Client.Services.Alerts;
 using Anir.Client.Services.Auth;
 using Anir.Client.Services.Company;
 using Anir.Client.Services.Files;
+using Anir.Client.Services.Person;
 using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
@@ -49,8 +50,7 @@ builder.Services.AddBlazoredLocalStorage();
 // ------------------------------------------------------------
 builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<AuthenticationProviderJWT>();
-builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
-    sp.GetRequiredService<AuthenticationProviderJWT>());
+builder.Services.AddScoped<AuthenticationStateProvider>(sp => sp.GetRequiredService<AuthenticationProviderJWT>());
 
 // ------------------------------------------------------------
 // 6. UserState (estado PRO del usuario)
@@ -65,6 +65,7 @@ builder.Services.AddScoped<FileService>();
 builder.Services.AddScoped<CompanyService>();
 builder.Services.AddScoped<ProvinceService>();
 builder.Services.AddScoped<MunicipalityService>();
+builder.Services.AddScoped<PersonService>();
 
 // ------------------------------------------------------------
 // 8. Construir la app

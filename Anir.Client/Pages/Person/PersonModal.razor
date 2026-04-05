@@ -1,0 +1,317 @@
+﻿
+@using Anir.Client.Services
+@using Anir.Client.Services.Company
+@using Anir.Shared.Enums
+@using MudBlazor
+@using Anir.Shared.Contracts
+@using Anir.Shared.Contracts.Companies
+@using System.ComponentModel.DataAnnotations
+
+<MudDialog Elevation="24" Style="width: 820px; max-width: 95vw;">
+
+    <!-- =========================================================
+         HEADER ENTERPRISE PULIDO
+    ========================================================== -->
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="pa-2">
+
+            <MudAvatar Size="Size.Large" Variant="Variant.Filled">
+                <MudIcon Icon="@(CurrentMode == ModalMode.Add ? Icons.Material.TwoTone.AddCircle
+                                                     : CurrentMode == ModalMode.Edit
+                                                         ? Icons.Material.TwoTone.Edit
+                                                         : Icons.Material.TwoTone.Visibility)"
+                         Size="Size.Large" />
+            </MudAvatar>
+
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.h5" Class="font-weight-semibold">
+                    @(CurrentMode == ModalMode.Add ? "Crear Persona" :
+                      CurrentMode == ModalMode.Edit ? "Editar Persona" :
+                      "Detalle de la Persona")
+                </MudText>
+
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    @(CurrentMode == ModalMode.Add ? "Complete los datos para registrar una nueva persona" :
+                      CurrentMode == ModalMode.Edit ? "Modifique los datos de la persona seleccionada" :
+                      "Visualización de la información de la persona")
+                </MudText>
+            </MudStack>
+
+        </MudStack>
+    </TitleContent>
+
+
+    <!-- =========================================================
+         CONTENIDO ENTERPRISE PULIDO
+    ========================================================== -->
+    <DialogContent>
+
+        <EditForm Model="_formModel" OnValidSubmit="HandleSubmitAsync" id="form-entity">
+            <DataAnnotationsValidator />
+
+            <MudStack Spacing="4">
+
+                <!-- =========================================================
+                     BLOQUE SUPERIOR: FOTO + DATOS CLAVE
+                ========================================================== -->
+                <MudPaper Elevation="0" Class="pa-4" Style="border-radius:12px;">
+
+                    <MudStack Row="true" Spacing="4" AlignItems="AlignItems.Start">
+
+                        <!-- FOTO -->
+                        <PhotoUploader Value="@_formModel.ImagenUrl"
+                                       IsProfile="true"
+                                       Size="160"
+                                       OnChanged="OnPhotoChanged" />
+
+                        <!-- DATOS CLAVE -->
+                        <MudStack Spacing="3" Class="flex-grow-1">
+
+                            <!-- DNI -->
+                            <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Dni)"
+                                          For="@(() => _formModel.Dni)"
+                                          @bind-Value="_formModel.Dni"
+                                          HelperText="@ModelMetadataHelper.GetHelperText(() => _formModel.Dni)"
+                                          HelperTextOnFocus="true"
+                                          Variant="Variant.Outlined"
+                                          Required="true"
+                                          FullWidth="true"
+                                          Margin="Margin.Dense"
+                                          Clearable="true"
+                                          ReadOnly="@(IsViewMode)" />
+
+                            <!-- Nombre -->
+                            <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.FullName)"
+                                          For="@(() => _formModel.FullName)"
+                                          @bind-Value="_formModel.FullName"
+                                          HelperText="@ModelMetadataHelper.GetHelperText(() => _formModel.FullName)"
+                                          HelperTextOnFocus="true"
+                                          Variant="Variant.Outlined"
+                                          Required="true"
+                                          FullWidth="true"
+                                          Margin="Margin.Dense"
+                                          Clearable="true"
+                                          ReadOnly="@(IsViewMode)" />
+
+                            <!-- Email + Teléfono -->
+                            <MudStack Row="true" Spacing="3">
+                                <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Email)"
+                                              For="@(() => _formModel.Email)"
+                                              @bind-Value="_formModel.Email"
+                                              HelperText="@ModelMetadataHelper.GetHelperText(() => _formModel.Email)"
+                                              HelperTextOnFocus="true"
+                                              Variant="Variant.Outlined"
+                                              FullWidth="true"
+                                              Margin="Margin.Dense"
+                                              Clearable="true"
+                                              ReadOnly="@(IsViewMode)"
+                                              Class="flex-grow-1" />
+
+                                <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.CellPhone)"
+                                              For="@(() => _formModel.CellPhone)"
+                                              @bind-Value="_formModel.CellPhone"
+                                              HelperText="@ModelMetadataHelper.GetHelperText(() => _formModel.CellPhone)"
+                                              HelperTextOnFocus="true"
+                                              Variant="Variant.Outlined"
+                                              FullWidth="true"
+                                              Margin="Margin.Dense"
+                                              Clearable="true"
+                                              ReadOnly="@(IsViewMode)"
+                                              Style="width: 180px;" />
+                            </MudStack>
+
+                            <!-- Estado -->
+                            <MudSwitch T="bool"
+                                       @bind-Value="_formModel.Active"
+                                       Color="Color.Primary"
+                                       Label="@(_formModel.Active ? "Activo" : "Inactivo")" />
+
+                        </MudStack>
+
+                    </MudStack>
+
+                </MudPaper>
+
+
+                <!-- =========================================================
+                     SECCIÓN: INFORMACIÓN EXTRA (PULIDA)
+                ========================================================== -->
+                <MudPaper Elevation="0" Class="pa-4" Style="border-radius:12px;">
+                    <UiSectionHeader Text="Información de interés" ShowBottomBorder="true" />
+
+                    <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Description)"
+                                  For="@(() => _formModel.Description)"
+                                  @bind-Value="_formModel.Description"
+                                  HelperText="@ModelMetadataHelper.GetHelperText(() => _formModel.Description)"
+                                  HelperTextOnFocus="true"
+                                  Variant="Variant.Outlined"
+                                  FullWidth="true"
+                                  Margin="Margin.Dense"
+                                  Lines="3"
+                                  Clearable="true"
+                                  ReadOnly="@(IsViewMode)" />
+                </MudPaper>
+
+            </MudStack>
+
+        </EditForm>
+
+    </DialogContent>
+
+
+    <!-- =========================================================
+         BOTONERA ENTERPRISE PULIDA
+    ========================================================== -->
+    <DialogActions>
+
+        @if (!IsViewMode)
+        {
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Outlined.Save"
+                       Size="Size.Medium"
+                       ButtonType="ButtonType.Submit"
+                       Form="form-entity"
+                       Disabled="@_isSaving">
+
+                @if (_isSaving)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                }
+
+                Guardar
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Medium"
+                       OnClick="Close">
+                Cerrar
+            </MudButton>
+
+        }
+
+    </DialogActions>
+
+</MudDialog>
+
+
+@code {
+
+    // ============================================================
+    // INYECCIONES
+    // ============================================================
+    [Inject] private PersonService PersonService { get; set; } = default!;
+    [Inject] private IAlertService AlertService { get; set; } = default!;
+    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
+
+    // ============================================================
+    // PARÁMETROS
+    // ============================================================
+    [Parameter] public ModalMode CurrentMode { get; set; }
+    [Parameter] public PersonDto? Person { get; set; }
+    [Parameter] public EventCallback OnListUpdated { get; set; }
+   
+    public enum ModalMode { Add, Edit, View }
+
+    // ============================================================
+    // ESTADO
+    // ============================================================
+    private bool _isLoading = true;
+    private bool _isSaving = false;
+    private bool IsViewMode => CurrentMode == ModalMode.View;
+    
+
+    // ============================================================
+    // FORMULARIO
+    // ============================================================
+    private PersonDto _formModel = new();
+       
+    void Close()
+    {
+        Dialog.Close();
+    }
+
+    
+    // ============================================================
+    // CARGA INICIAL
+    // ============================================================
+    protected override async Task OnInitializedAsync()
+    {
+        _isLoading = true;
+
+        // Cargar modelo AQUÍ (no en OnParametersSet)
+        if (Person != null)
+        {
+            _formModel = new PersonDto
+            {
+                Id = Person.Id,
+                ImagenId = Person.ImagenId,
+                ImagenUrl = Person.ImagenUrl,
+                Dni = Person.Dni,
+                FullName = Person.FullName,
+                CellPhone = Person.CellPhone,
+                Email = Person.Email,
+                Description = Person.Description,
+                Active = Person.Active
+            };
+                     
+        }
+        
+        _isLoading = false;
+        StateHasChanged();
+    }
+
+    private void OnPhotoChanged(FileResponse? file)
+    {
+        _formModel.ImagenId = file?.Id;
+        _formModel.ImagenUrl = file?.Url;
+    }
+
+    // ============================================================
+    // GUARDAR
+    // ============================================================
+    private async Task HandleSubmitAsync()
+    {
+        _isSaving = true;
+        StateHasChanged();
+
+        try
+        {
+            ProcessResponse<PersonDto>? response;
+
+            if (CurrentMode == ModalMode.Add)
+            {
+                response = await PersonService.CreateAsync(_formModel);
+            }
+            else
+            {
+                response = await PersonService.UpdateAsync(_formModel.Id, _formModel);
+            }
+
+            if (response?.Result == ResponseStatus.Success)
+            {
+                await AlertService.ShowSuccess("Éxito", "Guardado correctamente.");
+                await OnListUpdated.InvokeAsync();
+                Dialog.Close(DialogResult.Ok(true));
+                return;
+            }
+
+            await AlertService.ShowError("Error", response?.ErrorMessage ?? response?.PrettyMessage ?? "Error al guardar.");
+        }
+        catch
+        {
+            await AlertService.ShowError("Error", "Error de conexión.");
+        }
+        finally
+        {
+            _isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+
+
+}

@@ -1,9 +1,7 @@
 ﻿using Anir.Infrastructure.Storage;
-using Anir.Shared;
 using Anir.Shared.Contracts.Common;
+using DocumentFormat.OpenXml.Office2016.Excel;
 using Microsoft.AspNetCore.Mvc;
-
-namespace Anir.Api.Controllers;
 
 [ApiController]
 [Route("api/files")]
@@ -17,7 +15,7 @@ public class FilesController : ControllerBase
     }
 
     [HttpPost("upload")]
-    public async Task<ActionResult<FileResponse>> Upload([FromForm] IFormFile file, [FromForm] string folder)
+    public async Task<ActionResult<FileResponse>> Upload([FromForm] IFormFile file)
     {
         using var ms = new MemoryStream();
         await file.CopyToAsync(ms);
@@ -25,11 +23,16 @@ public class FilesController : ControllerBase
 
         string extension = Path.GetExtension(file.FileName);
 
+        // ⭐ Folder automático según tipo MIME
+        string folder = file.ContentType.StartsWith("image")
+            ? "images"
+            : "docs";
+
         string id = await _storage.SaveAsync(bytes, extension, folder);
 
         return Ok(new FileResponse
         {
-            Id = id,
+            Id = id, // images/xxxx.jpg o docs/xxxx.pdf
             Url = $"{Request.Scheme}://{Request.Host}/{id}",
             Name = file.FileName,
             Size = file.Length,
@@ -37,9 +40,14 @@ public class FilesController : ControllerBase
         });
     }
 
-    [HttpDelete("{folder}/{id}")]
-    public async Task<ActionResult> Delete(string folder, string id)
+    [HttpDelete("{id}")]
+    public async Task<ActionResult> Delete(string id)
     {
-        return await _storage.DeleteAsync(id, folder) ? Ok() : NotFound();
+        var folder = id.Split('/')[0];
+        var fileName = id.Split('/')[1];
+
+        return await _storage.DeleteAsync(fileName, folder)
+            ? Ok()
+            : NotFound();
     }
 }

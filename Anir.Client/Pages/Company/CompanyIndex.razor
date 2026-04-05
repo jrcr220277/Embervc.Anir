@@ -171,15 +171,10 @@
                 </MudChip>
             </MudTd>
             <MudTd Style="width: 120px; text-align:end">
-                <MudTooltip Text="Ver registro" Arrow="true">
-                    <MudIconButton Icon="@Icons.Material.Rounded.Visibility" OnClick="@(() => ViewCompany(company))" Size="Size.Small" />
-                </MudTooltip>
-                <MudTooltip Text="Editar registro" Arrow="true">
+                    <MudIconButton Icon="@Icons.Material.Rounded.Visibility" OnClick="@(() => ViewCompany(company))" Size="Size.Small" /> 
                     <MudIconButton Icon="@Icons.Material.Rounded.Edit" OnClick="@(() => EditCompany(company))" Size="Size.Small" />
-                </MudTooltip>
-                <MudTooltip Text="Eliminar registro" Arrow="true">
                     <MudIconButton Icon="@Icons.Material.Rounded.Delete" Color="Color.Error" OnClick="@(() => DeleteCompany(company))" Size="Size.Small" />
-                </MudTooltip>
+                
             </MudTd>
         </RowTemplate>
 
