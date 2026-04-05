@@ -12,12 +12,15 @@
      TÍTULO DEL MODAL (PRO)
      ============================ -->
     <TitleContent>
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+        <MudStack Row="true" AlignItems="AlignItems.Center">
 
-            <MudIcon Icon="@(CurrentMode == ModalMode.Add ? Icons.Material.Filled.Add :
-                                                              CurrentMode == ModalMode.Edit ? Icons.Material.Filled.Edit :
-                                                              Icons.Material.Filled.Visibility)"
-                     Style="font-size: 2rem;" />
+            <MudAvatar Size="Size.Large" Variant="Variant.Filled">
+                <MudIcon Icon="@(CurrentMode == ModalMode.Add ? Icons.Material.TwoTone.AddCircle
+                                                                                              : CurrentMode == ModalMode.Edit
+                                                                                                  ? Icons.Material.TwoTone.Edit
+                                                                                                  : Icons.Material.TwoTone.Visibility)"
+                         Size="Size.Large" />
+            </MudAvatar>
 
             <MudStack Spacing="0">
                 <MudText Typo="Typo.h6" Class="font-weight-medium">
@@ -51,22 +54,21 @@
             <EditForm Model="_formModel" OnValidSubmit="HandleSubmitAsync" id="form-entity">
                 <DataAnnotationsValidator />
                                   
-                    <MudGrid Spacing="5">
+                    <MudGrid Spacing="4">
 
                     <!-- ============================
                          COLUMNA IZQUIERDA
+                         Style="background:var(--mud-palette-background); border-radius:8px;"
                          ============================ -->
                     <MudItem xs="12" md="8">
 
-                        <UiSectionHeader Text="Detalles de la Empresa"
-                                         Color="Color.Primary"
-                                         ShowBottomBorder="true" />
-                        <MudPaper Elevation="0" Class="pa-3"
-                              Style="background:var(--mud-palette-background); border-radius:8px;">
-                        
-                              <MudGrid Spacing="2">
-
+                        <MudPaper Elevation="0" Class="pa-3" Outlined="true">                
+                            
                             <MudItem xs="12">
+                                <UiSectionHeader Text="Detalles de la Empresa"
+                                                     Color="Color.Primary"
+                                                     ShowBottomBorder="false" />
+
                                 <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.ShortName)"
                                               For="@(() => _formModel.ShortName)"
                                               @bind-Value="_formModel.ShortName"
@@ -106,9 +108,7 @@
                                               Margin="Margin.Dense"
                                               Clearable="true"
                                               ReadOnly="@(IsViewMode)" />
-                            </MudItem>
-
-                        </MudGrid>
+                            </MudItem>                     
                         
                         </MudPaper>
                     </MudItem>
@@ -118,12 +118,11 @@
                          ============================ -->
                     <MudItem xs="12" md="4">
 
-                        <UiSectionHeader Text="Ubicación y Estado"
-                                         Color="Color.Info"
-                                         ShowBottomBorder="true" />
+                        <MudPaper Elevation="0" Class="pa-2" Outlined="true">
 
-                        <MudPaper Elevation="0" Class="pa-3"
-                              Style="background:var(--mud-palette-background); border-radius:8px;">
+                            <UiSectionHeader Text="Ubicación y Estado"
+                                             Color="Color.Info"
+                                             ShowBottomBorder="false" />
                             <!-- PROVINCIA -->
                             <MudSelect T="int"
                                        Label="Provincia"
