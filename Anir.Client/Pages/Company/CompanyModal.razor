@@ -9,7 +9,7 @@
 <MudDialog Elevation="24" Style="width: 780px; max-width: 95vw;">
 
     <!-- ============================
-     TÍTULO DEL MODAL (PRO)
+     TÍTULO DEL MODAL 
      ============================ -->
     <TitleContent>
         <MudStack Row="true" AlignItems="AlignItems.Center">
@@ -39,10 +39,9 @@
         </MudStack>
     </TitleContent>
 
-
     <!-- ============================
          CONTENIDO DEL MODAL
-         ============================ -->
+    ============================ -->
     <DialogContent>
 
         @if (_isLoading)
@@ -53,129 +52,181 @@
         {
             <EditForm Model="_formModel" OnValidSubmit="HandleSubmitAsync" id="form-entity">
                 <DataAnnotationsValidator />
-                                  
-                    <MudGrid Spacing="4">
 
-                    <!-- ============================
-                         COLUMNA IZQUIERDA
-                         Style="background:var(--mud-palette-background); border-radius:8px;"
-                         ============================ -->
-                    <MudItem xs="12" md="8">
+                <MudGrid Spacing="3">
 
-                        <MudPaper Elevation="0" Class="pa-3" Outlined="true">                
-                            
+                    <!-- DATOS BÁSICOS -->
+                    <MudItem xs="12">
+                        <MudPaper Elevation="1" Class="pa-3 rounded-lg" Outlined="true">
+                            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Start" Class="mb-2">
+                                <MudIcon Icon="@Icons.Material.Outlined.Business" Color="Color.Default" Size="Size.Small" />
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Datos básicos</MudText>
+                            </MudStack>
+
+                            <MudGrid Spacing="2">
+                                <!-- Abreviatura -->
+                                <MudItem xs="12" sm="4">
+                                    @if (IsViewMode)
+                                    {
+                                        <MudStack>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Abreviatura</MudText>
+                                            <MudText Typo="Typo.body1">@_formModel.ShortName</MudText>
+                                        </MudStack>
+                                    }
+                                    else
+                                    {
+                                        <MudTextField Label="Abreviatura"
+                                                      @bind-Value="_formModel.ShortName"
+                                                      Variant="Variant.Outlined"
+                                                      Required="true"
+                                                      FullWidth="true"
+                                                      Margin="Margin.Dense"
+                                                      Clearable="true" />
+                                    }
+                                </MudItem>
+
+                                <!-- Nombre -->
+                                <MudItem xs="12" sm="8">
+                                    @if (IsViewMode)
+                                    {
+                                        <MudStack>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Nombre</MudText>
+                                            <MudText Typo="Typo.body1">@_formModel.Name</MudText>
+                                        </MudStack>
+                                    }
+                                    else
+                                    {
+                                        <MudTextField Label="Nombre"
+                                                      @bind-Value="_formModel.Name"
+                                                      Variant="Variant.Outlined"
+                                                      Required="true"
+                                                      FullWidth="true"
+                                                      Margin="Margin.Dense"
+                                                      Clearable="true" />
+                                    }
+                                </MudItem>
+                            </MudGrid>
+
+                            <!-- Dirección -->
                             <MudItem xs="12">
-                                <UiSectionHeader Text="Detalles de la Empresa"
-                                                     Color="Color.Primary"
-                                                     ShowBottomBorder="false" />
-
-                                <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.ShortName)"
-                                              For="@(() => _formModel.ShortName)"
-                                              @bind-Value="_formModel.ShortName"
-                                              HelperText="@ModelMetadataHelper.GetHelperText(() => _formModel.ShortName)"
-                                              HelperTextOnFocus="true"
-                                              Variant="Variant.Outlined"
-                                              Required="true"
-                                              FullWidth="true"
-                                              Margin="Margin.Dense"
-                                              Clearable="true"
-                                              ReadOnly="@(IsViewMode)" />
+                                @if (IsViewMode)
+                                {
+                                    <MudStack>
+                                        <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Dirección</MudText>
+                                        <MudText Typo="Typo.body1">@_formModel.Address</MudText>
+                                    </MudStack>
+                                }
+                                else
+                                {
+                                    <MudTextField Label="Dirección"
+                                                  @bind-Value="_formModel.Address"
+                                                  Variant="Variant.Outlined"
+                                                  Required="true"
+                                                  FullWidth="true"
+                                                  Margin="Margin.Dense"
+                                                  Clearable="true" />
+                                }
                             </MudItem>
-
-                            <MudItem xs="12">
-                                <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Name)"
-                                              For="@(() => _formModel.Name)"
-                                              @bind-Value="_formModel.Name"
-                                              HelperText="@ModelMetadataHelper.GetHelperText(() => _formModel.Name)"
-                                              HelperTextOnFocus="true"
-                                              Variant="Variant.Outlined"
-                                              Required="true"
-                                              FullWidth="true"
-                                              Margin="Margin.Dense"
-                                              Clearable="true"
-                                              ReadOnly="@(IsViewMode)" />
-                            </MudItem>
-
-                            <MudItem xs="12">
-                                <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Address)"
-                                              For="@(() => _formModel.Address)"
-                                              @bind-Value="_formModel.Address"
-                                              HelperText="@ModelMetadataHelper.GetHelperText(() => _formModel.Address)"
-                                              HelperTextOnFocus="true"
-                                              Variant="Variant.Outlined"
-                                              Required="true"
-                                              FullWidth="true"
-                                              Margin="Margin.Dense"
-                                              Clearable="true"
-                                              ReadOnly="@(IsViewMode)" />
-                            </MudItem>                     
-                        
                         </MudPaper>
                     </MudItem>
 
-                    <!-- ============================
-                         COLUMNA DERECHA
-                         ============================ -->
-                    <MudItem xs="12" md="4">
+                    <!-- UBICACIÓN -->
+                    <MudItem xs="12">
+                        <MudPaper Elevation="1" Class="pa-3 rounded-lg" Outlined="true">
+                            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Start" Class="mb-2">
+                                <MudIcon Icon="@Icons.Material.Outlined.LocationOn" Color="Color.Default" Size="Size.Small" />
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Ubicación</MudText>
+                            </MudStack>
 
-                        <MudPaper Elevation="0" Class="pa-2" Outlined="true">
+                            <MudGrid Spacing="2">
+                                <!-- Provincia -->
+                                <MudItem xs="12" sm="6">
+                                    @if (IsViewMode)
+                                    {
+                                        <MudStack>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Provincia</MudText>
+                                            <MudText Typo="Typo.body1">
+                                                @(AllProvinces.FirstOrDefault(p => p.Id == SelectedProvinceId)?.Name ?? "-")
+                                            </MudText>
+                                        </MudStack>
+                                    }
+                                    else
+                                    {
+                                        <MudSelect T="int"
+                                                   Label="Provincia"
+                                                   Value="SelectedProvinceId"
+                                                   ValueChanged="OnProvinceChanged"
+                                                   Variant="Variant.Outlined"
+                                                   Margin="Margin.Dense"
+                                                   FullWidth="true"
+                                                   Dense="true">
+                                            <MudSelectItem T="int" Value="0">- Seleccionar -</MudSelectItem>
+                                            @foreach (var item in AllProvinces)
+                                            {
+                                                <MudSelectItem T="int" Value="@item.Id">@item.Name</MudSelectItem>
+                                            }
+                                        </MudSelect>
+                                    }
+                                </MudItem>
 
-                            <UiSectionHeader Text="Ubicación y Estado"
-                                             Color="Color.Info"
-                                             ShowBottomBorder="false" />
-                            <!-- PROVINCIA -->
-                            <MudSelect T="int"
-                                       Label="Provincia"
-                                       Value="SelectedProvinceId"
-                                       ValueChanged="OnProvinceChanged"
-                                       HelperText=" "
-                                       HelperTextOnFocus="true"
-                                       Variant="Variant.Outlined"
-                                       Margin="Margin.Dense"
-                                       FullWidth="true"
-                                       Dense="true"
-                                       ReadOnly="@(IsViewMode)"
-                                       Class="mb-8">
-
-                                <MudSelectItem T="int" Value="0">- Seleccionar -</MudSelectItem>
-
-                                @foreach (var item in AllProvinces)
-                                {
-                                    <MudSelectItem T="int" Value="@item.Id">@item.Name</MudSelectItem>
-                                }
-                            </MudSelect>
-
-                            <!-- MUNICIPIO -->
-                            <MudSelect T="int?"
-                                       Label="Municipio"
-                                       @bind-Value="_formModel.MunicipalityId"
-                                       HelperText=" "
-                                       HelperTextOnFocus="true"
-                                       Variant="Variant.Outlined"
-                                       Margin="Margin.Dense"
-                                       FullWidth="true"
-                                       Dense="true"
-                                       ReadOnly="@(IsViewMode || SelectedProvinceId == 0)"
-                                       Class="mb-8">
-
-                                <MudSelectItem T="int?" Value="@((int?)null)">- Seleccionar -</MudSelectItem>
-
-                                @foreach (var item in FilteredMunicipalities)
-                                {
-                                    <MudSelectItem T="int?" Value="@item.Id">@item.Name</MudSelectItem>
-                                }
-                            </MudSelect>
-
-                            <!-- ESTADO -->
-                            <MudSwitch T="bool"
-                                       @bind-Value="_formModel.Active"
-                                       Color="Color.Primary"
-                                       ThumbIcon="@(_formModel.Active ? Icons.Material.Filled.Check : Icons.Material.Filled.Close)"
-                                       ThumbIconColor="@(_formModel.Active ? Color.Success : Color.Default)"
-                                       ReadOnly="@(IsViewMode)"
-                                       Label="@(_formModel.Active ? "Activo" : "Inactivo")" />
+                                <!-- Municipio -->
+                                <MudItem xs="12" sm="6">
+                                    @if (IsViewMode)
+                                    {
+                                        <MudStack>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Municipio</MudText>
+                                            <MudText Typo="Typo.body1">
+                                                @(FilteredMunicipalities.FirstOrDefault(m => m.Id == _formModel.MunicipalityId)?.Name ?? "-")
+                                            </MudText>
+                                        </MudStack>
+                                    }
+                                    else
+                                    {
+                                        <MudSelect T="int?"
+                                                   Label="Municipio"
+                                                   @bind-Value="_formModel.MunicipalityId"
+                                                   Variant="Variant.Outlined"
+                                                   Margin="Margin.Dense"
+                                                   FullWidth="true"
+                                                   Dense="true">
+                                            <MudSelectItem T="int?" Value="@((int?)null)">- Seleccionar -</MudSelectItem>
+                                            @foreach (var item in FilteredMunicipalities)
+                                            {
+                                                <MudSelectItem T="int?" Value="@item.Id">@item.Name</MudSelectItem>
+                                            }
+                                        </MudSelect>
+                                    }
+                                </MudItem>
+                            </MudGrid>
                         </MudPaper>
-                      
+                    </MudItem>
+
+                    <!-- ESTADO DE LA EMPRESA -->
+                    <MudItem xs="12">
+                        <MudPaper Class="pa-3" Outlined="true">
+                            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Start" Class="mb-2">
+                                <MudIcon Icon="@Icons.Material.Outlined.Verified" Color="Color.Default" Size="Size.Small" />
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Estado de la empresa</MudText>
+                            </MudStack>
+
+                            @if (IsViewMode)
+                            {
+                                <MudChip T="string"
+                                         Color="@(_formModel.Active ? Color.Success : Color.Error)"
+                                         Variant="Variant.Filled">
+                                    @(_formModel.Active ? "Activo" : "Inactivo")
+                                </MudChip>
+                            }
+                            else
+                            {
+                                <MudSwitch T="bool"
+                                           @bind-Value="_formModel.Active"
+                                           Color="Color.Primary"
+                                           ThumbIcon="@(_formModel.Active ? Icons.Material.Filled.Check : Icons.Material.Filled.Close)"
+                                           ThumbIconColor="@(_formModel.Active ? Color.Success : Color.Default)"
+                                           Label="@(_formModel.Active ? "Activo" : "Inactivo")" />
+                            }
+                        </MudPaper>
                     </MudItem>
 
                 </MudGrid>
@@ -183,6 +234,8 @@
         }
 
     </DialogContent>
+
+
 
 
     <!-- ============================
@@ -194,9 +247,7 @@
         {
             <MudButton Variant="Variant.Filled"
                        Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Save"
                        Size="Size.Medium"
-                       DisableElevation="true"
                        ButtonType="ButtonType.Submit"
                        Form="form-entity"
                        Disabled="@_isSaving">
@@ -206,7 +257,20 @@
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" />
                 }
 
-                Guardar
+                @(CurrentMode == ModalMode.Add
+                    ? "Crear"
+                    : CurrentMode == ModalMode.Edit
+                        ? "Actualizar"
+                        : "Guardar")
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Medium"
+                       OnClick="Close">
+                Cerrar
             </MudButton>
         }
 
@@ -247,6 +311,11 @@
     // ============================================================
     private CompanyDto _formModel = new() { MunicipalityId = 0, Active = true };
     
+    void Close()
+    {
+        Dialog.Close();
+    }
+
     // ============================================================
     // UBICACIÓN
     // ============================================================
