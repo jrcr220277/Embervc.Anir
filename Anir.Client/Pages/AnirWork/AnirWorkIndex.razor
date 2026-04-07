@@ -1,0 +1,487 @@
+﻿@page "/anirworks"
+@using Anir.Shared.Contracts.AnirWorks
+@using Anir.Shared.Contracts.Common
+@using Anir.Client.Services.AnirWorks
+@using MudBlazor
+
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-3">
+
+    @if (IsInitializingPage)
+    {
+        <UiLoading Indeterminate="true" Message="Cargando trabajos ANIR..." ContainerHeight="100vh" Size="Size.Large" />
+        return;
+    }
+
+    <!-- ============================================================
+         ENCABEZADO PRINCIPAL
+         ============================================================ -->
+    <MudGrid Class="mb-2">
+        <MudItem xs="12">
+            <div class="d-flex align-center">
+                <MudIcon Icon="@Icons.Material.TwoTone.Work" Style="font-size: 3rem;" />
+             
+                <div class="ml-3">
+                    <MudText Typo="Typo.h5" Class="fw-bold">Trabajos ANIR</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Gestión de trabajos ANIR: búsqueda, filtros y acciones masivas
+                    </MudText>
+                </div>
+            </div>
+        </MudItem>
+    </MudGrid>
+
+    <MudDivider Class="mb-3" />
+
+    <!-- ============================================================
+         ACTION BAR
+         ============================================================ -->
+    <MudPaper Elevation="0" Outlined="true" Class="pa-3 mb-4">
+
+        <MudGrid AlignItems="Center">
+
+            <!-- IZQUIERDA -->
+            <MudItem xs="12" sm="3">
+                <MudButton Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           StartIcon="@Icons.Material.Rounded.AddCircleOutline"
+                           OnClick="GoToCreate">
+                    Agregar
+                </MudButton>
+            </MudItem>
+
+            <!-- CENTRO -->
+            <MudItem xs="12" sm="6" Class="d-flex justify-center">
+                <MudTextField T="string"
+                              Value="@SearchText"
+                              ValueChanged="OnSearchInput"
+                              Immediate="true"
+                              Clearable="true"
+                              Placeholder="Buscar por título, número ANIR, empresa..."
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Rounded.Search" />
+            </MudItem>
+
+            <!-- DERECHA -->
+            <MudItem xs="12" sm="3" Class="d-flex justify-end">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+
+                    <!-- FILTRO PAGADO -->
+                    <MudSelect T="string"
+                               Value="@PaidFilterValue"
+                               ValueChanged="OnPaidFilterChanged"
+                               Style="width: 120px;">
+                        <MudSelectItem Value=@("Todos")>Pagado</MudSelectItem>
+                        <MudSelectItem Value=@("Si")>Sí</MudSelectItem>
+                        <MudSelectItem Value=@("No")>No</MudSelectItem>
+                    </MudSelect>
+
+                    <!-- FILTRO GENERALIZADO -->
+                    <MudSelect T="string"
+                               Value="@GeneralizedFilterValue"
+                               ValueChanged="OnGeneralizedFilterChanged"
+                               Style="width: 120px;">
+                        <MudSelectItem Value=@("Todos")>Generalizado</MudSelectItem>
+                        <MudSelectItem Value=@("Si")>Sí</MudSelectItem>
+                        <MudSelectItem Value=@("No")>No</MudSelectItem>
+                    </MudSelect>
+
+                </MudStack>
+            </MudItem>
+
+        </MudGrid>
+
+    </MudPaper>
+
+    <!-- ============================================================
+         ACCIONES MASIVAS
+         ============================================================ -->
+    <MudCollapse Expanded="@(SelectedItems?.Any() == true || IsGlobalSelected)">
+        <MudPaper Outlined="true" Elevation="0" Class="px-4 mb-3 d-flex align-center justify-space-between flex-wrap gap-2">
+
+            <div class="d-flex align-center">
+                <MudTooltip Text="Seleccionar todo" Arrow="true">
+                    <MudIconButton Icon="@(IsGlobalSelected? Icons.Material.Rounded.Deselect : Icons.Material.Rounded.SelectAll)"
+                                   Edge="Edge.Start"
+                                   Size="Size.Medium"
+                                   OnClick="@ToggleGlobalSelection" />
+                </MudTooltip>
+
+                <MudText Typo="Typo.body2" Class="font-weight-medium ml-2">
+                    @BulkSelectionText
+                </MudText>
+            </div>
+
+            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+
+                <MudTooltip Text="Exportar PDF" Arrow="true">
+                    <MudIconButton OnClick="@ExportPdfList"
+                                   Icon="@Icons.Custom.FileFormats.FilePdf"
+                                   Color="Color.Default"
+                                   Size="Size.Medium" />
+                </MudTooltip>
+
+                <MudTooltip Text="Eliminar seleccionados" Arrow="true">
+                    <MudIconButton OnClick="@DeleteSelected"
+                                   Icon="@Icons.Material.Rounded.DeleteForever"
+                                   Color="Color.Error"
+                                   Size="Size.Medium" />
+                </MudTooltip>
+
+            </MudStack>
+
+        </MudPaper>
+    </MudCollapse>
+
+    <!-- ============================================================
+         TABLA PRINCIPAL
+         ============================================================ -->
+    <MudTable T="AnirWorkDto"
+              ServerData="ServerReload"
+              @ref="TableRef"
+              Hover="true"
+              Striped="true"
+              Dense="true"
+              MultiSelection="true"
+              @bind-SelectedItems="SelectedItems"
+              SelectOnRowClick="false"
+              Loading="@IsLoadingTable"
+              HorizontalScrollbar="true">
+
+        <HeaderContent>
+            <MudTh><MudTableSortLabel T="AnirWorkDto" SortLabel="AnirNumber">Número</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="AnirWorkDto" SortLabel="Title">Título</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="AnirWorkDto" SortLabel="Company.Name">Empresa</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="AnirWorkDto" SortLabel="Date">Fecha</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="AnirWorkDto" SortLabel="EconomicImpact">Impacto Económico</MudTableSortLabel></MudTh>
+            <MudTh>Pagado</MudTh>
+            <MudTh>Generalizado</MudTh>
+            <MudTh Style="width: 140px; text-align:end">Acciones</MudTh>
+        </HeaderContent>
+
+        <RowTemplate Context="work">
+            <MudTd>@work.AnirNumber</MudTd>
+            <MudTd>@work.Title</MudTd>
+            <MudTd>@work.CompanyName</MudTd>
+            <MudTd>@work.Date.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd>@work.EconomicImpact.ToString("C")</MudTd>
+
+            <MudTd>
+                <MudChip T="string" Color="@(work.IsPaid? Color.Success: Color.Error)" Variant="Variant.Text" Size="Size.Small">
+                    @(work.IsPaid ? "Sí" : "No")
+                </MudChip>
+            </MudTd>
+
+            <MudTd>
+                <MudChip T="string" Color="@(work.IsGeneralized? Color.Info: Color.Default)" Variant="Variant.Text" Size="Size.Small">
+                    @(work.IsGeneralized ? "Sí" : "No")
+                </MudChip>
+            </MudTd>
+
+            <MudTd Style="width: 140px; text-align:end">
+                <MudIconButton Icon="@Icons.Material.Rounded.Visibility" OnClick="@(() => ViewWork(work))" Size="Size.Small" />
+                <MudIconButton Icon="@Icons.Material.Rounded.Edit" OnClick="@(() => EditWork(work))" Size="Size.Small" />
+                <MudIconButton Icon="@Icons.Material.Rounded.Delete" Color="Color.Error" OnClick="@(() => DeleteWork(work))" Size="Size.Small" />
+            </MudTd>
+        </RowTemplate>
+
+        <NoRecordsContent>
+            <MudText Typo="Typo.body2" Class="pa-4 text-center">
+                No se encontraron trabajos ANIR.
+            </MudText>
+        </NoRecordsContent>
+
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new int[] { 5, 10, 15, 20, 50, 100 }"
+                           RowsPerPageString="Filas por página:"
+                           InfoFormat="{first_item}-{last_item} de {all_items}"
+                           AllItemsText="Todas"
+                           HorizontalAlignment="HorizontalAlignment.Right" />
+        </PagerContent>
+
+    </MudTable>
+
+</MudContainer>
+
+@code {
+
+    // ============================================================
+    // INYECCIONES
+    // ============================================================
+    [Inject] private IAnirWorkService WorkService { get; set; } = default!;
+    [Inject] private NavigationManager Nav { get; set; } = default!;
+    [Inject] private IAlertService AlertService { get; set; } = default!;
+    [Inject] private IDialogService DialogService { get; set; } = default!;
+    [Inject] private ILogger<AnirWorkIndex> Logger { get; set; } = default!;
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+
+    // ============================================================
+    // ESTADO GENERAL
+    // ============================================================
+    private bool IsInitializingPage = true;
+    private bool IsLoadingTable = false;
+
+    private MudTable<AnirWorkDto>? TableRef;
+    private HashSet<AnirWorkDto> SelectedItems = new(new AnirWorkComparer());
+
+    private bool IsGlobalSelected = false;
+    private int _totalFilteredCount = 0;
+
+    private string SearchText = string.Empty;
+    private string PaidFilterValue = "Todos";
+    private string GeneralizedFilterValue = "Todos";
+
+    private IReadOnlyList<AnirWorkDto> LastPageItems = Array.Empty<AnirWorkDto>();
+
+    private CancellationTokenSource? _searchDebounceCts;
+    private CancellationTokenSource? _serverReloadCts;
+
+    protected override Task OnInitializedAsync()
+    {
+        IsInitializingPage = false;
+        return Task.CompletedTask;
+    }
+
+    // ============================================================
+    // NAVEGACIÓN
+    // ============================================================
+    private void GoToCreate() => Nav.NavigateTo("/anirworks/create");
+    private void EditWork(AnirWorkDto work) => Nav.NavigateTo($"/anirworks/edit/{work.Id}");
+    private void ViewWork(AnirWorkDto work) => Nav.NavigateTo($"/anirworks/view/{work.Id}");
+
+    // ============================================================
+    // SERVER DATA
+    // ============================================================
+    private async Task<TableData<AnirWorkDto>> ServerReload(TableState state, CancellationToken token)
+    {
+        _serverReloadCts?.Cancel();
+        _serverReloadCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+        var linkedToken = _serverReloadCts.Token;
+
+        IsLoadingTable = true;
+
+        try
+        {
+            var query = MapTableStateToQuery(state);
+
+            var response = await WorkService.GetPagedAsync(query, linkedToken);
+
+            if (response.Result == ResponseStatus.Success && response.Value != null)
+            {
+                LastPageItems = response.Value.Items.ToList().AsReadOnly();
+                _totalFilteredCount = response.Value.TotalCount;
+
+                return new TableData<AnirWorkDto>
+                {
+                    Items = response.Value.Items,
+                    TotalItems = response.Value.TotalCount
+                };
+            }
+
+            await AlertService.ShowError("Error", response.ErrorMessage ?? "Error cargando trabajos ANIR");
+            return new TableData<AnirWorkDto>();
+        }
+        finally
+        {
+            IsLoadingTable = false;
+        }
+    }
+
+    private AnirWorkQueryDto MapTableStateToQuery(TableState state)
+    {
+        var sortLabel = string.IsNullOrWhiteSpace(state.SortLabel)
+            ? "Date"
+            : state.SortLabel;
+
+        var desc = state.SortDirection == SortDirection.Descending;
+
+        return new AnirWorkQueryDto
+        {
+            Page = state.Page + 1,
+            Size = state.PageSize,
+            Sort = sortLabel,
+            Desc = desc,
+            Search = string.IsNullOrWhiteSpace(SearchText) ? null : SearchText,
+
+            IsPaid = PaidFilterValue switch
+            {
+                "Si" => true,
+                "No" => false,
+                _ => null
+            },
+
+            IsGeneralized = GeneralizedFilterValue switch
+            {
+                "Si" => true,
+                "No" => false,
+                _ => null
+            }
+        };
+    }
+
+    // ============================================================
+    // BÚSQUEDA CON DEBOUNCE
+    // ============================================================
+    private void OnSearchInput(string value)
+    {
+        SearchText = value;
+
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts = new CancellationTokenSource();
+
+        var token = _searchDebounceCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(300, token);
+                if (!token.IsCancellationRequested && TableRef != null)
+                    await TableRef.ReloadServerData();
+            }
+            catch { }
+        });
+    }
+
+    // ============================================================
+    // FILTROS
+    // ============================================================
+    private async Task OnPaidFilterChanged(string value)
+    {
+        PaidFilterValue = value;
+        if (TableRef != null) await TableRef.ReloadServerData();
+    }
+
+    private async Task OnGeneralizedFilterChanged(string value)
+    {
+        GeneralizedFilterValue = value;
+        if (TableRef != null) await TableRef.ReloadServerData();
+    }
+
+    // ============================================================
+    // CRUD: ELIMINAR INDIVIDUAL
+    // ============================================================
+    private async Task DeleteWork(AnirWorkDto work)
+    {
+        var confirmed = await ConfirmDialog.Show(
+            DialogService,
+            "Eliminar Trabajo ANIR",
+            $"¿Eliminar el trabajo {work.AnirNumber}?",
+            type: "Delete",
+            confirmText: "Eliminar",
+            centerMessage: true
+        );
+
+        if (!confirmed)
+            return;
+
+        var response = await WorkService.DeleteAsync(work.Id);
+
+        if (response.Result == ResponseStatus.Success)
+        {
+            SelectedItems.RemoveWhere(c => c.Id == work.Id);
+
+            if (TableRef != null)
+                await TableRef.ReloadServerData();
+
+            await AlertService.ShowSuccess("Éxito", "Trabajo ANIR eliminado correctamente.");
+        }
+        else
+        {
+            await AlertService.ShowError("Error", response.ErrorMessage ?? "No se pudo eliminar.");
+        }
+    }
+
+    // ============================================================
+    // SELECCIÓN MASIVA
+    // ============================================================
+    private void ToggleGlobalSelection()
+    {
+        IsGlobalSelected = !IsGlobalSelected;
+        SelectedItems.Clear();
+    }
+
+    private string BulkSelectionText =>
+        IsGlobalSelected
+            ? $"Selección global: {_totalFilteredCount} trabajos ANIR"
+            : $"{SelectedItems.Count} trabajos ANIR seleccionados";
+
+    // ============================================================
+    // ACCIONES MASIVAS
+    // ============================================================
+    private async Task DeleteSelected()
+    {
+        var confirmed = await ConfirmDialog.Show(
+            DialogService,
+            "Eliminar seleccionados",
+            IsGlobalSelected
+                ? $"¿Eliminar todos los {_totalFilteredCount} trabajos ANIR del filtro?"
+                : $"¿Eliminar {SelectedItems.Count} trabajos ANIR seleccionados?",
+            type: "Delete",
+            confirmText: "Eliminar",
+            centerMessage: true
+        );
+
+        if (!confirmed)
+            return;
+
+        var request = new BulkSelectionRequest
+        {
+            SelectAll = IsGlobalSelected,
+            Ids = IsGlobalSelected ? new List<int>() : SelectedItems.Select(x => x.Id).ToList()
+        };
+
+        var response = await WorkService.DeleteBatchAsync(request);
+
+        if (response.Result == ResponseStatus.Success)
+        {
+            SelectedItems.Clear();
+            IsGlobalSelected = false;
+            if (TableRef != null) await TableRef.ReloadServerData();
+            await AlertService.ShowSuccess("Éxito", "Trabajos ANIR eliminados correctamente.");
+        }
+        else
+        {
+            await AlertService.ShowError("Error", response.ErrorMessage ?? "No se pudo eliminar.");
+        }
+    }
+
+    private async Task ExportPdfList()
+    {
+        var request = new BulkSelectionRequest
+        {
+            SelectAll = IsGlobalSelected,
+            Ids = IsGlobalSelected ? new List<int>() : SelectedItems.Select(x => x.Id).ToList()
+        };
+
+        var response = await WorkService.ExportPdfListAsync(request);
+        if (response.IsSuccessStatusCode)
+        {
+            var bytes = await response.Content.ReadAsByteArrayAsync();
+            await JS.InvokeVoidAsync("openPdfBlob", bytes);
+        }
+        else
+        {
+            await AlertService.ShowError("Error", "No se pudo generar el PDF.");
+        }
+    }
+
+    // ============================================================
+    // LIMPIEZA
+    // ============================================================
+    public void Dispose()
+    {
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts?.Dispose();
+        _serverReloadCts?.Cancel();
+        _serverReloadCts?.Dispose();
+    }
+
+    // ============================================================
+    // COMPARER
+    // ============================================================
+    private class AnirWorkComparer : IEqualityComparer<AnirWorkDto>
+    {
+        public bool Equals(AnirWorkDto? x, AnirWorkDto? y) => x?.Id == y?.Id;
+        public int GetHashCode(AnirWorkDto obj) => obj.Id.GetHashCode();
+    }
+}

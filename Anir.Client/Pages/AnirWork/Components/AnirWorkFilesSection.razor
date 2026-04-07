@@ -1,0 +1,93 @@
+﻿@using MudBlazor
+@using Anir.Shared.Contracts.AnirWorks
+@using Anir.Client.Services.Files
+@using Anir.Shared
+
+<MudPaper Class="pa-3" Outlined="true">
+
+    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="mb-2">
+        <MudIcon Icon="@Icons.Material.Outlined.AttachFile" Size="Size.Small" />
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Archivos</MudText>
+    </MudStack>
+
+    <MudGrid Spacing="3">
+
+        <!-- ============================
+             IMAGEN
+             ============================ -->
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-3" Outlined="true">
+
+                <MudText Typo="Typo.subtitle2">Imagen</MudText>
+
+                <ImageUpload Value="@Model.ImageUrl"
+                             OnChanged="HandleImageChanged"
+                             Size="150"
+                             ShowDelete="true"
+                             IsProfile="false"
+                             IsViewMode="false" />
+
+            </MudPaper>
+        </MudItem>
+
+        <!-- ============================
+             PDF
+             ============================ -->
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-3" Outlined="true">
+
+                <MudText Typo="Typo.subtitle2">Documento PDF</MudText>
+
+                <PdfUpload Value="@Model.PdfUrl"
+                           OnChanged="HandlePdfChanged" />
+
+            </MudPaper>
+        </MudItem>
+
+    </MudGrid>
+
+</MudPaper>
+
+@code {
+
+    [Parameter] public AnirWorkDto Model { get; set; } = default!;
+
+    [Inject] private IAlertService AlertService { get; set; } = default!;
+    [Inject] private FileService FileService { get; set; } = default!;
+
+    // ============================
+    // IMAGEN
+    // ============================
+    private async Task HandleImageChanged(FileResponse? response)
+    {
+        if (response == null)
+        {
+            // Se eliminó
+            Model.ImageId = null;
+            Model.ImageUrl = null;
+            return;
+        }
+
+        // Se subió
+        Model.ImageId = response.Id;
+        Model.ImageUrl = response.Url;
+    }
+
+    // ============================
+    // PDF
+    // ============================
+    private async Task HandlePdfChanged(FileResponse? response)
+    {
+        if (response == null)
+        {
+            // Se eliminó
+            Model.PdfId = null;
+            Model.PdfUrl = null;
+            return;
+        }
+
+        // Se subió
+        Model.PdfId = response.Id;
+        Model.PdfUrl = response.Url;
+    }
+}

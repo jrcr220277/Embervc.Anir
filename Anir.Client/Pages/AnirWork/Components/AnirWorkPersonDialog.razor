@@ -1,0 +1,72 @@
+﻿@namespace Anir.Client.Pages.AnirWork.Components
+@using MudBlazor
+@using Anir.Shared.Contracts.AnirWorks.Persons
+
+<MudDialog>
+
+    <DialogContent>
+
+        <EditForm Model="Model" OnValidSubmit="Submit">
+            <DataAnnotationsValidator />
+
+            <MudGrid Spacing="2">
+
+                <MudItem xs="12">
+                    <MudSelect T="int"
+                               Label="Persona"
+                               @bind-Value="Model.PersonId"
+                               Required="true"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               FullWidth="true">
+
+                        @foreach (var p in People)
+                        {
+                            <MudSelectItem Value="@p.Id">@p.FullName</MudSelectItem>
+                        }
+
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudNumericField T="double"
+                                     Label="Participación (%)"
+                                     @bind-Value="Model.ParticipationPercentage"
+                                     Required="true"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     FullWidth="true" />
+                </MudItem>
+
+            </MudGrid>
+
+        </EditForm>
+
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit">Guardar</MudButton>
+    </DialogActions>
+
+</MudDialog>
+
+@code {
+
+    // ✔ Esto es correcto y funciona SIEMPRE que el componente esté dentro de un MudDialog
+    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
+
+    [Parameter] public AnirWorkPersonDto Model { get; set; } = new();
+
+    // Simulación de personas (luego lo conectamos al backend)
+    private List<(int Id, string FullName)> People = new()
+    {
+        (1, "Persona 1"),
+        (2, "Persona 2"),
+        (3, "Persona 3")
+    };
+
+    private void Cancel() => Dialog.Cancel();
+    private void Submit() => Dialog.Close(DialogResult.Ok(Model));
+
+}

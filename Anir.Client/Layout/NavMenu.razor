@@ -37,6 +37,36 @@
        
     }
 
+    <!-- ============================
+         MÓDULO ANIR
+         ============================ -->
+    @if (User.Active)
+    {
+        <MudNavGroup Text="ANIR"
+                     Icon="@Icons.Material.Filled.Work"
+                     Expanded="false">
+
+            <MudNavLink Href="/anirworks"
+                        Icon="@Icons.Material.Filled.ListAlt"
+                        Match="NavLinkMatch.Prefix">
+                Trabajos ANIR
+            </MudNavLink>
+
+            <MudNavLink Href="/anirworks/create"
+                        Icon="@Icons.Material.Filled.AddCircle"
+                        Match="NavLinkMatch.Prefix">
+                Crear Trabajo
+            </MudNavLink>
+
+            <MudNavLink Href="/anirworks/reports"
+                        Icon="@Icons.Material.Filled.Assessment"
+                        Match="NavLinkMatch.Prefix">
+                Reportes ANIR
+            </MudNavLink>
+
+        </MudNavGroup>
+    }
+
     <!-- USUARIOS (solo Administrador y Supervisor) -->
     @if (User.Roles.Contains("Administrador") || User.Roles.Contains("Supervisor"))
     {

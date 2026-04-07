@@ -1,6 +1,7 @@
 using Anir.Client;
 using Anir.Client.Services;
 using Anir.Client.Services.Alerts;
+using Anir.Client.Services.AnirWorks;
 using Anir.Client.Services.Auth;
 using Anir.Client.Services.Company;
 using Anir.Client.Services.Files;
@@ -66,6 +67,8 @@ builder.Services.AddScoped<CompanyService>();
 builder.Services.AddScoped<ProvinceService>();
 builder.Services.AddScoped<MunicipalityService>();
 builder.Services.AddScoped<PersonService>();
+builder.Services.AddScoped<IAnirWorkService, AnirWorkService>();
+
 
 // ------------------------------------------------------------
 // 8. Construir la app

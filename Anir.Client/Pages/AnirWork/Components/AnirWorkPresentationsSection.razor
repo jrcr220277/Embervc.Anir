@@ -1,0 +1,107 @@
+﻿@using Anir.Shared.Contracts.AnirWorks.Presentations
+@using MudBlazor
+
+<MudPaper Class="pa-3" Outlined="true">
+
+    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="mb-2">
+        <MudIcon Icon="@Icons.Material.Outlined.Slideshow" Size="Size.Small" />
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Presentaciones</MudText>
+    </MudStack>
+
+    <MudButton Variant="Variant.Outlined"
+               Color="Color.Primary"
+               StartIcon="@Icons.Material.Outlined.Add"
+               OnClick="OpenAddDialog"
+               Class="mb-3">
+        Agregar presentación
+    </MudButton>
+
+    <MudTable T="AnirWorkPresentationDto"
+              Items="Presentations"
+              Dense="true"
+              Hover="true"
+              Striped="true">
+
+        <HeaderContent>
+            <MudTh>Fecha</MudTh>
+            <MudTh>Notas</MudTh>
+            <MudTh Style="width: 120px; text-align:end">Acciones</MudTh>
+        </HeaderContent>
+
+        <RowTemplate Context="p">
+            <MudTd>@(p.PresentationDate?.ToString("dd/MM/yyyy") ?? "-")</MudTd>
+            <MudTd>@p.Notes</MudTd>
+
+            <MudTd Style="width: 120px; text-align:end">
+                <MudIconButton Icon="@Icons.Material.Outlined.Edit"
+                               Size="Size.Small"
+                               OnClick="@(() => OpenEditDialog(p))" />
+
+                <MudIconButton Icon="@Icons.Material.Outlined.Delete"
+                               Size="Size.Small"
+                               Color="Color.Error"
+                               OnClick="@(() => RemovePresentation(p))" />
+            </MudTd>
+        </RowTemplate>
+
+        <NoRecordsContent>
+            <MudText Typo="Typo.body2" Class="pa-2">No hay presentaciones registradas.</MudText>
+        </NoRecordsContent>
+
+    </MudTable>
+
+</MudPaper>
+
+@code {
+
+    [Parameter] public List<AnirWorkPresentationDto> Presentations { get; set; } = new();
+
+    [Inject] private IDialogService DialogService { get; set; } = default!;
+    [Inject] private IAlertService AlertService { get; set; } = default!;
+
+    private async Task OpenAddDialog()
+    {
+        var parameters = new DialogParameters
+        {
+            ["Model"] = new AnirWorkPresentationDto()
+        };
+
+        var dialog = await DialogService.ShowAsync<AnirWorkPresentationDialog>(
+            "Agregar presentación", parameters);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is AnirWorkPresentationDto dto)
+            Presentations.Add(dto);
+    }
+
+    private async Task OpenEditDialog(AnirWorkPresentationDto p)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Model"] = p
+        };
+
+        var dialog = await DialogService.ShowAsync<AnirWorkPresentationDialog>(
+            "Editar presentación", parameters);
+
+        var result = await dialog.Result;
+
+        // El modelo se actualiza dentro del diálogo
+    }
+
+    private async Task RemovePresentation(AnirWorkPresentationDto p)
+    {
+        var confirmed = await ConfirmDialog.Show(
+            DialogService,
+            "Eliminar presentación",
+            "¿Eliminar esta presentación?",
+            type: "Delete",
+            confirmText: "Eliminar",
+            centerMessage: true
+        );
+
+        if (confirmed)
+            Presentations.Remove(p);
+    }
+}
