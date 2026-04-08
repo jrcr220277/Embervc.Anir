@@ -41,14 +41,21 @@ public class AnirWorkController : ControllerBase
         entity.AnirNumber = dto.AnirNumber;
         entity.Title = dto.Title;
         entity.Description = dto.Description;
-        entity.IsPaid = dto.IsPaid;
-        entity.IsGeneralized = dto.IsGeneralized;
+
+        // Nuevos campos booleanos
+        entity.HasSocialEffect = dto.HasSocialEffect;
+        entity.HasEconomicEffect = dto.HasEconomicEffect;
+
+        // Enum en lugar de IsGeneralized
+        entity.Generalization = dto.Generalization;
+
         entity.EconomicImpact = dto.EconomicImpact;
         entity.Recommendations = dto.Recommendations;
         entity.ResolutionNumber = dto.ResolutionNumber;
         entity.ImageId = dto.ImageId;
         entity.PdfId = dto.PdfId;
     }
+
 
     private static AnirWorkDto MapEntityToDto(AnirWork entity)
     {
@@ -61,8 +68,8 @@ public class AnirWorkController : ControllerBase
             AnirNumber = entity.AnirNumber,
             Title = entity.Title,
             Description = entity.Description,
-            IsPaid = entity.IsPaid,
-            IsGeneralized = entity.IsGeneralized,
+            HasSocialEffect = entity.HasSocialEffect,
+            HasEconomicEffect = entity.HasEconomicEffect,
             EconomicImpact = entity.EconomicImpact,
             Recommendations = entity.Recommendations,
             ResolutionNumber = entity.ResolutionNumber,
@@ -116,11 +123,15 @@ public class AnirWorkController : ControllerBase
             if (queryDto.CompanyId.HasValue)
                 query = query.Where(w => w.CompanyId == queryDto.CompanyId.Value);
 
-            if (queryDto.IsPaid.HasValue)
-                query = query.Where(w => w.IsPaid == queryDto.IsPaid.Value);
+            if (queryDto.HasSocialEffect.HasValue)
+                query = query.Where(w => w.HasSocialEffect == queryDto.HasSocialEffect.Value);
 
-            if (queryDto.IsGeneralized.HasValue)
-                query = query.Where(w => w.IsGeneralized == queryDto.IsGeneralized.Value);
+
+            if (queryDto.HasEconomicEffect.HasValue)
+                query = query.Where(w => w.HasEconomicEffect == queryDto.HasEconomicEffect.Value);
+
+            if (queryDto.Generalization.HasValue)
+                query = query.Where(w => w.Generalization == queryDto.Generalization.Value);
 
             if (queryDto.FromDate.HasValue)
                 query = query.Where(w => w.Date >= queryDto.FromDate.Value);

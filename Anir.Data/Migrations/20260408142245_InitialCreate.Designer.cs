@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Anir.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260402134814_InitialCreate")]
+    [Migration("20260408142245_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -51,14 +51,17 @@ namespace Anir.Data.Migrations
                     b.Property<decimal>("EconomicImpact")
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<int>("Generalization")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("HasEconomicEffect")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("HasSocialEffect")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("ImageId")
                         .HasColumnType("text");
-
-                    b.Property<bool>("IsGeneralized")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsPaid")
-                        .HasColumnType("boolean");
 
                     b.Property<string>("PdfId")
                         .HasColumnType("text");

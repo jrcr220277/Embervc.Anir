@@ -1,64 +1,48 @@
-﻿namespace Anir.Data.Entities
+﻿using Anir.Shared.Enums;
+
+namespace Anir.Data.Entities
 {
     /// <summary>
-    /// Representa un trabajo ANIR realizado por una empresa.
-    /// Contiene información administrativa, económica y documental,
-    /// además de relaciones con personas y presentaciones asociadas.
+    /// Represents an ANIR work carried out by a company.
+    /// Contains administrative, economic, and documentary information,
+    /// as well as relations with people and associated presentations.
     /// </summary>
     public class AnirWork
     {
         public int Id { get; set; }
-
-        /// <summary>
-        /// Empresa a la que pertenece el trabajo.
-        /// </summary>
         public int CompanyId { get; set; }
-
-        /// <summary>
-        /// Fecha en que se registró o realizó el trabajo.
-        /// </summary>
         public DateOnly Date { get; set; } = DateOnly.FromDateTime(DateTime.Now);
-
-        /// <summary>
-        /// Número identificador del trabajo ANIR.
-        /// </summary>
         public string AnirNumber { get; set; } = null!;
-
-        /// <summary>
-        /// Título o nombre del trabajo.
-        /// </summary>
         public string Title { get; set; } = null!;
-
         public string? Description { get; set; }
-        public bool IsPaid { get; set; }
-        public bool IsGeneralized { get; set; }
+
+        // Replaced IsPaid with two boolean fields
+        public bool HasSocialEffect { get; set; }
+        public bool HasEconomicEffect { get; set; }
+
+        // Replaced IsGeneralized with an enum
+        public GeneralizationStatus Generalization { get; set; } = GeneralizationStatus.No;
+
         public decimal EconomicImpact { get; set; }
         public string? Recommendations { get; set; }
         public string? ResolutionNumber { get; set; }
-
-        /// <summary>
-        /// Identificador de la imagen asociada al trabajo.
-        /// </summary>
         public string? ImageId { get; set; }
-
-        /// <summary>
-        /// Identificador del PDF asociado al trabajo.
-        /// </summary>
         public string? PdfId { get; set; }
 
         /// <summary>
-        /// Empresa propietaria del trabajo.
+        /// Owning company of the work.
         /// </summary>
         public Company Company { get; set; } = null!;
 
         /// <summary>
-        /// Personas asociadas al trabajo.
+        /// People associated with the work.
         /// </summary>
         public ICollection<AnirWorkPerson> AnirWorkPersons { get; set; } = new List<AnirWorkPerson>();
 
         /// <summary>
-        /// Presentaciones asociadas al trabajo.
+        /// Presentations associated with the work.
         /// </summary>
         public ICollection<AnirWorkPresentation> AnirWorkPresentations { get; set; } = new List<AnirWorkPresentation>();
     }
+
 }

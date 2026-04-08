@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using Anir.Shared.Contracts.AnirWorks.Persons;
 using Anir.Shared.Contracts.AnirWorks.Presentations;
+using Anir.Shared.Enums;
 
 namespace Anir.Shared.Contracts.AnirWorks;
 
@@ -38,11 +39,14 @@ public class AnirWorkDto
     // ============================
     // DATOS ECONÓMICOS
     // ============================
-    [Display(Name = "Pagado")]
-    public bool IsPaid { get; set; }
+    [Display(Name = "Efecto Social")]
+    public bool HasSocialEffect { get; set; }
 
-    [Display(Name = "Generalizado")]
-    public bool IsGeneralized { get; set; }
+    [Display(Name = "Efecto Económico")]
+    public bool HasEconomicEffect { get; set; }
+
+    [Display(Name = "Generalización")]
+    public GeneralizationStatus Generalization { get; set; } = GeneralizationStatus.Pending;
 
     [Range(0, double.MaxValue, ErrorMessage = "El impacto económico debe ser mayor o igual a 0.")]
     [Display(Name = "Impacto Económico")]

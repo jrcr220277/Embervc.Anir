@@ -218,23 +218,39 @@
 
                                 <MudGrid Spacing="2">
 
-                                    <MudItem xs="12" md="6">
-                                        <MudSwitch T="bool" @bind-Checked="Model.IsPaid"
-                                                   Disabled="IsViewMode"
-                                                   Color="Color.Success"
-                                                   Dense="true">
-                                            Pagado
-                                        </MudSwitch>
-                                    </MudItem>
+                                <MudItem xs="12" md="6">
+                                    <MudSwitch T="bool" @bind-Checked="Model.HasSocialEffect"
+                                               Disabled="IsViewMode"
+                                               Color="Color.Success"
+                                               Dense="true">
+                                        Pagado
+                                    </MudSwitch>
+                                </MudItem>
 
-                                    <MudItem xs="12" md="6">
-                                        <MudSwitch T="bool" @bind-Checked="Model.IsGeneralized"
-                                                   Disabled="IsViewMode"
-                                                   Color="Color.Info"
-                                                   Dense="true">
-                                            Generalizado
-                                        </MudSwitch>
-                                    </MudItem>
+                                <MudItem xs="12" md="6">
+                                    <MudSwitch T="bool" @bind-Checked="Model.HasEconomicEffect"
+                                               Disabled="IsViewMode"
+                                               Color="Color.Success"
+                                               Dense="true">
+                                        Pagado
+                                    </MudSwitch>
+                                </MudItem>
+
+                                 
+                                <MudSelect T="GeneralizationStatus"
+                                           Label="Generalización"
+                                           @bind-Value="Model.Generalization"
+                                           Disabled="IsViewMode"
+                                           Variant="Variant.Outlined"
+                                           Dense="true"
+                                           Margin="Margin.Dense"
+                                           Class="w-100">
+
+                                    <MudSelectItem Value="GeneralizationStatus.Yes">Sí</MudSelectItem>
+                                    <MudSelectItem Value="GeneralizationStatus.No">No</MudSelectItem>
+                                    <MudSelectItem Value="GeneralizationStatus.Pending">Pendiente</MudSelectItem>
+
+                                </MudSelect>
 
                                     <MudItem xs="12" md="6">
                                         <MudNumericField T="decimal"

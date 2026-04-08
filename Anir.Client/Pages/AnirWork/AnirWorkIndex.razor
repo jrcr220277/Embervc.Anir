@@ -65,24 +65,36 @@
             <MudItem xs="12" sm="3" Class="d-flex justify-end">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
 
-                    <!-- FILTRO PAGADO -->
+                    <!-- FILTRO SOCIAL -->
                     <MudSelect T="string"
-                               Value="@PaidFilterValue"
-                               ValueChanged="OnPaidFilterChanged"
+                               Value="@SocialFilterValue"
+                               ValueChanged="OnSocialFilterChanged"
                                Style="width: 120px;">
-                        <MudSelectItem Value=@("Todos")>Pagado</MudSelectItem>
+                        <MudSelectItem Value=@("Todos")>Social</MudSelectItem>
                         <MudSelectItem Value=@("Si")>Sí</MudSelectItem>
                         <MudSelectItem Value=@("No")>No</MudSelectItem>
                     </MudSelect>
 
-                    <!-- FILTRO GENERALIZADO -->
+                    <!-- FILTRO ECONÓMICO -->
                     <MudSelect T="string"
-                               Value="@GeneralizedFilterValue"
-                               ValueChanged="OnGeneralizedFilterChanged"
+                               Value="@EconomicFilterValue"
+                               ValueChanged="OnEconomicFilterChanged"
                                Style="width: 120px;">
-                        <MudSelectItem Value=@("Todos")>Generalizado</MudSelectItem>
+                        <MudSelectItem Value=@("Todos")>Económico</MudSelectItem>
                         <MudSelectItem Value=@("Si")>Sí</MudSelectItem>
                         <MudSelectItem Value=@("No")>No</MudSelectItem>
+                    </MudSelect>
+
+                    
+                    <!-- FILTRO GENERALIZACIÓN -->
+                    <MudSelect T="string"
+                               Value="@GeneralizationFilterValue"
+                               ValueChanged="OnGeneralizationFilterChanged"
+                               Style="width: 120px;">
+                        <MudSelectItem Value=@("Todos")>Generalización</MudSelectItem>
+                        <MudSelectItem Value=@("Si")>Sí</MudSelectItem>
+                        <MudSelectItem Value=@("No")>No</MudSelectItem>
+                        <MudSelectItem Value=@("Pendiente")>Pendiente</MudSelectItem>
                     </MudSelect>
 
                 </MudStack>
@@ -166,14 +178,27 @@
             <MudTd>@work.EconomicImpact.ToString("C")</MudTd>
 
             <MudTd>
-                <MudChip T="string" Color="@(work.IsPaid? Color.Success: Color.Error)" Variant="Variant.Text" Size="Size.Small">
-                    @(work.IsPaid ? "Sí" : "No")
+                <MudChip T="string" Color="@(work.HasSocialEffect? Color.Success: Color.Error)" Variant="Variant.Text" Size="Size.Small">
+                    @(work.HasSocialEffect ? "Sí" : "No")
                 </MudChip>
             </MudTd>
 
             <MudTd>
-                <MudChip T="string" Color="@(work.IsGeneralized? Color.Info: Color.Default)" Variant="Variant.Text" Size="Size.Small">
-                    @(work.IsGeneralized ? "Sí" : "No")
+                <MudChip T="string" Color="@(work.HasEconomicEffect? Color.Info: Color.Default)" Variant="Variant.Text" Size="Size.Small">
+                    @(work.HasEconomicEffect ? "Sí" : "No")
+                </MudChip>
+            </MudTd>
+
+            <MudTd>
+                <MudChip T="string"
+                         Color="@(work.Generalization == GeneralizationStatus.Yes ? Color.Success
+                                                      : work.Generalization == GeneralizationStatus.No ? Color.Error
+                                                      : Color.Warning)"
+                         Variant="Variant.Text"
+                         Size="Size.Small">
+                    @(work.Generalization == GeneralizationStatus.Yes ? "Sí"
+                      : work.Generalization == GeneralizationStatus.No ? "No"
+                      : "Pendiente")
                 </MudChip>
             </MudTd>
 
@@ -227,8 +252,9 @@
     private int _totalFilteredCount = 0;
 
     private string SearchText = string.Empty;
-    private string PaidFilterValue = "Todos";
-    private string GeneralizedFilterValue = "Todos";
+    private string SocialFilterValue = "Todos";
+    private string EconomicFilterValue = "Todos";
+    private string GeneralizationFilterValue = "Todos";
 
     private IReadOnlyList<AnirWorkDto> LastPageItems = Array.Empty<AnirWorkDto>();
 
@@ -302,21 +328,30 @@
             Desc = desc,
             Search = string.IsNullOrWhiteSpace(SearchText) ? null : SearchText,
 
-            IsPaid = PaidFilterValue switch
+            HasSocialEffect = SocialFilterValue switch
             {
                 "Si" => true,
                 "No" => false,
                 _ => null
             },
 
-            IsGeneralized = GeneralizedFilterValue switch
+            HasEconomicEffect = EconomicFilterValue switch
             {
                 "Si" => true,
                 "No" => false,
                 _ => null
+            },
+
+            Generalization = GeneralizationFilterValue switch
+            {
+                "Si" => GeneralizationStatus.Yes,
+                "No" => GeneralizationStatus.No,
+                "Pendiente" => GeneralizationStatus.Pending,
+                _ => null
             }
         };
     }
+
 
     // ============================================================
     // BÚSQUEDA CON DEBOUNCE
@@ -345,15 +380,21 @@
     // ============================================================
     // FILTROS
     // ============================================================
-    private async Task OnPaidFilterChanged(string value)
+    private async Task OnSocialFilterChanged(string value)
     {
-        PaidFilterValue = value;
+        SocialFilterValue = value;
         if (TableRef != null) await TableRef.ReloadServerData();
     }
 
-    private async Task OnGeneralizedFilterChanged(string value)
+    private async Task OnEconomicFilterChanged(string value)
     {
-        GeneralizedFilterValue = value;
+        EconomicFilterValue = value;
+        if (TableRef != null) await TableRef.ReloadServerData();
+    }
+
+    private async Task OnGeneralizationFilterChanged(string value)
+    {
+        GeneralizationFilterValue = value;
         if (TableRef != null) await TableRef.ReloadServerData();
     }
 
