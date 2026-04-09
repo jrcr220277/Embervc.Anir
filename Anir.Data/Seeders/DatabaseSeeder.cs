@@ -29,7 +29,9 @@ namespace Anir.Data.Seeders
             await SystemSettingSeeder.SeedAsync(context);
             await ProvinceSeeder.SeedAsync(context);
             await MunicipalitySeeder.SeedAsync(context);
+            await OrganismSeeder.SeedAsync(context);
             await CompanySeeder.SeedAsync(context);
+            await UebSeeder.SeedAsync(context);
         }
     }
 

@@ -33,5 +33,6 @@
         /// Empresas ubicadas en este municipio.
         /// </summary>
         public ICollection<Company>? Companies { get; set; }
+        public ICollection<Ueb>? Uebs { get; set; }
     }
 }

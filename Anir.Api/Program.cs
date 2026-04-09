@@ -103,6 +103,8 @@ builder.Services.AddSingleton<IFileStorage>(sp =>
 // ============================================================
 QuestPDF.Settings.License = LicenseType.Community;
 builder.Services.AddScoped<IPdfService, PdfService>();
+builder.Services.AddScoped<OrganismReportExcel>();
+
 builder.Services.AddScoped<CompanyReportExcel>();
 builder.Services.AddScoped<PersonReportExcel>();
 

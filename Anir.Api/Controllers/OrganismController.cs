@@ -3,29 +3,25 @@ using Anir.Data.Entities;
 using Anir.Infrastructure.Extensions;
 using Anir.Infrastructure.Reports.Template.Excel;
 using Anir.Shared.Contracts.Common;
-using Anir.Shared.Contracts.Companies;
 using Anir.Shared.Contracts.Organisms;
-using Anir.Shared.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Anir.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class CompanyController : ControllerBase
+public class OrganismController : ControllerBase
 {
     // Para poner nombre amiglable de la entidad en los mensajes usarios
-    private const string ENTITY = "Empresa";
+    private const string ENTITY = "Organismo";
 
     private readonly ApplicationDbContext _db;
-    private readonly ILogger<CompanyController> _logger;
+    private readonly ILogger<OrganismController> _logger;
     private readonly IPdfService _pdfService;
-    private readonly CompanyReportExcel _excelService;
+    private readonly OrganismReportExcel _excelService;
 
-    public CompanyController(ApplicationDbContext db, ILogger<CompanyController> logger, IPdfService pdfService, CompanyReportExcel excelService)
+    public OrganismController(ApplicationDbContext db, ILogger<OrganismController> logger, IPdfService pdfService, OrganismReportExcel excelService)
     {
         _db = db;
         _logger = logger;
@@ -38,28 +34,22 @@ public class CompanyController : ControllerBase
     // ============================================================
 
     // Crear - Actualizar
-    private static void MapDtoToEntity(CompanyDto dto, Company entity)
+    private static void MapDtoToEntity(OrganismDto dto, Organism entity)
     {
+        entity.Code = dto.Code;
         entity.ShortName = dto.ShortName;
         entity.Name = dto.Name;
-        entity.Address = dto.Address;
-        entity.MunicipalityId = dto.MunicipalityId;
-        entity.Active = dto.Active;
     }
 
     // Leer - listar - paginar 
-    private static CompanyDto MapEntityToDto(Company entity)
+    private static OrganismDto MapEntityToDto(Organism entity)
     {
-        return new CompanyDto
+        return new OrganismDto
         {
             Id = entity.Id,
+            Code = entity.Code,
             ShortName = entity.ShortName,
             Name = entity.Name,
-            Address = entity.Address,
-            MunicipalityId = entity.MunicipalityId,
-            MunicipalityName = entity.Municipality?.Name,
-            ProvinceName = entity.Municipality?.Province?.Name,
-            Active = entity.Active
         };
     }
 
@@ -74,11 +64,17 @@ public class CompanyController : ControllerBase
             if (!ModelState.IsValid)
                 return BadRequest(ProcessResponse<PagedResponse<OrganismDto>>.Fail("Datos inválidos."));
 
-            var query = _db.Organisms.AsNoTracking();
+            // 🔥 ÚNICA LÍNEA QUE CAMBIAS CUANDO COPIAS ESTE CONTROLADOR
+            var query = _db.Organisms
+                .AsNoTracking();
 
+            // ------------------------------------------------------------
+            // Búsqueda
+            // ------------------------------------------------------------
             if (!string.IsNullOrWhiteSpace(queryDto.Search))
             {
                 var s = queryDto.Search.Trim().ToLower();
+
                 query = query.Where(entity =>
                     entity.Code.ToLower().Contains(s) ||
                     entity.ShortName.ToLower().Contains(s) ||
@@ -86,16 +82,17 @@ public class CompanyController : ControllerBase
                 );
             }
 
+
+            // ------------------------------------------------------------
+            // Ordenamiento (🔥 usando tu extensión mejorada)
+            // ------------------------------------------------------------
             var orderedQuery = query.ApplySorting(queryDto);
 
+            // ------------------------------------------------------------
+            // Paginado + proyección
+            // ------------------------------------------------------------
             var pagedResult = await orderedQuery
-                .Select(c => new OrganismDto
-                {
-                    Id = c.Id,
-                    Code = c.Code,
-                    ShortName = c.ShortName,
-                    Name = c.Name
-                })
+                .Select(c => MapEntityToDto(c))
                 .ToPagedResultAsync(queryDto, ct);
 
             return Ok(ProcessResponse<PagedResponse<OrganismDto>>.Success(pagedResult));
@@ -113,31 +110,27 @@ public class CompanyController : ControllerBase
     // GET BY ID
     // ============================================================
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<ProcessResponse<CompanyDto>>> GetById(
-        int id,
-        CancellationToken ct = default)
+    public async Task<ActionResult<ProcessResponse<OrganismDto>>> GetById(int id, CancellationToken ct = default)
     {
         try
         {
             // Incluimos solo lo necesario para el DTO
-            var entity = await _db.Companies
-                .Include(c => c.Municipality)
-                .ThenInclude(m => m.Province)
+            var entity = await _db.Organisms
                 .AsNoTracking()
-                .FirstOrDefaultAsync(c => c.Id == id, ct);
+                .FirstOrDefaultAsync(x => x.Id == id, ct);
 
             if (entity == null)
-                return NotFound(ProcessResponse<CompanyDto>.Fail($"{ENTITY} no encontrada."));
+                return NotFound(ProcessResponse<OrganismDto>.Fail($"{ENTITY} no encontrada."));
 
             var dto = MapEntityToDto(entity);
 
-            return Ok(ProcessResponse<CompanyDto>.Success(dto));
+            return Ok(ProcessResponse<OrganismDto>.Success(dto));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error obteniendo {Entity} {Id}", ENTITY, id);
             return StatusCode(500,
-                ProcessResponse<CompanyDto>.Fail($"Ocurrió un error al obtener la {ENTITY.ToLower()}."));
+                ProcessResponse<OrganismDto>.Fail($"Ocurrió un error al obtener la {ENTITY.ToLower()}."));
         }
     }
 
@@ -145,35 +138,29 @@ public class CompanyController : ControllerBase
     // CREATE
     // ============================================================
     [HttpPost]
-    public async Task<ActionResult<ProcessResponse<CompanyDto>>> Create(
-        [FromBody] CompanyDto dto,
-        CancellationToken ct = default)
+    public async Task<ActionResult<ProcessResponse<OrganismDto>>> Create([FromBody] OrganismDto dto, CancellationToken ct = default)
     {
         if (!ModelState.IsValid)
-            return BadRequest(ProcessResponse<CompanyDto>.Fail("Datos inválidos."));
+            return BadRequest(ProcessResponse<OrganismDto>.Fail("Datos inválidos."));
 
-        var entity = new Company();
+        var entity = new Organism();
         MapDtoToEntity(dto, entity);
 
         try
         {
-            _db.Companies.Add(entity);
+            _db.Organisms.Add(entity);
             await _db.SaveChangesAsync(ct);
 
             // Actualizamos el DTO con los datos generados
             dto.Id = entity.Id;
-            dto.MunicipalityName = await _db.Municipalities
-                .Where(m => m.Id == entity.MunicipalityId)
-                .Select(m => m.Name)
-                .FirstOrDefaultAsync(ct);
 
-            return Ok(ProcessResponse<CompanyDto>.Success(dto, $"{ENTITY} creada correctamente."));
+            return Ok(ProcessResponse<OrganismDto>.Success(dto, $"{ENTITY} creada correctamente."));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error inesperado al crear {Entity}", ENTITY);
             return StatusCode(500,
-                ProcessResponse<CompanyDto>.Fail($"Ocurrió un error al crear la {ENTITY.ToLower()}."));
+                ProcessResponse<OrganismDto>.Fail($"Ocurrió un error al crear la {ENTITY.ToLower()}."));
         }
     }
 
@@ -181,18 +168,18 @@ public class CompanyController : ControllerBase
     // UPDATE
     // ============================================================
     [HttpPut("{id:int}")]
-    public async Task<ActionResult<ProcessResponse<CompanyDto>>> Update(int id, [FromBody] CompanyDto dto, CancellationToken ct = default)
+    public async Task<ActionResult<ProcessResponse<OrganismDto>>> Update(int id, [FromBody] OrganismDto dto, CancellationToken ct = default)
     {
         // Validación de coherencia entre ruta y cuerpo
         if (id != dto.Id)
-            return BadRequest(ProcessResponse<CompanyDto>.Fail(
+            return BadRequest(ProcessResponse<OrganismDto>.Fail(
                 "El ID de la ruta no coincide con el del cuerpo."));
 
         // Buscar entidad existente
-        var entity = await _db.Companies.FindAsync(new object?[] { id }, ct);
+        var entity = await _db.Organisms.FindAsync(new object?[] { id }, ct);
 
         if (entity == null)
-            return NotFound(ProcessResponse<CompanyDto>.Fail($"{ENTITY} no encontrada."));
+            return NotFound(ProcessResponse<OrganismDto>.Fail($"{ENTITY} no encontrada."));
 
         // Mapear cambios del DTO a la entidad
         MapDtoToEntity(dto, entity);
@@ -201,14 +188,14 @@ public class CompanyController : ControllerBase
         {
             await _db.SaveChangesAsync(ct);
 
-            return Ok(ProcessResponse<CompanyDto>.Success(dto, $"{ENTITY} actualizada correctamente."));
+            return Ok(ProcessResponse<OrganismDto>.Success(dto, $"{ENTITY} actualizada correctamente."));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error inesperado al actualizar {Entity}", ENTITY);
 
             return StatusCode(500,
-                ProcessResponse<CompanyDto>.Fail(
+                ProcessResponse<OrganismDto>.Fail(
                     $"Ocurrió un error al actualizar la {ENTITY.ToLower()}."));
         }
     }
@@ -221,12 +208,12 @@ public class CompanyController : ControllerBase
     {
         try
         {
-            var entity = await _db.Companies.FindAsync(new object?[] { id }, ct);
+            var entity = await _db.Organisms.FindAsync(new object?[] { id }, ct);
 
             if (entity == null)
                 return NotFound(ProcessResponse<bool>.Fail($"{ENTITY} no encontrada."));
 
-            _db.Companies.Remove(entity);
+            _db.Organisms.Remove(entity);
             await _db.SaveChangesAsync(ct);
 
             return Ok(ProcessResponse<bool>.Success(
@@ -249,19 +236,19 @@ public class CompanyController : ControllerBase
     {
         try
         {
-            List<Company> itemsToDelete;
+            List<Organism> itemsToDelete;
 
             if (request.SelectAll)
             {
                 // ⭐ TU LÓGICA: BORRAR TODO
-                itemsToDelete = await _db.Companies.ToListAsync(ct);
+                itemsToDelete = await _db.Organisms.ToListAsync(ct);
             }
             else
             {
                 if (request.Ids == null || request.Ids.Count == 0)
                     return BadRequest(ProcessResponse<int>.Fail("No se recibieron Ids para eliminar."));
 
-                itemsToDelete = await _db.Companies
+                itemsToDelete = await _db.Organisms
                     .Where(c => request.Ids.Contains(c.Id))
                     .ToListAsync(ct);
             }
@@ -269,7 +256,7 @@ public class CompanyController : ControllerBase
             if (!itemsToDelete.Any())
                 return NotFound(ProcessResponse<int>.Fail($"No se encontraro {ENTITY.ToLower()} para eliminar."));
 
-            _db.Companies.RemoveRange(itemsToDelete);
+            _db.Organisms.RemoveRange(itemsToDelete);
             var affectedRows = await _db.SaveChangesAsync(ct);
 
             return Ok(ProcessResponse<int>.Success(affectedRows, $"Se eliminaron {itemsToDelete.Count} {ENTITY.ToLower()}."));
@@ -293,7 +280,7 @@ public class CompanyController : ControllerBase
     [HttpPost("export-pdf")]
     public async Task<IActionResult> ExportPdf([FromBody] BulkSelectionRequest request, CancellationToken ct = default)
     {
-        IQueryable<Company> query = _db.Companies;
+        IQueryable<Organism> query = _db.Organisms;
 
         if (request.Ids is { Count: > 0 })
             query = query.Where(c => request.Ids.Contains(c.Id));
@@ -302,7 +289,7 @@ public class CompanyController : ControllerBase
             .Select(c => MapEntityToDto(c))
             .ToListAsync(ct);
 
-        var doc = new CompanyReportPdf(items);
+        var doc = new OrganismReportPdf(items);
         var pdfBytes = await _pdfService.GenerateAsync(doc, ct);
 
         return File(pdfBytes, "application/pdf");
@@ -315,7 +302,7 @@ public class CompanyController : ControllerBase
     [HttpPost("export-excel")]
     public async Task<IActionResult> ExportExcel([FromBody] BulkSelectionRequest request, CancellationToken ct = default)
     {
-        IQueryable<Company> query = _db.Companies;
+        IQueryable<Organism> query = _db.Organisms;
 
         if (request.Ids is { Count: > 0 })
             query = query.Where(c => request.Ids.Contains(c.Id));
@@ -324,12 +311,12 @@ public class CompanyController : ControllerBase
             .Select(c => MapEntityToDto(c))
             .ToListAsync(ct);
 
-        var excelBytes = _excelService.GenerateCompaniesExcel(items);
+        var excelBytes = _excelService.GenerateOrganismsExcel(items);
 
         return File(
             excelBytes,
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "CompaniesReport.xlsx");
+            "OrganismsReport.xlsx");
     }
 
 }

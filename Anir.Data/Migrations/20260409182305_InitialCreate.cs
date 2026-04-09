@@ -65,6 +65,21 @@ namespace Anir.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Organisms",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Code = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
+                    ShortName = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Organisms", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Persons",
                 columns: table => new
                 {
@@ -249,10 +264,14 @@ namespace Anir.Data.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Code = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
                     ShortName = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     Name = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
                     Address = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: true),
+                    Phone = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    Email = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true),
                     MunicipalityId = table.Column<int>(type: "integer", nullable: true),
+                    OrganismId = table.Column<int>(type: "integer", nullable: false),
                     Active = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
                     ProvinceId = table.Column<int>(type: "integer", nullable: true)
                 },
@@ -263,6 +282,12 @@ namespace Anir.Data.Migrations
                         name: "FK_Companies_Municipalities_MunicipalityId",
                         column: x => x.MunicipalityId,
                         principalTable: "Municipalities",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Companies_Organisms_OrganismId",
+                        column: x => x.OrganismId,
+                        principalTable: "Organisms",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
@@ -299,6 +324,38 @@ namespace Anir.Data.Migrations
                         name: "FK_AnirWorks_Companies_CompanyId",
                         column: x => x.CompanyId,
                         principalTable: "Companies",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Uebs",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Code = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Address = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: true),
+                    Phone = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    Email = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true),
+                    MunicipalityId = table.Column<int>(type: "integer", nullable: true),
+                    CompanyId = table.Column<int>(type: "integer", nullable: false),
+                    Active = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Uebs", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Uebs_Companies_CompanyId",
+                        column: x => x.CompanyId,
+                        principalTable: "Companies",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Uebs_Municipalities_MunicipalityId",
+                        column: x => x.MunicipalityId,
+                        principalTable: "Municipalities",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -417,9 +474,20 @@ namespace Anir.Data.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Companies_Code",
+                table: "Companies",
+                column: "Code",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Companies_MunicipalityId",
                 table: "Companies",
                 column: "MunicipalityId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Companies_OrganismId",
+                table: "Companies",
+                column: "OrganismId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Companies_ProvinceId",
@@ -439,6 +507,24 @@ namespace Anir.Data.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Organisms_Code",
+                table: "Organisms",
+                column: "Code",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Organisms_Name",
+                table: "Organisms",
+                column: "Name",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Organisms_ShortName",
+                table: "Organisms",
+                column: "ShortName",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Persons_Dni",
                 table: "Persons",
                 column: "Dni",
@@ -455,6 +541,22 @@ namespace Anir.Data.Migrations
                 table: "Provinces",
                 column: "ShortName",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Uebs_Code",
+                table: "Uebs",
+                column: "Code",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Uebs_CompanyId",
+                table: "Uebs",
+                column: "CompanyId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Uebs_MunicipalityId",
+                table: "Uebs",
+                column: "MunicipalityId");
         }
 
         /// <inheritdoc />
@@ -485,6 +587,9 @@ namespace Anir.Data.Migrations
                 name: "SystemSettings");
 
             migrationBuilder.DropTable(
+                name: "Uebs");
+
+            migrationBuilder.DropTable(
                 name: "Persons");
 
             migrationBuilder.DropTable(
@@ -501,6 +606,9 @@ namespace Anir.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "Municipalities");
+
+            migrationBuilder.DropTable(
+                name: "Organisms");
 
             migrationBuilder.DropTable(
                 name: "Provinces");

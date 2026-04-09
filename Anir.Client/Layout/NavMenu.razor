@@ -1,45 +1,59 @@
 @inject UserState User
 
-
 <MudNavMenu Dense="true" Class="mt-2">
 
-    <!-- DASHBOARD (todos los usuarios) -->
+    <!-- DASHBOARD -->
     <MudNavLink Href="/dashboard"
                 Icon="@Icons.Material.Filled.Dashboard"
                 Match="NavLinkMatch.Prefix">
         Dashboard
     </MudNavLink>
 
-    <!-- COMPAÑÍAS (todos los usuarios activos) -->
     @if (User.Active)
     {
-        <MudNavLink Href="/companies"
-                    Icon="@Icons.Material.Filled.Domain"
-                    Match="NavLinkMatch.Prefix">
-            Compañías
-        </MudNavLink>
+        <!-- ============================
+             ESTRUCTURA ORGANIZATIVA
+             ============================ -->
+        <MudNavGroup Text="Estructura Organizativa"
+                     Icon="@Icons.Material.Filled.AccountTree"
+                     Expanded="false">
 
+            <MudNavLink Href="/organisms"
+                        Icon="@Icons.Material.Filled.AccountBalance"
+                        Match="NavLinkMatch.Prefix">
+                Organismos
+            </MudNavLink>
+
+            <MudNavLink Href="/companies"
+                        Icon="@Icons.Material.Filled.Domain"
+                        Match="NavLinkMatch.Prefix">
+                Compañías
+            </MudNavLink>
+
+            <MudNavLink Href="/uebs"
+                        Icon="@Icons.Material.Filled.Factory"
+                        Match="NavLinkMatch.Prefix">
+                UEBs
+            </MudNavLink>
+
+        </MudNavGroup>
+
+        <!-- PERSONAS -->
         <MudNavLink Href="/persons"
                     Icon="@Icons.Material.Filled.PeopleAlt"
                     Match="NavLinkMatch.Prefix">
             Personas
         </MudNavLink>
-    }
 
-    <!-- REPORTES (todos los usuarios activos) -->
-    @if (User.Active)
-    {
+        <!-- REPORTES -->
         <MudNavLink Href="/reports"
                     Icon="@Icons.Material.Filled.Assessment"
                     Match="NavLinkMatch.Prefix">
             Reportes
         </MudNavLink>
-       
     }
 
-    <!-- ============================
-         MÓDULO ANIR
-         ============================ -->
+    <!-- MÓDULO ANIR -->
     @if (User.Active)
     {
         <MudNavGroup Text="ANIR"
@@ -67,7 +81,7 @@
         </MudNavGroup>
     }
 
-    <!-- USUARIOS (solo Administrador y Supervisor) -->
+    <!-- USUARIOS -->
     @if (User.Roles.Contains("Administrador") || User.Roles.Contains("Supervisor"))
     {
         <MudNavLink Href="/users"
@@ -77,7 +91,7 @@
         </MudNavLink>
     }
 
-    <!-- CONFIGURACIÓN (solo Administrador) -->
+    <!-- CONFIGURACIÓN -->
     @if (User.Roles.Contains("Administrador"))
     {
         <MudNavLink Href="/settings"

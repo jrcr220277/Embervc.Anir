@@ -1,0 +1,559 @@
+﻿@page "/organisms"
+
+
+
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-3">
+
+    @if (IsInitializingPage)
+    {
+        <UiLoading Indeterminate="true" Message="Cargando datos..." ContainerHeight="100vh" Size="Size.Large" />
+        return;
+    }
+
+    <!-- ============================================================
+     ENCABEZADO PRINCIPAL (Profesional, limpio, con jerarquía)
+     ============================================================ -->
+    <MudGrid Class="mb-2">
+        <MudItem xs="12">
+            <div class="d-flex align-center">
+                <MudIcon Icon="@Icons.Material.TwoTone.Domain" Style="font-size: 3rem;" />
+             
+                <div class="ml-3">
+                    <MudText Typo="Typo.h5" Class="fw-bold">Clasificador de Organismos</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Gestión de organismos: búsqueda, filtros y acciones masivas
+                    </MudText>
+                </div>
+            </div>
+        </MudItem>
+    </MudGrid>
+
+    <MudDivider Class="mb-3" />
+
+    <!-- ============================================================
+     ACTION BAR (Profesional, alineada, con peso visual)
+     ============================================================ -->
+    <MudPaper Elevation="0" Outlined="true" Class="pa-3 mb-3">
+
+        <MudGrid AlignItems="Center">
+
+            <!-- IZQUIERDA (3 columnas) -->
+            <MudItem xs="12" sm="3">
+                <MudButton Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           StartIcon="@Icons.Material.Rounded.AddCircleOutline"
+                           OnClick="OpenAddModal">
+                    Agregar
+                </MudButton>
+            </MudItem>
+
+            <!-- CENTRO (6 columnas, centrado REAL) -->
+            <MudItem xs="12" sm="6" Class="d-flex justify-center">
+                <MudTextField T="string"
+                              Value="@SearchText"
+                              ValueChanged="OnSearchInput"
+                              Immediate="true"
+                              Clearable="true"
+                              Placeholder="Buscar..."
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Rounded.Search" />
+            </MudItem>
+
+            <!-- DERECHA (3 columnas, alineado a la derecha) -->
+            
+        </MudGrid>
+
+    </MudPaper>
+
+
+    <!-- ============================================================
+         ACCIONES MASIVAS (Banner profesional)
+         ============================================================ -->
+    <MudCollapse Expanded="@(SelectedItems?.Any() == true || IsGlobalSelected)">
+        <MudPaper Outlined="true" Elevation="0" Class="px-4 mb-3 d-flex align-center justify-space-between flex-wrap gap-2">
+
+            <div class="d-flex align-center">
+                <MudTooltip Text="Seleccionar todo" Arrow="true">
+                    <MudIconButton Icon="@(IsGlobalSelected? Icons.Material.Rounded.Deselect : Icons.Material.Rounded.SelectAll)"
+                                   Edge="Edge.Start"
+                                   Size="Size.Medium"
+                                   OnClick="@(() => ToggleGlobalSelection())" />
+                </MudTooltip>
+
+
+                <MudText Typo="Typo.body2" Class="font-weight-medium ml-2">
+                    @BulkSelectionText
+                </MudText>
+            </div>
+            
+
+            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+               
+                <MudTooltip Text="Exportar PDF" Arrow="true">
+                    <MudIconButton OnClick="@(() => ExportPdf())"
+                                   Icon="@Icons.Custom.FileFormats.FilePdf"
+                                   Color="Color.Default"
+                                   Size="Size.Medium"
+                                   aria-label="PDF"
+                                   Variant="Variant.Text" />
+                </MudTooltip>
+
+                <MudTooltip Text="Exportar Excel" Arrow="true">
+                    <MudIconButton OnClick="@(() => ExportExcel())"
+                                   Icon="@Icons.Custom.FileFormats.FileExcel"
+                                   Color="Color.Default"
+                                   Size="Size.Medium"
+                                   aria-label="Excel" />
+                </MudTooltip>
+
+                <MudTooltip Text="Eliminar seleccionados" Arrow="true">
+                    <MudIconButton OnClick="@(() => DeleteSelected())"
+                                   Icon="@Icons.Material.Rounded.DeleteForever"
+                                   Color="Color.Error"
+                                   Size="Size.Medium"
+                                   aria-label="Eliminar" />
+                </MudTooltip>
+            </MudStack>
+
+        </MudPaper>
+    </MudCollapse>
+
+
+
+    <!-- ============================================================
+         TABLA PRINCIPAL (Respira, se ve limpia)
+     ============================================================ -->
+    <MudTable T="OrganismDto"
+              ServerData="ServerReload"
+              @ref="TableRef"
+              Hover="true"
+              Striped="true"
+              Dense="true"
+              MultiSelection="true"
+              @bind-SelectedItems="SelectedItems"
+              SelectOnRowClick="false"
+              Loading="@IsLoadingTable"
+              HorizontalScrollbar="true">
+
+        <HeaderContent>
+            <MudTh><MudTableSortLabel T="OrganismDto" SortLabel="Code">Codigo</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="OrganismDto" SortLabel="ShortName">Abreviatura</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="OrganismDto" SortLabel="Name">Nombre</MudTableSortLabel></MudTh>
+         
+            <MudTh Style="width: 120px; text-align:end">Acciones</MudTh>
+        </HeaderContent>
+
+        <RowTemplate Context="organism">
+            <MudTd>@organism.Code</MudTd>
+            <MudTd>@organism.ShortName</MudTd>
+            <MudTd>@organism.Name</MudTd>
+            <MudTd Style="width: 120px; text-align:end">
+                    <MudIconButton Icon="@Icons.Material.Rounded.Visibility" OnClick="@(() => Vieworganism(organism))" Size="Size.Small" /> 
+                    <MudIconButton Icon="@Icons.Material.Rounded.Edit" OnClick="@(() => Editorganism(organism))" Size="Size.Small" />
+                    <MudIconButton Icon="@Icons.Material.Rounded.Delete" Color="Color.Error" OnClick="@(() => Deleteorganism(organism))" Size="Size.Small" />
+                
+            </MudTd>
+        </RowTemplate>
+
+        <NoRecordsContent>
+            <MudText Typo="Typo.body2" Class="pa-4 text-center">
+                No se encontraron datos para mostrar.
+            </MudText>
+        </NoRecordsContent>
+
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new int[] { 5, 10, 15, 20, 50, 100 }"
+                           RowsPerPageString="Filas por página:"
+                           InfoFormat="{first_item}-{last_item} de {all_items}"
+                           AllItemsText="Todas"
+                           HorizontalAlignment="HorizontalAlignment.Right" />
+        </PagerContent>
+
+    </MudTable>
+
+</MudContainer>
+
+
+
+@code {
+    // ============================================================
+    // DEPENDENCIAS
+    // ============================================================
+    [Inject] public IOrganismService OrganismService { get; set; }
+    [Inject] private NavigationManager NavManager { get; set; } = default!;
+    [Inject] private IConfiguration Config { get; set; } = default!;
+    [Inject] private IDialogService DialogService { get; set; } = default!;
+    [Inject] private IAlertService AlertService { get; set; } = default!;
+    [Inject] private ILogger<OrganismIndex> Logger { get; set; } = default!;
+    [Inject] IJSRuntime JS { get; set; } = default!;
+
+    // ============================================================
+    // ESTADO GENERAL
+    // ============================================================
+    private bool IsInitializingPage = true;
+    private bool IsLoadingTable = false;
+    private bool IsProcessingBulkAction = false;
+
+    private MudTable<OrganismDto>? TableRef;
+    private HashSet<OrganismDto> SelectedItems = new(new OrganismDtoComparer());
+    
+    private bool IsGlobalSelected = false;
+    private int _totalFilteredCount = 0;
+
+    private string SearchText = string.Empty;
+    private string StatusFilterValue = "Todos";
+
+    private IReadOnlyList<OrganismDto> LastPageItems = Array.Empty<OrganismDto>();
+
+    private CancellationTokenSource? _searchDebounceCts;
+    private CancellationTokenSource? _serverReloadCts;
+
+   
+    protected override Task OnInitializedAsync()
+    {
+        IsInitializingPage = false;
+        return Task.CompletedTask;
+    }
+
+    // ============================================================
+    // SERVER DATA (Paginación + Orden + Filtros)
+    // ============================================================
+    private async Task<TableData<OrganismDto>> ServerReload(TableState state, CancellationToken token)
+    {
+        _serverReloadCts?.Cancel();
+        _serverReloadCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+        var linkedToken = _serverReloadCts.Token;
+
+        IsLoadingTable = true;
+
+        try
+        {
+            var query = MapTableStateToQuery(state);
+
+            var response = await OrganismService.GetPagedAsync(query, linkedToken);
+
+            if (response.Result == ResponseStatus.Success && response.Value != null)
+            {
+                LastPageItems = response.Value.Items.ToList().AsReadOnly();
+                _totalFilteredCount = response.Value.TotalCount;
+
+                return new TableData<OrganismDto>
+                {
+                    Items = response.Value.Items,
+                    TotalItems = response.Value.TotalCount
+                };
+            }
+
+            await AlertService.ShowError("Error", response.ErrorMessage ?? "Error cargando empresas");
+            return new TableData<OrganismDto>();
+        }
+        finally
+        {
+            IsLoadingTable = false;
+        }
+    }
+
+    private OrganismQueryDto MapTableStateToQuery(TableState state)
+    {
+        var sortLabel = string.IsNullOrWhiteSpace(state.SortLabel)
+            ? "Code"
+            : state.SortLabel;
+
+        var desc = state.SortDirection switch
+        {
+            SortDirection.Descending => true,
+            _ => false // None y Ascending → ASC
+        };
+
+        return new OrganismQueryDto
+        {
+            Page = state.Page + 1,
+            Size = state.PageSize,
+            Sort = sortLabel,
+            Desc = desc,
+            Search = string.IsNullOrWhiteSpace(SearchText) ? null : SearchText,
+        };
+    }
+
+
+    // ============================================================
+    // BÚSQUEDA CON DEBOUNCE
+    // ============================================================
+    private void OnSearchInput(string value)
+    {
+        SearchText = value;
+
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts = new CancellationTokenSource();
+
+        var token = _searchDebounceCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(300, token);
+                if (!token.IsCancellationRequested && TableRef != null)
+                    await TableRef.ReloadServerData();
+            }
+            catch { }
+        });
+    }
+
+    // ============================================================
+    // FILTRO DE ESTADO
+    // ============================================================
+    private async Task OnStatusFilterChanged(string value)
+    {
+        StatusFilterValue = value;
+        if (TableRef != null) await TableRef.ReloadServerData();
+    }
+
+    // ============================================================
+    // CRUD: MODALES
+    // ============================================================
+    private async Task OpenAddModal()
+    {
+        var parameters = new DialogParameters
+        {
+            ["CurrentMode"] = OrganismModal.ModalMode.Add,
+            ["organism"] = null
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            BackdropClick = false,
+            BackgroundClass = "pa-4",
+            Position = DialogPosition.Center
+        };
+
+        var dialog = await DialogService.ShowAsync<OrganismModal>(
+            "Nuevo Organismo", parameters, options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && TableRef != null)
+            await TableRef.ReloadServerData();
+    }
+
+    private async Task Editorganism(OrganismDto organism)
+    {
+        var parameters = new DialogParameters
+        {
+            ["CurrentMode"] = OrganismModal.ModalMode.Edit,
+            ["organism"] = organism
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            BackdropClick = false,
+            BackgroundClass = "pa-4",
+            Position = DialogPosition.Center
+        };
+
+        var dialog = await DialogService.ShowAsync<OrganismModal>(
+            "Editar Organismo", parameters, options);
+
+        var result = await dialog.Result;
+
+        if (!result.Canceled && TableRef != null)
+            await TableRef.ReloadServerData();
+    }
+
+    private async Task Vieworganism(OrganismDto organism)
+    {
+        var parameters = new DialogParameters
+        {
+            ["CurrentMode"] = OrganismModal.ModalMode.View,
+            ["organism"] = organism
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            BackdropClick = true,
+            BackgroundClass = "pa-4",
+            Position = DialogPosition.Center
+        };
+
+        await DialogService.ShowAsync<OrganismModal>(
+            "Detalle Organismo", parameters, options);
+    }
+    
+    // ============================================================
+    // CRUD: ELIMINAR INDIVIDUAL
+    // ============================================================
+    private async Task Deleteorganism(OrganismDto organism)
+    {
+        var confirmed = await ConfirmDialog.Show(
+            DialogService,
+            "Eliminar Organismo",
+            $"¿Eliminar {organism.ShortName}?",
+            type: "Delete",
+            confirmText: "Eliminar",
+            centerMessage: true
+        );
+
+        if (!confirmed)
+            return;
+
+        var response = await OrganismService.DeleteAsync(organism.Id);
+
+        if (response.Result == ResponseStatus.Success)
+        {
+            SelectedItems.RemoveWhere(c => c.Id == organism.Id);
+
+            if (TableRef != null)
+                await TableRef.ReloadServerData();
+
+            await AlertService.ShowSuccess("Éxito", "Registro eliminado correctamente.");
+        }
+        else
+        {
+            await AlertService.ShowError("Error", response.ErrorMessage ?? "No se pudo eliminar.");
+        }
+    }
+
+
+    // ============================================================
+    // SELECCIÓN
+    // ============================================================
+    private void SelectAllVisible()
+    {
+        SelectedItems.Clear();
+        foreach (var item in LastPageItems)
+            SelectedItems.Add(item);
+    }
+
+    private void ToggleGlobalSelection()
+    {
+        IsGlobalSelected = !IsGlobalSelected;
+        SelectedItems.Clear();
+    }
+
+    /// <summary>
+    /// Texto dinámico para mostrar la selección:
+    /// - Local: cuántos elementos en SelectedItems.
+    /// - Global: cuántos registros en el filtro.
+    /// - Ninguno: mensaje claro.
+    /// </summary>
+    private string BulkSelectionText =>
+        IsGlobalSelected
+            ? $"Selección global: {_totalFilteredCount} empresa{(SelectedItems.Count == 1 ? "" : "s")} seleccionada{(SelectedItems.Count == 1 ? "" : "s")} del resultado actual"
+            : $"{SelectedItems.Count} empresa{(SelectedItems.Count == 1 ? "" : "s")} seleccionada{(SelectedItems.Count == 1 ? "" : "s")} del resultado actual";
+
+    // ============================================================
+    // ACCIONES MASIVAS
+    // ============================================================
+    private async Task DeleteSelected()
+    {
+        var confirmed = await ConfirmDialog.Show(
+            DialogService,
+            "Eliminar seleccionados",
+            IsGlobalSelected
+                ? $"¿Eliminar todos los {_totalFilteredCount} registros del filtro?"
+                : $"¿Eliminar {SelectedItems.Count} registro{(SelectedItems.Count == 1 ? "" : "s")} seleccionado{(SelectedItems.Count == 1 ? "" : "s")}?",
+            type: "Delete",
+            confirmText: "Eliminar",
+            centerMessage: true
+        );
+
+        if (!confirmed)
+            return;
+
+        IsProcessingBulkAction = true;
+
+        try
+        {
+            var request = new BulkSelectionRequest
+            {
+                SelectAll = IsGlobalSelected,
+                Ids = IsGlobalSelected ? new List<int>() : SelectedItems.Select(x => x.Id).ToList()
+            };
+
+            var response = await OrganismService.DeleteBatchAsync(request);
+
+            if (response.Result == ResponseStatus.Success)
+            {
+                SelectedItems.Clear();
+                IsGlobalSelected = false;
+                if (TableRef != null) await TableRef.ReloadServerData();
+                await AlertService.ShowSuccess("Éxito", "Registros eliminados correctamente.");
+            }
+            else
+            {
+                await AlertService.ShowError("Error", response.ErrorMessage ?? "No se pudo eliminar.");
+            }
+        }
+        finally
+        {
+            IsProcessingBulkAction = false;
+        }
+    }
+
+    private async Task ExportPdf()
+    {
+        var request = new BulkSelectionRequest
+        {
+            SelectAll = IsGlobalSelected,
+            Ids = IsGlobalSelected ? new List<int>() : SelectedItems.Select(x => x.Id).ToList()
+        };
+
+        var response = await OrganismService.ExportPdfAsync(request);
+        if (response.IsSuccessStatusCode)
+        {
+            var bytes = await response.Content.ReadAsByteArrayAsync();
+            await JS.InvokeVoidAsync("openPdfBlob", bytes);
+        }
+        else
+        {
+            await AlertService.ShowError("Error", "No se pudo generar el PDF.");
+        }
+    }
+
+    private async Task ExportExcel()
+    {
+        var request = new BulkSelectionRequest
+        {
+            SelectAll = IsGlobalSelected,
+            Ids = IsGlobalSelected ? new List<int>() : SelectedItems.Select(x => x.Id).ToList()
+        };
+
+        var response = await OrganismService.ExportExcelAsync(request);
+        if (response.IsSuccessStatusCode)
+        {
+            var bytes = await response.Content.ReadAsByteArrayAsync();
+            await JS.InvokeVoidAsync("downloadFile", "CompaniesReport.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                Convert.ToBase64String(bytes));
+        }
+        else
+        {
+            await AlertService.ShowError("Error", "No se pudo generar el Excel.");
+        }
+    }
+
+    // ============================================================
+    // LIMPIEZA DE RECURSOS
+    // ============================================================
+    public void Dispose()
+    {
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts?.Dispose();
+        _serverReloadCts?.Cancel();
+        _serverReloadCts?.Dispose();
+    }
+
+    // ============================================================
+    // COMPARER PARA SELECCIÓN ESTABLE
+    // ============================================================
+    private class OrganismDtoComparer : IEqualityComparer<OrganismDto>
+    {
+        public bool Equals(OrganismDto? x, OrganismDto? y) => x?.Id == y?.Id;
+        public int GetHashCode(OrganismDto obj) => obj.Id.GetHashCode();
+    }
+}
+
+    

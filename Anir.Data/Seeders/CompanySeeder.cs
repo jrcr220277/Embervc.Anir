@@ -3,10 +3,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Anir.Data.Seeders
 {
-    /// <summary>
-    /// Seeder para cargar las empresas iniciales del sistema ANIR.
-    /// Se ejecuta solo si la tabla está vacía.
-    /// </summary>
     public static class CompanySeeder
     {
         public static async Task SeedAsync(ApplicationDbContext context)
@@ -16,69 +12,171 @@ namespace Anir.Data.Seeders
 
             var companies = new List<Company>
             {
-                new() { ShortName = "Ueb02", Name = "UEB Aseguramiento",
-                    Address = "Calle Tirso Díaz No. 136 Esquina Carretera Central Reparto Virginia Santa Clara",
-                    MunicipalityId = 142, Active = true },
-
-                new() { ShortName = "Ueb03", Name = "UEB Embotelladora Amaro",
-                    Address = "Carretera Sitio Grande No. 3 Amaro Santo Domingo VC",
-                    MunicipalityId = 153, Active = true },
-
-                new() { ShortName = "Ueb04", Name = "Estación Distribuidora Santo Domingo",
-                    Address = "Calle Eustaquio Delgado No. 104 e/ Colón y Juan B. Zayas Santo Domingo VC",
-                    MunicipalityId = 153, Active = true },
-
-                new() { ShortName = "Ueb05", Name = "Estación Distribuidora Sagua",
-                    Address = "Calle Quirós s/n e/ Flor Crombet y Quintín Banderas Sagua la Grande VC",
-                    MunicipalityId = 152, Active = true },
-
-                new() { ShortName = "Ueb06", Name = "UEB Embotelladora Calabazar de Sagua",
-                    Address = "Carretera Encrucijada Km 1 Calabazar de Sagua VC",
-                    MunicipalityId = 147, Active = true },
-
-                new() { ShortName = "Ueb07", Name = "UEB Combinado Cubanacán",
-                    Address = "Valeriano López No. 16 e/Hermanos Cárdenas y Marino Cabrera Camajuaní VC",
-                    MunicipalityId = 144, Active = true },
-
-                new() { ShortName = "Ueb08", Name = "UEB Vinatera del Norte",
-                    Address = "Calle 4 No. 103 e/ 1 y 5 Caibarién VC",
-                    MunicipalityId = 143, Active = true },
-
-                new() { ShortName = "Ueb09", Name = "Estación Distribuidora Placetas",
-                    Address = "Calle 2da del Oeste No. 38 e/ 1ra y 2da del norte Placetas VC",
-                    MunicipalityId = 149, Active = true },
-
-                new() { ShortName = "Ueb10", Name = "UEB Embotelladora Central",
-                    Address = "Carretera Acueducto y Ave 26 de Julio Santa Clara VC",
-                    MunicipalityId = 142, Active = true },
-
-                new() { ShortName = "Ueb11", Name = "UEB Comercializadora",
-                    Address = "Calle 1ra y Nueva Reparto Virginia Santa Clara VC",
-                    MunicipalityId = 142, Active = true },
-
-                new() { ShortName = "Ueb12", Name = "UEB Transporte",
-                    Address = "Carretera Central Km 295 Crucero de Vila Reparto Manuelita Santa Clara VC",
-                    MunicipalityId = 142, Active = true },
-
-                new() { ShortName = "Ueb13", Name = "Estación Distribuidora Ranchuelo",
-                    Address = "Calle Camilo Cienfuegos No. 1 Ranchuelo VC",
-                    MunicipalityId = 151, Active = true },
-
-                new() { ShortName = "Ueb14", Name = "Estación Distribuidora Manicaragua",
-                    Address = "Circunvalación s/n Manicaragua VC",
-                    MunicipalityId = 148, Active = true },
-
-                new() { ShortName = "Ueb15", Name = "Direccion de Empresa",
-                    Address = "Avenida Rojas e/ a",
-                    MunicipalityId = 142, Active = true }
+                new()
+                {
+                    Id = 1,
+                    Code = "01663",
+                    ShortName = "EBR-HAB",
+                    Name = "EMPRESA DE BEBIDAS Y REFRESCOS LA HABANA",
+                    Address = "SANTA CATALINA NO. 930 E/ PALATINO Y ZUZARTE, REPARTO PALATINO",
+                    MunicipalityId = 67,
+                    OrganismId = 3,
+                    Active = true
+                },
+                new()
+                {
+                    Id = 2,
+                    Code = "01665",
+                    ShortName = "EBR-VC",
+                    Name = "EMPRESA DE BEBIDAS Y REFRESCOS VILLA CLARA",
+                    Address = "AVENIDA ROJAS NO. 23 ESQUINA A 1RA, REPARTO VIRGINIA",
+                    MunicipalityId = 142,
+                    OrganismId = 3,
+                    Active = true
+                },
+                new()
+                {
+                    Id = 3,
+                    Code = "01666",
+                    ShortName = "EBR-CMG",
+                    Name = "EMPRESA DE BEBIDAS Y REFRESCOS CAMAGÜEY",
+                    Address = "AVE. DE LA LIBERTAD NO. 159 E/ ARRIETA Y PANAGA, RPTO. AGRAMONTE",
+                    MunicipalityId = 12,
+                    OrganismId = 3,
+                    Active = true
+                },
+                new()
+                {
+                    Id = 4,
+                    Code = "01667",
+                    ShortName = "EBR-GRA",
+                    Name = "EMPRESA DE BEBIDAS Y REFRESCOS GRANMA",
+                    Address = "CALLE AUGUSTO MÁRQUEZ NO. 24 ENTRE CALLE GENERAL GARCÍA Y AVENIDA GRANMA",
+                    MunicipalityId = 35,
+                    OrganismId = 3,
+                    Active = true
+                },
+                new()
+                {
+                    Id = 5,
+                    Code = "01668",
+                    ShortName = "EBR-SCU",
+                    Name = "EMPRESA DE BEBIDAS Y REFRESCOS SANTIAGO DE CUBA",
+                    Address = "GARZON NO. 359 E/ AVE. CÉSPEDES Y CALLE ATA",
+                    MunicipalityId = 133,
+                    OrganismId = 3,
+                    Active = true
+                },
+                new()
+                {
+                    Id = 6,
+                    Code = "01674",
+                    ShortName = "EBR-PRI",
+                    Name = "EMPRESA DE BEBIDAS Y REFRESCOS PINAR DEL RÍO",
+                    Address = "AGRAMONTE FINAL S/N E/ GRAL. LORES Y GONZALEZ ALCORTA",
+                    MunicipalityId = 114,
+                    OrganismId = 3,
+                    Active = true
+                },
+                new()
+                {
+                    Id = 7,
+                    Code = "01679",
+                    ShortName = "EBR-CAV",
+                    Name = "EMPRESA DE BEBIDAS Y REFRESCOS CIEGO DE ÁVILA",
+                    Address = "CARRETERA CENTRAL KM 468 OESTE",
+                    MunicipalityId = 25,
+                    OrganismId = 3,
+                    Active = true
+                },
+                new()
+                {
+                    Id = 8,
+                    Code = "04796",
+                    ShortName = "EBR-MAY",
+                    Name = "EMPRESA DE BEBIDAS Y REFRESCOS MAYABEQUE",
+                    Address = "ARMENTEROS NO. 18 ESQ. A CALZADA DE LUYANO",
+                    MunicipalityId = 103,
+                    OrganismId = 3,
+                    Active = true
+                },
+                new()
+                {
+                    Id = 9,
+                    Code = "15185",
+                    ShortName = "EBR-GTM",
+                    Name = "EMPRESA DE BEBIDAS Y REFRESCOS GUANTÁNAMO",
+                    Address = "CALLE 17 SUR ENTRE 4 Y 5",
+                    MunicipalityId = 42,
+                    OrganismId = 3,
+                    Active = true
+                },
+                new()
+                {
+                    Id = 10,
+                    Code = "15186",
+                    ShortName = "EBR-LTU",
+                    Name = "EMPRESA DE BEBIDAS Y REFRESCOS LAS TUNAS",
+                    Address = "CALLE 23, ESPINOSA, S/N Y ENTRE 17 Y 19",
+                    MunicipalityId = 82,
+                    OrganismId = 3,
+                    Active = true
+                },
+                new()
+                {
+                    Id = 11,
+                    Code = "15823",
+                    ShortName = "EBR-CFG",
+                    Name = "EMPRESA DE BEBIDAS Y REFRESCOS CIENFUEGOS",
+                    Address = "CALLE 23 NO. 5619 ENTRE AVENIDAS 56 Y 58",
+                    MunicipalityId = 35,
+                    OrganismId = 3,
+                    Active = true
+                },
+                new()
+                {
+                    Id = 12,
+                    Code = "15824",
+                    ShortName = "EBR-HOL",
+                    Name = "EMPRESA DE BEBIDAS Y REFRESCOS HOLGUÍN",
+                    Address = "CRISTINO NARANJO NO. 2 Y FINAL REPARTO CIUDAD JARDÍN",
+                    MunicipalityId = 52,
+                    OrganismId = 3,
+                    Active = true
+                },
+                new()
+                {
+                    Id = 13,
+                    Code = "15881",
+                    ShortName = "EBR-SSP",
+                    Name = "EMPRESA DE BEBIDAS Y REFRESCOS SANCTI SPÍRITUS",
+                    Address = "CALLE BARTOLOMÉ MASSÓ NO. 263 ENTRE SANTA ELENA Y MAYÍA",
+                    MunicipalityId = 125,
+                    OrganismId = 3,
+                    Active = true
+                },
+                new()
+                {
+                    Id = 14,
+                    Code = "15882",
+                    ShortName = "EBR-MTZ",
+                    Name = "EMPRESA DE BEBIDAS Y REFRESCOS MATANZAS",
+                    Address = "CALLE RÍO NO. 62, ENTRE SANTA TERESA Y ZARAGOZA",
+                    MunicipalityId = 90,
+                    OrganismId = 3,
+                    Active = true
+                }
             };
 
             context.Companies.AddRange(companies);
             await context.SaveChangesAsync();
-
-            // Ajustar la secuencia UNA sola vez
             await context.Database.ExecuteSqlRawAsync(
-                "SELECT setval(pg_get_serial_sequence('\"Companies\"', 'Id'), (SELECT MAX(\"Id\") FROM \"Companies\"))");
+        "SELECT setval('\"Companies_Id_seq\"', (SELECT MAX(\"Id\") FROM \"Companies\"));");
+
+
         }
     }
+
+
 }
+

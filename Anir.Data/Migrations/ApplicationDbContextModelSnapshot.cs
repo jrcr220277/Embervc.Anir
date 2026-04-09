@@ -155,6 +155,15 @@ namespace Anir.Data.Migrations
                         .HasMaxLength(250)
                         .HasColumnType("character varying(250)");
 
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
                     b.Property<int?>("MunicipalityId")
                         .HasColumnType("integer");
 
@@ -162,6 +171,13 @@ namespace Anir.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
+
+                    b.Property<int>("OrganismId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<int?>("ProvinceId")
                         .HasColumnType("integer");
@@ -173,7 +189,12 @@ namespace Anir.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Code")
+                        .IsUnique();
+
                     b.HasIndex("MunicipalityId");
+
+                    b.HasIndex("OrganismId");
 
                     b.HasIndex("ProvinceId");
 
@@ -208,6 +229,43 @@ namespace Anir.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Municipalities", (string)null);
+                });
+
+            modelBuilder.Entity("Anir.Data.Entities.Organism", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ShortName")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.HasIndex("ShortName")
+                        .IsUnique();
+
+                    b.ToTable("Organisms", (string)null);
                 });
 
             modelBuilder.Entity("Anir.Data.Entities.Person", b =>
@@ -322,6 +380,59 @@ namespace Anir.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("SystemSettings", (string)null);
+                });
+
+            modelBuilder.Entity("Anir.Data.Entities.Ueb", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Active")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<int?>("MunicipalityId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("CompanyId");
+
+                    b.HasIndex("MunicipalityId");
+
+                    b.ToTable("Uebs", (string)null);
                 });
 
             modelBuilder.Entity("Anir.Data.Identity.ApplicationUser", b =>
@@ -606,11 +717,19 @@ namespace Anir.Data.Migrations
                         .HasForeignKey("MunicipalityId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Anir.Data.Entities.Organism", "Organism")
+                        .WithMany("Companies")
+                        .HasForeignKey("OrganismId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("Anir.Data.Entities.Province", null)
                         .WithMany("Companies")
                         .HasForeignKey("ProvinceId");
 
                     b.Navigation("Municipality");
+
+                    b.Navigation("Organism");
                 });
 
             modelBuilder.Entity("Anir.Data.Entities.Municipality", b =>
@@ -622,6 +741,24 @@ namespace Anir.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Province");
+                });
+
+            modelBuilder.Entity("Anir.Data.Entities.Ueb", b =>
+                {
+                    b.HasOne("Anir.Data.Entities.Company", "Company")
+                        .WithMany("Uebs")
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Anir.Data.Entities.Municipality", "Municipality")
+                        .WithMany("Uebs")
+                        .HasForeignKey("MunicipalityId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Company");
+
+                    b.Navigation("Municipality");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -685,9 +822,18 @@ namespace Anir.Data.Migrations
             modelBuilder.Entity("Anir.Data.Entities.Company", b =>
                 {
                     b.Navigation("AnirWorks");
+
+                    b.Navigation("Uebs");
                 });
 
             modelBuilder.Entity("Anir.Data.Entities.Municipality", b =>
+                {
+                    b.Navigation("Companies");
+
+                    b.Navigation("Uebs");
+                });
+
+            modelBuilder.Entity("Anir.Data.Entities.Organism", b =>
                 {
                     b.Navigation("Companies");
                 });

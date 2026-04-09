@@ -1,0 +1,291 @@
+﻿@using Anir.Client.Services
+@using Anir.Client.Services.Organism
+@using Anir.Shared.Enums
+@using MudBlazor
+@using Anir.Shared.Contracts
+@using Anir.Shared.Contracts.Companies
+@using System.ComponentModel.DataAnnotations
+
+<MudDialog Elevation="24" Style="width: 780px; max-width: 95vw;">
+
+    <!-- ============================
+     TÍTULO DEL MODAL 
+     ============================ -->
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center">
+
+           
+                <MudIcon Icon="@(CurrentMode == ModalMode.Add ? Icons.Material.TwoTone.AddCircle
+                                                                                              : CurrentMode == ModalMode.Edit
+                                                                                                  ? Icons.Material.TwoTone.Edit
+                                                                                                  : Icons.Material.TwoTone.Visibility)"
+                         Size="Size.Large" />
+          
+
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.h6" Class="font-weight-medium">
+                    @(CurrentMode == ModalMode.Add ? "Crear Organismo" :
+                      CurrentMode == ModalMode.Edit ? "Editar Organismo" :
+                      "Detalle del Organismo")
+                </MudText>
+
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    @(CurrentMode == ModalMode.Add ? "Complete los datos para registrar un nuevo organismo" :
+                      CurrentMode == ModalMode.Edit ? "Modifique los datos del organismo seleccionada" :
+                      "Visualización de la información del organismo")
+                </MudText>
+            </MudStack>
+
+        </MudStack>
+    </TitleContent>
+
+    <!-- ============================
+         CONTENIDO DEL MODAL
+    ============================ -->
+    <DialogContent>
+
+        @if (_isLoading)
+        {
+            <UiLoading Indeterminate="true" Message="Cargando..." Size="Size.Medium" />
+        }
+        else
+        {
+            <EditForm Model="_formModel" OnValidSubmit="HandleSubmitAsync" id="form-entity">
+                <DataAnnotationsValidator />
+
+                <MudGrid Spacing="3">
+
+                    <!-- DATOS BÁSICOS -->
+                    <MudItem xs="12">
+                        <MudPaper Elevation="1" Class="pa-3 rounded-lg" Outlined="true">
+                            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Start" Class="mb-2">
+                                <MudIcon Icon="@Icons.Material.Outlined.Business" Color="Color.Default" Size="Size.Small" />
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Datos básicos</MudText>
+                            </MudStack>
+
+                            <MudGrid Spacing="2">
+                                <!-- Abreviatura -->
+                                <MudItem xs="12" sm="4">
+                                    @if (IsViewMode)
+                                    {
+                                        <MudStack>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Codigo</MudText>
+                                            <MudText Typo="Typo.body1">@_formModel.Code</MudText>
+                                        </MudStack>
+                                    }
+                                    else
+                                    {
+                                        <MudTextField Label="Codigo"
+                                                      @bind-Value="_formModel.Code"
+                                                      Variant="Variant.Outlined"
+                                                      Required="true"
+                                                      FullWidth="true"
+                                                      Margin="Margin.Dense"
+                                                      Clearable="true" />
+                                    }
+                                </MudItem>
+
+                                <!-- Abreviatura -->
+                                <MudItem xs="12" sm="4">
+                                    @if (IsViewMode)
+                                    {
+                                        <MudStack>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Abreviatura</MudText>
+                                            <MudText Typo="Typo.body1">@_formModel.ShortName</MudText>
+                                        </MudStack>
+                                    }
+                                    else
+                                    {
+                                        <MudTextField Label="Abreviatura"
+                                                      @bind-Value="_formModel.ShortName"
+                                                      Variant="Variant.Outlined"
+                                                      Required="true"
+                                                      FullWidth="true"
+                                                      Margin="Margin.Dense"
+                                                      Clearable="true" />
+                                    }
+                                </MudItem>
+
+                                <!-- Nombre -->
+                                <MudItem xs="12" sm="8">
+                                    @if (IsViewMode)
+                                    {
+                                        <MudStack>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Nombre</MudText>
+                                            <MudText Typo="Typo.body1">@_formModel.Name</MudText>
+                                        </MudStack>
+                                    }
+                                    else
+                                    {
+                                        <MudTextField Label="Nombre"
+                                                      @bind-Value="_formModel.Name"
+                                                      Variant="Variant.Outlined"
+                                                      Required="true"
+                                                      FullWidth="true"
+                                                      Margin="Margin.Dense"
+                                                      Clearable="true" />
+                                    }
+                                </MudItem>
+                            </MudGrid>
+                                                       
+                        </MudPaper>
+                    </MudItem>
+                            
+
+                </MudGrid>
+            </EditForm>
+        }
+
+    </DialogContent>
+
+
+
+
+    <!-- ============================
+         BOTONES
+         ============================ -->
+    <DialogActions>
+
+        @if (!IsViewMode)
+        {
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Size="Size.Medium"
+                       ButtonType="ButtonType.Submit"
+                       Form="form-entity"
+                       Disabled="@_isSaving">
+
+                @if (_isSaving)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                }
+
+                @(CurrentMode == ModalMode.Add
+                    ? "Crear"
+                    : CurrentMode == ModalMode.Edit
+                        ? "Actualizar"
+                        : "Guardar")
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Size="Size.Medium"
+                       OnClick="Close">
+                Cerrar
+            </MudButton>
+        }
+
+    </DialogActions>
+
+</MudDialog>
+
+
+@code {
+
+    // ============================================================
+    // INYECCIONES
+    // ============================================================
+   
+    [Inject] public IOrganismService OrganismService { get; set; }
+
+    [Inject] private IAlertService AlertService { get; set; } = default!;
+    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
+
+    // ============================================================
+    // PARÁMETROS
+    // ============================================================
+    [Parameter] public ModalMode CurrentMode { get; set; }
+    [Parameter] public OrganismDto? Organism { get; set; }
+    [Parameter] public EventCallback OnListUpdated { get; set; }
+
+    public enum ModalMode { Add, Edit, View }
+
+    // ============================================================
+    // ESTADO
+    // ============================================================
+    private bool _isLoading = true;
+    private bool _isSaving = false;
+    private bool IsViewMode => CurrentMode == ModalMode.View;
+
+    // ============================================================
+    // FORMULARIO
+    // ============================================================
+    private OrganismDto _formModel = new();
+    
+    void Close()
+    {
+        Dialog.Close();
+    }
+
+       // ============================================================
+    // CARGA INICIAL
+    // ============================================================
+    protected override async Task OnInitializedAsync()
+    {
+        _isLoading = true;
+        
+        // Cargar modelo AQUÍ (no en OnParametersSet)
+        if (Organism != null)
+        {
+            _formModel = new OrganismDto
+            {
+                Id = Organism.Id,
+                Code = Organism.Code,
+                ShortName = Organism.ShortName ?? string.Empty,
+                Name = Organism.Name ?? string.Empty,
+               
+            };
+                     
+        }
+       
+        _isLoading = false;
+        StateHasChanged();
+    }
+
+    // ============================================================
+    // GUARDAR
+    // ============================================================
+    private async Task HandleSubmitAsync()
+    {
+        _isSaving = true;
+        StateHasChanged();
+
+        try
+        {
+            ProcessResponse<OrganismDto>? response;
+
+            if (CurrentMode == ModalMode.Add)
+            {
+                response = await OrganismService.CreateAsync(_formModel);
+            }
+            else
+            {
+                response = await OrganismService.UpdateAsync(_formModel.Id, _formModel);
+            }
+
+            if (response?.Result == ResponseStatus.Success)
+            {
+                await AlertService.ShowSuccess("Éxito", "Guardado correctamente.");
+                await OnListUpdated.InvokeAsync();
+                Dialog.Close(DialogResult.Ok(true));
+                return;
+            }
+
+            await AlertService.ShowError("Error", response?.ErrorMessage ?? response?.PrettyMessage ?? "Error al guardar.");
+        }
+        catch
+        {
+            await AlertService.ShowError("Error", "Error de conexión.");
+        }
+        finally
+        {
+            _isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+
+
+}
