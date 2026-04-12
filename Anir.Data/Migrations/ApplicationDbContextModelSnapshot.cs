@@ -43,7 +43,8 @@ namespace Anir.Data.Migrations
                         .HasColumnType("date");
 
                     b.Property<string>("Description")
-                        .HasColumnType("text");
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<decimal>("EconomicImpact")
                         .HasColumnType("numeric(18,2)");
@@ -64,10 +65,12 @@ namespace Anir.Data.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("Recommendations")
-                        .HasColumnType("text");
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<string>("ResolutionNumber")
-                        .HasColumnType("text");
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -715,7 +718,7 @@ namespace Anir.Data.Migrations
                     b.HasOne("Anir.Data.Entities.Municipality", "Municipality")
                         .WithMany("Companies")
                         .HasForeignKey("MunicipalityId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("Anir.Data.Entities.Organism", "Organism")
                         .WithMany("Companies")
@@ -737,7 +740,7 @@ namespace Anir.Data.Migrations
                     b.HasOne("Anir.Data.Entities.Province", "Province")
                         .WithMany("Municipalities")
                         .HasForeignKey("ProvinceId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Province");
@@ -754,7 +757,7 @@ namespace Anir.Data.Migrations
                     b.HasOne("Anir.Data.Entities.Municipality", "Municipality")
                         .WithMany("Uebs")
                         .HasForeignKey("MunicipalityId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Company");
 

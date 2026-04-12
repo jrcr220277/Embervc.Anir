@@ -1,5 +1,6 @@
 ﻿using Anir.Shared.Contracts.Common;
 using Anir.Shared.Contracts.Companies;
+using Anir.Shared.Contracts.Organisms;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text;
@@ -42,6 +43,15 @@ public class CompanyService : ICompanyService
             var raw = await response.Content.ReadAsStringAsync(ct);
             return JsonSerializer.Deserialize<T>(raw, _jsonOptions);
         }
+    }
+
+    // ============================================================
+    // GET PAGED (POST, profesional, limpio)
+    // ============================================================
+    public async Task<List<CompanyDto>> GetAllAsync(CancellationToken ct = default)
+    {
+        var response = await _httpClient.GetFromJsonAsync<List<CompanyDto>>("/api/company/all", ct);
+        return response ?? new();
     }
 
     // ============================================================

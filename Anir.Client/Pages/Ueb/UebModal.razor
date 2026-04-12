@@ -1,5 +1,7 @@
 ﻿@using Anir.Client.Services
 @using Anir.Client.Services.Company
+@using Anir.Client.Services.Ueb
+@using Anir.Shared.Contracts.Uebs
 @using Anir.Shared.Enums
 @using MudBlazor
 @using Anir.Shared.Contracts
@@ -24,15 +26,15 @@
 
             <MudStack Spacing="0">
                 <MudText Typo="Typo.h6" Class="font-weight-medium">
-                    @(CurrentMode == ModalMode.Add ? "Crear Empresa" :
-                      CurrentMode == ModalMode.Edit ? "Editar Empresa" :
-                      "Detalle de la Empresa")
+                    @(CurrentMode == ModalMode.Add ? "Crear Establecimiento" :
+                      CurrentMode == ModalMode.Edit ? "Editar Establecimiento" :
+                      "Detalle del Establecimiento")
                 </MudText>
 
                 <MudText Typo="Typo.body2" Color="Color.Secondary">
-                    @(CurrentMode == ModalMode.Add ? "Complete los datos para registrar una nueva empresa" :
-                      CurrentMode == ModalMode.Edit ? "Modifique los datos de la empresa seleccionada" :
-                      "Visualización de la información de la empresa")
+                    @(CurrentMode == ModalMode.Add ? "Complete los datos para registrar un nuevo establecimiento" :
+                      CurrentMode == ModalMode.Edit ? "Modifique los datos del establecimineto seleccionado" :
+                      "Visualización de la información del establecimiento")
                 </MudText>
             </MudStack>
 
@@ -58,7 +60,7 @@
                     <MudItem xs="12">
                         <MudPaper Elevation="1" Class="pa-3" Outlined="true">
                             <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Start" Class="mb-2">
-                                <MudIcon Icon="@Icons.Material.Outlined.AccountBalance" Color="Color.Default" Size="Size.Small" />
+                                <MudIcon Icon="@Icons.Material.Outlined.Domain" Color="Color.Default" Size="Size.Small" />
                                 <MudText Typo="Typo.body2" Color="Color.Secondary">Nivel Superior</MudText>
                             </MudStack>
 
@@ -66,26 +68,30 @@
                                 @if (IsViewMode)
                                 {
                                     <MudStack>
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Organismo</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            @ModelMetadataHelper.GetDisplayName(() => _formModel.CompanyId)
+                                        </MudText>
                                         <MudText Typo="Typo.body1">
                                             @{
-                                                var organism = AllOrganisms.FirstOrDefault(o => o.Id == _formModel.OrganismId);
+                                                var company = AllCompanies.FirstOrDefault(o => o.Id == _formModel.CompanyId);
                                             }
-                                            @(organism != null ? $"{organism.ShortName} – {organism.Name}" : "-")
+                                            @(company != null ? $"{company.ShortName} – {company.Name}" : "-")
                                         </MudText>
                                     </MudStack>
                                 }
                                 else
                                 {
                                     <MudSelect T="int"
-                                               Label="Organismo"
-                                               @bind-Value="_formModel.OrganismId"
+                                               Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.CompanyId)"
+                                               For="@(() => _formModel.CompanyId)"
+                                               @bind-Value="_formModel.CompanyId"
                                                Variant="Variant.Outlined"
-                                               Margin="Margin.Dense"
+                                               Required="true"
                                                FullWidth="true"
+                                               Margin="Margin.Dense"
                                                Dense="true">
                                         <MudSelectItem T="int" Value="0">- Seleccionar -</MudSelectItem>
-                                        @foreach (var item in AllOrganisms)
+                                        @foreach (var item in AllCompanies)
                                         {
                                             <MudSelectItem T="int" Value="@item.Id">
                                                 @($"{item.ShortName} – {item.Name}")
@@ -94,58 +100,65 @@
                                     </MudSelect>
                                 }
                             </MudItem>
-
-                 
+                                                                       
                         </MudPaper>
                     </MudItem>
                     <!-- DATOS BÁSICOS -->
                     <MudItem xs="12">
                         <MudPaper Elevation="1" Class="pa-3" Outlined="true">
                             <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Start" Class="mb-2">
-                                <MudIcon Icon="@Icons.Material.Outlined.Business" Color="Color.Default" Size="Size.Small" />
+                                <MudIcon Icon="@Icons.Material.Outlined.Factory" Color="Color.Default" Size="Size.Small" />
                                 <MudText Typo="Typo.body2" Color="Color.Secondary">Datos básicos</MudText>
                             </MudStack>
 
                             <MudGrid Spacing="2">
-                                <MudItem xs="12" sm="6">
+                                <MudItem xs="12" sm="3">
                                     @if (IsViewMode)
                                     {
                                         <MudStack>
-                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Abreviatura</MudText>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                @ModelMetadataHelper.GetDisplayName(() => _formModel.Code)
+                                            </MudText>
                                             <MudText Typo="Typo.body1">@_formModel.Code</MudText>
                                         </MudStack>
                                     }
                                     else
                                     {
-                                    <MudTextField Label="Código"
-                                                  @bind-Value="_formModel.Code"
-                                                  Variant="Variant.Outlined"
-                                                  Required="true"
-                                                  FullWidth="true"
-                                                  Margin="Margin.Dense"
-                                                  Clearable="true" />
-                                    }
-                                </MudItem>
-                                                             
-
-                                <!-- Abreviatura -->
-                                <MudItem xs="12" sm="6">
-                                    @if (IsViewMode)
-                                    {
-                                        <MudStack>
-                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Abreviatura</MudText>
-                                            <MudText Typo="Typo.body1">@_formModel.ShortName</MudText>
-                                        </MudStack>
-                                    }
-                                    else
-                                    {
-                                        <MudTextField Label="Abreviatura"
-                                                      @bind-Value="_formModel.ShortName"
+                                        <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Code)"
+                                                      For="@(() => _formModel.Code)"
+                                                      @bind-Value="_formModel.Code"
+                                                      InputType="InputType.Text"
                                                       Variant="Variant.Outlined"
                                                       Required="true"
                                                       FullWidth="true"
                                                       Margin="Margin.Dense"
                                                       Clearable="true" />
+                                    }
+                                </MudItem>              
+
+                                <!-- Abreviatura -->
+                                <MudItem xs="12" sm="9">
+                                    @if (IsViewMode)
+                                    {
+                                        <MudStack>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                @ModelMetadataHelper.GetDisplayName(() => _formModel.Name)
+                                            </MudText>
+                                            <MudText Typo="Typo.body1">@_formModel.Name</MudText>
+                                        </MudStack>
+                                    }
+                                    else
+                                    {
+                                        <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Name)"
+                                                      For="@(() => _formModel.Name)"
+                                                      @bind-Value="_formModel.Name"
+                                                      InputType="InputType.Text"
+                                                      Variant="Variant.Outlined"
+                                                      Required="true"
+                                                      FullWidth="true"
+                                                      Margin="Margin.Dense"
+                                                      Clearable="true"
+                                                      Class="mb-0"/>
                                     }
                                 </MudItem>
 
@@ -154,48 +167,84 @@
                                     @if (IsViewMode)
                                     {
                                         <MudStack>
-                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Nombre</MudText>
-                                            <MudText Typo="Typo.body1">@_formModel.Name</MudText>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                @ModelMetadataHelper.GetDisplayName(() => _formModel.Address)
+                                            </MudText>
+                                            <MudText Typo="Typo.body1">@_formModel.Address</MudText>
                                         </MudStack>
                                     }
                                     else
                                     {
-                                        <MudTextField Label="Nombre"
-                                                      @bind-Value="_formModel.Name"
-                                                      Variant="Variant.Outlined"
-                                                      Required="true"
+                                        <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Address)"
+                                                      For="@(() => _formModel.Address)"
+                                                      @bind-Value="_formModel.Address"
+                                                      InputType="InputType.Text"
+                                                      Variant="Variant.Outlined"     
                                                       FullWidth="true"
                                                       Margin="Margin.Dense"
                                                       Clearable="true" />
                                     }
                                 </MudItem>
+                           
+                                <!-- Telefono -->
+                                <MudItem xs="12" sm="4">
+                                    @if (IsViewMode)
+                                    {
+                                        <MudStack>
+                                            <MudText Typo="Typo.subtitle2" Color="Color.Secondary">
+                                                @ModelMetadataHelper.GetDisplayName(() => _formModel.Phone)
+                                            </MudText>
+                                            <MudText Typo="Typo.body1">@_formModel.Phone</MudText>
+                                        </MudStack>
+                                    }
+                                    else
+                                    {
+                                        <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Phone)"
+                                                      For="@(() => _formModel.Phone)"
+                                                      @bind-Value="_formModel.Phone"
+                                                      InputType="InputType.Telephone"
+                                                      Variant="Variant.Outlined"
+                                                      Required="true"
+                                                      FullWidth="true"
+                                                      Margin="Margin.Dense"
+                                                      Adornment="Adornment.End"
+                                                      AdornmentIcon="@Icons.Material.Filled.Phone"
+                                                      Clearable="true" />
+                                    }
+                                </MudItem>
+                            
+                                <!-- Email -->
+                                <MudItem xs="12" sm="8">
+                                    @if (IsViewMode)
+                                    {
+                                        <MudStack>
+                                            <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Correo Electronico</MudText>
+                                            <MudText Typo="Typo.body1">@_formModel.Email</MudText>
+                                        </MudStack>
+                                    }
+                                    else
+                                    {
+                                        <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Email)"
+                                                      For="@(() => _formModel.Email)"
+                                                      @bind-Value="_formModel.Email"
+                                                      InputType="InputType.Email"
+                                                      HelperText="@ModelMetadataHelper.GetHelperText(() => _formModel.Email)"
+                                                      HelperTextOnFocus="true"
+                                                      Variant="Variant.Outlined"
+                                                      Required="true"
+                                                      FullWidth="true"
+                                                      Margin="Margin.Dense"
+                                                      Adornment="Adornment.End"
+                                                      AdornmentIcon="@Icons.Material.Filled.AlternateEmail"
+                                                      Clearable="true" />
+                                    }
+                                </MudItem>
                             </MudGrid>
-
-                            <!-- Dirección -->
-                            <MudItem xs="12">
-                                @if (IsViewMode)
-                                {
-                                    <MudStack>
-                                        <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Dirección</MudText>
-                                        <MudText Typo="Typo.body1">@_formModel.Address</MudText>
-                                    </MudStack>
-                                }
-                                else
-                                {
-                                    <MudTextField Label="Dirección"
-                                                  @bind-Value="_formModel.Address"
-                                                  Variant="Variant.Outlined"
-                                                  Required="true"
-                                                  FullWidth="true"
-                                                  Margin="Margin.Dense"
-                                                  Clearable="true" />
-                                }
-                            </MudItem>
                         </MudPaper>
-                    </MudItem>
+                    </MudItem>         
                     <!-- UBICACIÓN -->
                     <MudItem xs="12">
-                        <MudPaper Elevation="1" Class="pa-3 rounded-lg" Outlined="true">
+                        <MudPaper Elevation="1" Class="pa-3" Outlined="true">
                             <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Start" Class="mb-2">
                                 <MudIcon Icon="@Icons.Material.Outlined.LocationOn" Color="Color.Default" Size="Size.Small" />
                                 <MudText Typo="Typo.body2" Color="Color.Secondary">Ubicación</MudText>
@@ -298,9 +347,6 @@
 
     </DialogContent>
 
-
-
-
     <!-- ============================
          BOTONES
          ============================ -->
@@ -347,8 +393,9 @@
     // ============================================================
     // INYECCIONES
     // ============================================================
-    [Inject] private IOrganismService OrganismService { get; set; } = default!;
+   
     [Inject] private ICompanyService CompanyService { get; set; } = default!;
+    [Inject] private IUebService UebService { get; set; } = default!;
     [Inject] private ProvinceService ProvinceService { get; set; } = default!;
     [Inject] private MunicipalityService MunicipalityService { get; set; } = default!;
     [Inject] private IAlertService AlertService { get; set; } = default!;
@@ -358,7 +405,7 @@
     // PARÁMETROS
     // ============================================================
     [Parameter] public ModalMode CurrentMode { get; set; }
-    [Parameter] public CompanyDto? Company { get; set; }
+    [Parameter] public UebDto? Ueb { get; set; }
     [Parameter] public EventCallback OnListUpdated { get; set; }
 
     public enum ModalMode { Add, Edit, View }
@@ -373,7 +420,7 @@
     // ============================================================
     // FORMULARIO
     // ============================================================
-    private CompanyDto _formModel = new() { MunicipalityId = 0, Active = true };
+    private UebDto _formModel = new() { MunicipalityId = 0, Active = true };
     
     void Close()
     {
@@ -383,7 +430,7 @@
     // ============================================================
     // UBICACIÓN
     // ============================================================
-    private List<OrganismDto> AllOrganisms = new();
+    private List<CompanyDto> AllCompanies = new();
     private List<ProvinceDto> AllProvinces = new();
     private List<MunicipalityDto> AllMunicipalities = new();
     private List<MunicipalityDto> FilteredMunicipalities = new();
@@ -397,24 +444,27 @@
     {
         _isLoading = true;
 
-        AllOrganisms = await OrganismService.GetAllAsync() ?? new();
+        AllCompanies = await CompanyService.GetAllAsync() ?? new();
         AllProvinces = await ProvinceService.GetAllAsync() ?? new();
         AllMunicipalities = await MunicipalityService.GetAllAsync() ?? new();
 
         // Cargar modelo AQUÍ (no en OnParametersSet)
-        if (Company != null)
+        if (Ueb != null)
         {
-            _formModel = new CompanyDto
+            _formModel = new UebDto
             {
-                Id = Company.Id,
-                Code = Company.Code,                 
-                ShortName = Company.ShortName,
-                Name = Company.Name ?? string.Empty,
-                Address = Company.Address ?? string.Empty,
-                MunicipalityId = Company.MunicipalityId,
-                OrganismId = Company.OrganismId,  
-                OrganismName = Company.OrganismName,
-                Active = Company.Active
+                Id = Ueb.Id,
+                Code = Ueb.Code,
+                Name = Ueb.Name ?? string.Empty,
+                Address = Ueb.Address ?? string.Empty,
+                Phone = Ueb.Phone ?? string.Empty,
+                Email = Ueb.Email ?? string.Empty,
+                CompanyId = Ueb.CompanyId,
+                CompanyName = Ueb.CompanyName,
+                ProvinceName = Ueb.ProvinceName,
+                MunicipalityId = Ueb.MunicipalityId,
+                MunicipalityName = Ueb.MunicipalityName, 
+                Active = Ueb.Active
             };
 
             SelectedProvinceId = AllMunicipalities
@@ -423,7 +473,7 @@
         }
         else
         {
-            _formModel = new CompanyDto { Active = true, MunicipalityId = 0, OrganismId = 0 }; 
+            _formModel = new UebDto { Active = true, MunicipalityId = 0, CompanyId = 0 }; 
             SelectedProvinceId = 0;
         }
 
@@ -469,15 +519,15 @@
 
         try
         {
-            ProcessResponse<CompanyDto>? response;
+            ProcessResponse<UebDto>? response;
 
             if (CurrentMode == ModalMode.Add)
             {
-                response = await CompanyService.CreateAsync(_formModel);
+                response = await UebService.CreateAsync(_formModel);
             }
             else
             {
-                response = await CompanyService.UpdateAsync(_formModel.Id, _formModel);
+                response = await UebService.UpdateAsync(_formModel.Id, _formModel);
             }
 
             if (response?.Result == ResponseStatus.Success)

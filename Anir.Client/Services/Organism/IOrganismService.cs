@@ -5,6 +5,7 @@ namespace Anir.Client.Services.Organism
 {
     public interface IOrganismService
     {
+        Task<List<OrganismDto>> GetAllAsync(CancellationToken ct = default);
         Task<ProcessResponse<PagedResponse<OrganismDto>>> GetPagedAsync(OrganismQueryDto query, CancellationToken ct = default);
         Task<ProcessResponse<OrganismDto>> GetByIdAsync(int id, CancellationToken ct = default);
         Task<ProcessResponse<OrganismDto>> CreateAsync(OrganismDto dto, CancellationToken ct = default);

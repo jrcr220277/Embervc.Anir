@@ -39,7 +39,7 @@ namespace Anir.Data.Configurations
             builder.HasOne(u => u.Municipality)
                    .WithMany(m => m.Uebs)
                    .HasForeignKey(u => u.MunicipalityId)
-                   .OnDelete(DeleteBehavior.Restrict);
+                   .OnDelete(DeleteBehavior.SetNull);
 
             // Relación con Company
             builder.HasOne(u => u.Company)

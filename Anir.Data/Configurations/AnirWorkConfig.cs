@@ -2,12 +2,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace Anir.Data.Configurations;
-
-/// <summary>
-/// EF Core configuration for the AnirWork entity.
-/// Defines constraints, indexes, and relationships.
-/// </summary>
 public class AnirWorkConfig : IEntityTypeConfiguration<AnirWork>
 {
     public void Configure(EntityTypeBuilder<AnirWork> builder)
@@ -25,27 +19,25 @@ public class AnirWorkConfig : IEntityTypeConfiguration<AnirWork>
                .IsRequired()
                .HasMaxLength(150);
 
+        builder.Property(a => a.Description).HasMaxLength(2000);
+
         builder.Property(a => a.EconomicImpact)
                .HasColumnType("numeric(18,2)");
 
-        // Boolean fields (no need for column type, EF Core maps them to BIT in SQL Server or boolean in PostgreSQL)
-        builder.Property(a => a.HasSocialEffect)
-               .IsRequired();
+        builder.Property(a => a.HasSocialEffect).IsRequired();
+        builder.Property(a => a.HasEconomicEffect).IsRequired();
 
-        builder.Property(a => a.HasEconomicEffect)
-               .IsRequired();
-
-        // Enum mapping
         builder.Property(a => a.Generalization)
-               .HasConversion<int>() // store enum as int
+               .HasConversion<int>()
                .IsRequired();
 
-        builder.HasIndex(a => new { a.CompanyId, a.AnirNumber })
-               .IsUnique();
+        builder.Property(a => a.Recommendations).HasMaxLength(2000);
+        builder.Property(a => a.ResolutionNumber).HasMaxLength(50);
 
-        builder.HasIndex(a => new { a.CompanyId, a.ResolutionNumber })
-               .IsUnique();
+        builder.HasIndex(a => new { a.CompanyId, a.AnirNumber }).IsUnique();
+        builder.HasIndex(a => new { a.CompanyId, a.ResolutionNumber }).IsUnique();
 
+        // ✔️ Relación con Company (HIJO)
         builder.HasOne(a => a.Company)
                .WithMany(c => c.AnirWorks)
                .HasForeignKey(a => a.CompanyId)

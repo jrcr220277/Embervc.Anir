@@ -3,8 +3,7 @@ using Anir.Data.Entities;
 using Anir.Infrastructure.Extensions;
 using Anir.Infrastructure.Reports.Template.Excel;
 using Anir.Shared.Contracts.Common;
-using Anir.Shared.Contracts.Companies;
-using Anir.Shared.Contracts.Organisms;
+using Anir.Shared.Contracts.Uebs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,16 +12,16 @@ namespace Anir.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class CompanyController : ControllerBase
+public class UebController : ControllerBase
 {
-    private const string ENTITY = "Empresa";
+    private const string ENTITY = "Ueb";
 
     private readonly ApplicationDbContext _db;
-    private readonly ILogger<CompanyController> _logger;
+    private readonly ILogger<UebController> _logger;
     private readonly IPdfService _pdfService;
-    private readonly CompanyReportExcel _excelService;
+    private readonly UebReportExcel _excelService;
 
-    public CompanyController(ApplicationDbContext db, ILogger<CompanyController> logger, IPdfService pdfService, CompanyReportExcel excelService)
+    public UebController(ApplicationDbContext db, ILogger<UebController> logger, IPdfService pdfService, UebReportExcel excelService)
     {
         _db = db;
         _logger = logger;
@@ -33,80 +32,62 @@ public class CompanyController : ControllerBase
     // ============================================================
     // MÉTODOS PRIVADOS DE MAPEOS
     // ============================================================
-    private static void MapDtoToEntity(CompanyDto dto, Company entity)
+    private static void MapDtoToEntity(UebDto dto, Ueb entity)
     {
         entity.Code = dto.Code;
-        entity.ShortName = dto.ShortName;
         entity.Name = dto.Name;
         entity.Address = dto.Address;
+        entity.Phone = dto.Phone;
+        entity.Email = dto.Email;
         entity.MunicipalityId = dto.MunicipalityId;
-        entity.OrganismId = dto.OrganismId;
+        entity.CompanyId = dto.CompanyId;
         entity.Active = dto.Active;
     }
 
-    private static CompanyDto MapEntityToDto(Company entity) => new()
+    private static UebDto MapEntityToDto(Ueb entity) => new()
     {
         Id = entity.Id,
         Code = entity.Code,
-        ShortName = entity.ShortName,
         Name = entity.Name,
         Address = entity.Address,
+        Phone = entity.Phone,
+        Email = entity.Email,
+        CompanyId = entity.CompanyId,
+        CompanyName = entity.Company?.ShortName,
         MunicipalityId = entity.MunicipalityId,
         MunicipalityName = entity.Municipality?.Name,
         ProvinceName = entity.Municipality?.Province?.Name,
-        OrganismId = entity.OrganismId,
-        OrganismName = entity.Organism?.Name,
         Active = entity.Active
     };
-
-
-    // ============================================================
-    // GET ALL
-    // ============================================================
-    [HttpGet("all")]
-    public async Task<ActionResult<List<CompanyDto>>> GetAll(CancellationToken ct = default)
-    {
-        var items = await _db.Companies
-            .AsNoTracking()
-            .OrderBy(o => o.Name)
-            .Select(o => new CompanyDto
-            {
-                Id = o.Id,
-                Code = o.Code,
-                ShortName = o.ShortName,
-                Name = o.Name
-            })
-            .ToListAsync(ct);
-
-        return Ok(items);
-    }
 
     // ============================================================
     // GET PAGED
     // ============================================================
     [HttpPost("getpaged")]
-    public async Task<ActionResult<ProcessResponse<PagedResponse<CompanyDto>>>> GetPaged(
-        [FromBody] CompanyQueryDto queryDto,
+    public async Task<ActionResult<ProcessResponse<PagedResponse<UebDto>>>> GetPaged(
+        [FromBody] UebQueryDto queryDto,
         CancellationToken ct = default)
     {
         if (!ModelState.IsValid)
-            return BadRequest(ProcessResponse<PagedResponse<CompanyDto>>.Fail("Datos inválidos."));
+            return BadRequest(ProcessResponse<PagedResponse<UebDto>>.Fail("Datos inválidos."));
 
-        var query = _db.Companies
+        var query = _db.Uebs
             .Include(c => c.Municipality)
             .ThenInclude(m => m.Province)
-            .Include(c => c.Organism)
+            .Include(c => c.Company)
             .AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(queryDto.Search))
         {
             var s = queryDto.Search.Trim().ToLower();
             query = query.Where(entity =>
+                entity.Company.ShortName.ToLower().Contains(s) ||
                 entity.Code.ToLower().Contains(s) ||
-                entity.ShortName.ToLower().Contains(s) ||
                 entity.Name.ToLower().Contains(s) ||
-                (entity.Address != null && entity.Address.ToLower().Contains(s)) ||
-                entity.Organism.ShortName.ToLower().Contains(s)
+                entity.Phone.ToLower().Contains(s) ||
+                entity.Email.ToLower().Contains(s) 
+             
+               
             );
         }
 
@@ -116,92 +97,108 @@ public class CompanyController : ControllerBase
         var orderedQuery = query.ApplySorting(queryDto);
 
         var pagedResult = await orderedQuery
-            .Select(c => new CompanyDto
-            {
-                Id = c.Id,
-                Code = c.Code,
-                ShortName = c.ShortName,
-                Name = c.Name,
-                Address = c.Address,
-                MunicipalityId = c.MunicipalityId,
-                MunicipalityName = c.Municipality!.Name,
-                ProvinceName = c.Municipality!.Province!.Name,
-                OrganismId = c.OrganismId,
-                OrganismName = c.Organism.ShortName,
-                Active = c.Active
-            })
-            .ToPagedResultAsync(queryDto, ct);
+         .Select(c => new UebDto
+         {
+             Id = c.Id,
+             Code = c.Code,
+             Name = c.Name,
+             Address = c.Address,
+             Phone = c.Phone,
+             Email = c.Email,
+             MunicipalityId = c.MunicipalityId,
+             MunicipalityName = c.Municipality!.Name,
+             ProvinceName = c.Municipality!.Province!.Name,
+             CompanyId = c.CompanyId,
+             CompanyName = c.Company!.ShortName,
+             Active = c.Active
+         })
+         .ToPagedResultAsync(queryDto, ct);
 
-        return Ok(ProcessResponse<PagedResponse<CompanyDto>>.Success(pagedResult));
+        return Ok(ProcessResponse<PagedResponse<UebDto>>.Success(pagedResult));
     }
 
     // ============================================================
     // GET BY ID
     // ============================================================
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<ProcessResponse<CompanyDto>>> GetById(int id, CancellationToken ct = default)
+    public async Task<ActionResult<ProcessResponse<UebDto>>> GetById(int id, CancellationToken ct = default)
     {
-        var entity = await _db.Companies
-            .Include(c => c.Municipality)
-            .ThenInclude(m => m.Province)
-            .Include(c => c.Organism)
+        var entity = await _db.Uebs
+            .Include(x => x.Municipality)
+            .ThenInclude(x => x.Province)
+            .Include(x => x.Company)
             .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Id == id, ct);
+            .FirstOrDefaultAsync(x => x.Id == id, ct);
 
         if (entity == null)
-            return NotFound(ProcessResponse<CompanyDto>.Fail($"{ENTITY} no encontrada."));
+            return NotFound(ProcessResponse<UebDto>.Fail($"{ENTITY} no encontrada."));
 
         var dto = MapEntityToDto(entity);
-        return Ok(ProcessResponse<CompanyDto>.Success(dto));
+        return Ok(ProcessResponse<UebDto>.Success(dto));
     }
 
     // ============================================================
     // CREATE
     // ============================================================
     [HttpPost]
-    public async Task<ActionResult<ProcessResponse<CompanyDto>>> Create([FromBody] CompanyDto dto, CancellationToken ct = default)
+    public async Task<ActionResult<ProcessResponse<UebDto>>> Create(
+        [FromBody] UebDto dto,
+        CancellationToken ct = default)
     {
         if (!ModelState.IsValid)
-            return BadRequest(ProcessResponse<CompanyDto>.Fail("Datos inválidos."));
+            return BadRequest(ProcessResponse<UebDto>.Fail("Datos inválidos."));
 
-        var entity = new Company();
+        var entity = new Ueb();
         MapDtoToEntity(dto, entity);
 
-        _db.Companies.Add(entity);
+        _db.Uebs.Add(entity);
         await _db.SaveChangesAsync(ct);
 
-        dto.Id = entity.Id;
-        dto.MunicipalityName = await _db.Municipalities
-            .Where(m => m.Id == entity.MunicipalityId)
-            .Select(m => m.Name)
-            .FirstOrDefaultAsync(ct);
+        // Recargar con relaciones para devolver DTO completo
+        var fullEntity = await _db.Uebs
+            .Include(x => x.Municipality).ThenInclude(x => x.Province)
+            .Include(x => x.Company)
+            .AsNoTracking()
+            .FirstAsync(x => x.Id == entity.Id, ct);
 
-        dto.OrganismName = await _db.Organisms
-            .Where(o => o.Id == entity.OrganismId)
-            .Select(o => o.Name)
-            .FirstOrDefaultAsync(ct);
+        var resultDto = MapEntityToDto(fullEntity);
 
-        return Ok(ProcessResponse<CompanyDto>.Success(dto, $"{ENTITY} creada correctamente."));
+        return Ok(ProcessResponse<UebDto>.Success(resultDto, $"{ENTITY} creada correctamente."));
     }
+
+
 
     // ============================================================
     // UPDATE
     // ============================================================
     [HttpPut("{id:int}")]
-    public async Task<ActionResult<ProcessResponse<CompanyDto>>> Update(int id, [FromBody] CompanyDto dto, CancellationToken ct = default)
+    public async Task<ActionResult<ProcessResponse<UebDto>>> Update(
+        int id,
+        [FromBody] UebDto dto,
+        CancellationToken ct = default)
     {
         if (id != dto.Id)
-            return BadRequest(ProcessResponse<CompanyDto>.Fail("El ID de la ruta no coincide con el del cuerpo."));
+            return BadRequest(ProcessResponse<UebDto>.Fail("El ID de la ruta no coincide con el del cuerpo."));
 
-        var entity = await _db.Companies.FindAsync(new object?[] { id }, ct);
+        var entity = await _db.Uebs.FindAsync(new object?[] { id }, ct);
         if (entity == null)
-            return NotFound(ProcessResponse<CompanyDto>.Fail($"{ENTITY} no encontrada."));
+            return NotFound(ProcessResponse<UebDto>.Fail($"{ENTITY} no encontrada."));
 
         MapDtoToEntity(dto, entity);
         await _db.SaveChangesAsync(ct);
 
-        return Ok(ProcessResponse<CompanyDto>.Success(dto, $"{ENTITY} actualizada correctamente."));
+        // Recargar para devolver DTO completo
+        var fullEntity = await _db.Uebs
+            .Include(x => x.Municipality).ThenInclude(x => x.Province)
+            .Include(x => x.Company)
+            .AsNoTracking()
+            .FirstAsync(x => x.Id == id, ct);
+
+        var resultDto = MapEntityToDto(fullEntity);
+
+        return Ok(ProcessResponse<UebDto>.Success(resultDto, $"{ENTITY} actualizada correctamente."));
     }
+
 
     // ============================================================
     // DELETE
@@ -209,11 +206,11 @@ public class CompanyController : ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<ActionResult<ProcessResponse<bool>>> Delete(int id, CancellationToken ct = default)
     {
-        var entity = await _db.Companies.FindAsync(new object?[] { id }, ct);
+        var entity = await _db.Uebs.FindAsync(new object?[] { id }, ct);
         if (entity == null)
             return NotFound(ProcessResponse<bool>.Fail($"{ENTITY} no encontrada."));
 
-        _db.Companies.Remove(entity);
+        _db.Uebs.Remove(entity);
         await _db.SaveChangesAsync(ct);
 
         return Ok(ProcessResponse<bool>.Success(true, $"{ENTITY} eliminada correctamente."));
@@ -225,18 +222,18 @@ public class CompanyController : ControllerBase
     [HttpPost("batch-delete")]
     public async Task<ActionResult<ProcessResponse<int>>> DeleteBatch([FromBody] BulkSelectionRequest request, CancellationToken ct = default)
     {
-        List<Company> itemsToDelete;
+        List<Ueb> itemsToDelete;
 
         if (request.SelectAll)
         {
-            itemsToDelete = await _db.Companies.ToListAsync(ct);
+            itemsToDelete = await _db.Uebs.ToListAsync(ct);
         }
         else
         {
             if (request.Ids == null || request.Ids.Count == 0)
                 return BadRequest(ProcessResponse<int>.Fail("No se recibieron Ids para eliminar."));
 
-            itemsToDelete = await _db.Companies
+            itemsToDelete = await _db.Uebs
                 .Where(c => request.Ids.Contains(c.Id))
                 .ToListAsync(ct);
         }
@@ -244,7 +241,7 @@ public class CompanyController : ControllerBase
         if (!itemsToDelete.Any())
             return NotFound(ProcessResponse<int>.Fail($"No se encontraron {ENTITY.ToLower()} para eliminar."));
 
-        _db.Companies.RemoveRange(itemsToDelete);
+        _db.Uebs.RemoveRange(itemsToDelete);
         var affectedRows = await _db.SaveChangesAsync(ct);
 
         return Ok(ProcessResponse<int>.Success(affectedRows, $"Se eliminaron {itemsToDelete.Count} {ENTITY.ToLower()}."));
@@ -256,14 +253,14 @@ public class CompanyController : ControllerBase
     [HttpPost("export-pdf")]
     public async Task<IActionResult> ExportPdf([FromBody] BulkSelectionRequest request, CancellationToken ct = default)
     {
-        IQueryable<Company> query = _db.Companies;
+        IQueryable<Ueb> query = _db.Uebs;
 
         if (request.Ids is { Count: > 0 })
             query = query.Where(c => request.Ids.Contains(c.Id));
 
         var items = await query.Select(c => MapEntityToDto(c)).ToListAsync(ct);
 
-        var doc = new CompanyReportPdf(items);
+        var doc = new UebReportPdf(items);
         var pdfBytes = await _pdfService.GenerateAsync(doc, ct);
 
         return File(pdfBytes, "application/pdf");
@@ -275,18 +272,18 @@ public class CompanyController : ControllerBase
     [HttpPost("export-excel")]
     public async Task<IActionResult> ExportExcel([FromBody] BulkSelectionRequest request, CancellationToken ct = default)
     {
-        IQueryable<Company> query = _db.Companies;
+        IQueryable<Ueb> query = _db.Uebs;
 
         if (request.Ids is { Count: > 0 })
             query = query.Where(c => request.Ids.Contains(c.Id));
 
         var items = await query.Select(c => MapEntityToDto(c)).ToListAsync(ct);
 
-        var excelBytes = _excelService.GenerateCompaniesExcel(items);
+        var excelBytes = _excelService.GenerateUebsExcel(items);
 
         return File(
             excelBytes,
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "CompaniesReport.xlsx");
+            "UebsReport.xlsx");
     }
 }

@@ -4,7 +4,7 @@
 
     <!-- DASHBOARD -->
     <MudNavLink Href="/dashboard"
-                Icon="@Icons.Material.Filled.Dashboard"
+                Icon="@Icons.Material.Outlined.Dashboard"
                 Match="NavLinkMatch.Prefix">
         Dashboard
     </MudNavLink>
@@ -15,23 +15,23 @@
              ESTRUCTURA ORGANIZATIVA
              ============================ -->
         <MudNavGroup Text="Estructura Organizativa"
-                     Icon="@Icons.Material.Filled.AccountTree"
+                     Icon="@Icons.Material.Outlined.AccountTree"
                      Expanded="false">
 
             <MudNavLink Href="/organisms"
-                        Icon="@Icons.Material.Filled.AccountBalance"
+                        Icon="@Icons.Material.Outlined.AccountBalance"
                         Match="NavLinkMatch.Prefix">
                 Organismos
             </MudNavLink>
 
             <MudNavLink Href="/companies"
-                        Icon="@Icons.Material.Filled.Domain"
+                        Icon="@Icons.Material.Outlined.Domain"
                         Match="NavLinkMatch.Prefix">
                 Compañías
             </MudNavLink>
 
             <MudNavLink Href="/uebs"
-                        Icon="@Icons.Material.Filled.Factory"
+                        Icon="@Icons.Material.Outlined.Factory"
                         Match="NavLinkMatch.Prefix">
                 UEBs
             </MudNavLink>
@@ -40,14 +40,14 @@
 
         <!-- PERSONAS -->
         <MudNavLink Href="/persons"
-                    Icon="@Icons.Material.Filled.PeopleAlt"
+                    Icon="@Icons.Material.Outlined.PeopleAlt"
                     Match="NavLinkMatch.Prefix">
             Personas
         </MudNavLink>
 
         <!-- REPORTES -->
         <MudNavLink Href="/reports"
-                    Icon="@Icons.Material.Filled.Assessment"
+                    Icon="@Icons.Material.Outlined.Assessment"
                     Match="NavLinkMatch.Prefix">
             Reportes
         </MudNavLink>
@@ -57,23 +57,23 @@
     @if (User.Active)
     {
         <MudNavGroup Text="ANIR"
-                     Icon="@Icons.Material.Filled.Work"
+                     Icon="@Icons.Material.Outlined.Work"
                      Expanded="false">
 
             <MudNavLink Href="/anirworks"
-                        Icon="@Icons.Material.Filled.ListAlt"
+                        Icon="@Icons.Material.Outlined.ListAlt"
                         Match="NavLinkMatch.Prefix">
                 Trabajos ANIR
             </MudNavLink>
 
             <MudNavLink Href="/anirworks/create"
-                        Icon="@Icons.Material.Filled.AddCircle"
+                        Icon="@Icons.Material.Outlined.AddCircle"
                         Match="NavLinkMatch.Prefix">
                 Crear Trabajo
             </MudNavLink>
 
             <MudNavLink Href="/anirworks/reports"
-                        Icon="@Icons.Material.Filled.Assessment"
+                        Icon="@Icons.Material.Outlined.Assessment"
                         Match="NavLinkMatch.Prefix">
                 Reportes ANIR
             </MudNavLink>
@@ -85,7 +85,7 @@
     @if (User.Roles.Contains("Administrador") || User.Roles.Contains("Supervisor"))
     {
         <MudNavLink Href="/users"
-                    Icon="@Icons.Material.Filled.People"
+                    Icon="@Icons.Material.Outlined.People"
                     Match="NavLinkMatch.Prefix">
             Gestión de Usuarios
         </MudNavLink>
@@ -95,7 +95,7 @@
     @if (User.Roles.Contains("Administrador"))
     {
         <MudNavLink Href="/settings"
-                    Icon="@Icons.Material.Filled.Settings"
+                    Icon="@Icons.Material.Outlined.Settings"
                     Match="NavLinkMatch.Prefix">
             Configuración
         </MudNavLink>

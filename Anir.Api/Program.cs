@@ -1,3 +1,4 @@
+using Anir.Api.Middlewares;
 using Anir.Data;
 using Anir.Data.Identity;
 using Anir.Data.Seeders;
@@ -20,6 +21,18 @@ var builder = WebApplication.CreateBuilder(args);
 // ============================================================
 // LOGGING
 // ============================================================
+// Configuración de Serilog: consola + archivo diario, máximo 30 archivos
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Debug() // Captura todo desde Debug hacia arriba
+    .WriteTo.Console()
+    .WriteTo.File(
+        path: "logs/log-.txt",                 // Carpeta y nombre base
+        rollingInterval: RollingInterval.Day,  // Un archivo por día
+        retainedFileCountLimit: 30,            // Máximo 30 archivos
+        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"
+    )
+    .CreateLogger();
+
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
@@ -104,8 +117,8 @@ builder.Services.AddSingleton<IFileStorage>(sp =>
 QuestPDF.Settings.License = LicenseType.Community;
 builder.Services.AddScoped<IPdfService, PdfService>();
 builder.Services.AddScoped<OrganismReportExcel>();
-
 builder.Services.AddScoped<CompanyReportExcel>();
+builder.Services.AddScoped<UebReportExcel>();
 builder.Services.AddScoped<PersonReportExcel>();
 
 // ============================================================
@@ -125,8 +138,8 @@ builder.Services.AddSwaggerGen(c =>
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
-        Type = SecuritySchemeType.Http,   // 👈 Http en lugar de ApiKey
-        Scheme = "bearer",                // 👈 en minúsculas
+        Type = SecuritySchemeType.Http,   // Http en lugar de ApiKey
+        Scheme = "bearer",                // en minúsculas
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
         Description = "Introduce tu token JWT en el campo: Bearer {token}"
@@ -147,8 +160,6 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 });
-
-
 
 // ============================================================
 // CORS
@@ -197,6 +208,9 @@ app.UseCors("AllowFrontend");
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Middleware global para manejo de errores de BD
+app.UseMiddleware<DatabaseExceptionMiddleware>();
 
 // ============================================================
 // SEEDERS

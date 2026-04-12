@@ -2,28 +2,24 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace Anir.Data.Configurations
+namespace Anir.Data.Configurations;
+
+public class AnirWorkPresentationConfig : IEntityTypeConfiguration<AnirWorkPresentation>
 {
-    /// <summary>
-    /// Configuración EF Core para la entidad AnirWorkPresentation.
-    /// Define restricciones y relaciones con AnirWork.
-    /// </summary>
-    public class AnirWorkPresentationConfig : IEntityTypeConfiguration<AnirWorkPresentation>
+    public void Configure(EntityTypeBuilder<AnirWorkPresentation> builder)
     {
-        public void Configure(EntityTypeBuilder<AnirWorkPresentation> builder)
-        {
-            builder.ToTable("AnirWorkPresentations");
+        builder.ToTable("AnirWorkPresentations");
 
-            builder.HasKey(x => x.Id);
-            builder.Property(x => x.Id).ValueGeneratedOnAdd();
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Id).ValueGeneratedOnAdd();
 
-            builder.Property(x => x.Notes).HasMaxLength(500);
+        builder.Property(x => x.Notes)
+               .HasMaxLength(500);
 
-            builder.HasOne(x => x.AnirWork)
-                   .WithMany(a => a.AnirWorkPresentations)
-                   .HasForeignKey(x => x.AnirWorkId)
-                   .OnDelete(DeleteBehavior.Cascade);
-        }
+        // ✔️ Relación con AnirWork (padre)
+        builder.HasOne(x => x.AnirWork)
+               .WithMany(a => a.AnirWorkPresentations)
+               .HasForeignKey(x => x.AnirWorkId)
+               .OnDelete(DeleteBehavior.Cascade);
     }
-
 }

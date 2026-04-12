@@ -1,18 +1,20 @@
 ﻿using Anir.Shared.Contracts.Common;
+using Anir.Shared.Contracts.Companies;
 using Anir.Shared.Contracts.Organisms;
+using Anir.Shared.Contracts.Uebs;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 
-namespace Anir.Client.Services.Organism;
+namespace Anir.Client.Services.Ueb;
 
-public class OrganismService : IOrganismService
+public class UebService : IUebService
 {
     private readonly HttpClient _httpClient;
     private readonly JsonSerializerOptions _jsonOptions;
 
-    public OrganismService(HttpClient httpClient)
+    public UebService(HttpClient httpClient)
     {
         _httpClient = httpClient;
 
@@ -47,83 +49,83 @@ public class OrganismService : IOrganismService
     // ============================================================
     // GET PAGED (POST, profesional, limpio)
     // ============================================================
-    public async Task<List<OrganismDto>> GetAllAsync(CancellationToken ct = default)
+    public async Task<List<UebDto>> GetAllAsync(CancellationToken ct = default)
     {
-        var response = await _httpClient.GetFromJsonAsync<List<OrganismDto>>("/api/organism/all", ct);
+        var response = await _httpClient.GetFromJsonAsync<List<UebDto>>("/api/ueb/all", ct);
         return response ?? new();
     }
 
     // ============================================================
     // GET PAGED (POST, profesional, limpio)
     // ============================================================
-    public async Task<ProcessResponse<PagedResponse<OrganismDto>>> GetPagedAsync(
-        OrganismQueryDto query,
+    public async Task<ProcessResponse<PagedResponse<UebDto>>> GetPagedAsync(
+        UebQueryDto query,
         CancellationToken ct = default)
     {
         using var content = ToJsonContent(query);
-        using var response = await _httpClient.PostAsync("/api/organism/getpaged", content, ct);
+        using var response = await _httpClient.PostAsync("/api/ueb/getpaged", content, ct);
 
         if (!response.IsSuccessStatusCode)
         {
-            var body = await ReadJsonAsync<ProcessResponse<PagedResponse<OrganismDto>>>(response, ct);
-            return body ?? ProcessResponse<PagedResponse<OrganismDto>>.Fail($"Error HTTP {(int)response.StatusCode}");
+            var body = await ReadJsonAsync<ProcessResponse<PagedResponse<UebDto>>>(response, ct);
+            return body ?? ProcessResponse<PagedResponse<UebDto>>.Fail($"Error HTTP {(int)response.StatusCode}");
         }
 
-        var result = await ReadJsonAsync<ProcessResponse<PagedResponse<OrganismDto>>>(response, ct);
-        return result ?? ProcessResponse<PagedResponse<OrganismDto>>.Fail("Respuesta inválida del servidor.");
+        var result = await ReadJsonAsync<ProcessResponse<PagedResponse<UebDto>>>(response, ct);
+        return result ?? ProcessResponse<PagedResponse<UebDto>>.Fail("Respuesta inválida del servidor.");
     }
 
     // ============================================================
     // GET BY ID
     // ============================================================
-    public async Task<ProcessResponse<OrganismDto>> GetByIdAsync(int id, CancellationToken ct = default)
+    public async Task<ProcessResponse<UebDto>> GetByIdAsync(int id, CancellationToken ct = default)
     {
-        using var response = await _httpClient.GetAsync($"/api/organism/{id}", ct);
+        using var response = await _httpClient.GetAsync($"/api/ueb/{id}", ct);
 
         if (!response.IsSuccessStatusCode)
         {
-            var body = await ReadJsonAsync<ProcessResponse<OrganismDto>>(response, ct);
-            return body ?? ProcessResponse<OrganismDto>.Fail($"Error HTTP {(int)response.StatusCode}");
+            var body = await ReadJsonAsync<ProcessResponse<UebDto>>(response, ct);
+            return body ?? ProcessResponse<UebDto>.Fail($"Error HTTP {(int)response.StatusCode}");
         }
 
-        var result = await ReadJsonAsync<ProcessResponse<OrganismDto>>(response, ct);
-        return result ?? ProcessResponse<OrganismDto>.Fail("Respuesta inválida del servidor.");
+        var result = await ReadJsonAsync<ProcessResponse<UebDto>>(response, ct);
+        return result ?? ProcessResponse<UebDto>.Fail("Respuesta inválida del servidor.");
     }
 
     // ============================================================
     // CREATE
     // ============================================================
-    public async Task<ProcessResponse<OrganismDto>> CreateAsync(OrganismDto dto, CancellationToken ct = default)
+    public async Task<ProcessResponse<UebDto>> CreateAsync(UebDto dto, CancellationToken ct = default)
     {
         using var content = ToJsonContent(dto);
-        using var response = await _httpClient.PostAsync("/api/organism", content, ct);
+        using var response = await _httpClient.PostAsync("/api/ueb", content, ct);
 
         if (!response.IsSuccessStatusCode)
         {
-            var body = await ReadJsonAsync<ProcessResponse<OrganismDto>>(response, ct);
-            return body ?? ProcessResponse<OrganismDto>.Fail($"Error HTTP {(int)response.StatusCode}");
+            var body = await ReadJsonAsync<ProcessResponse<UebDto>>(response, ct);
+            return body ?? ProcessResponse<UebDto>.Fail($"Error HTTP {(int)response.StatusCode}");
         }
 
-        var result = await ReadJsonAsync<ProcessResponse<OrganismDto>>(response, ct);
-        return result ?? ProcessResponse<OrganismDto>.Fail("Respuesta inválida del servidor.");
+        var result = await ReadJsonAsync<ProcessResponse<UebDto>>(response, ct);
+        return result ?? ProcessResponse<UebDto>.Fail("Respuesta inválida del servidor.");
     }
 
     // ============================================================
     // UPDATE
     // ============================================================
-    public async Task<ProcessResponse<OrganismDto>> UpdateAsync(int id, OrganismDto dto, CancellationToken ct = default)
+    public async Task<ProcessResponse<UebDto>> UpdateAsync(int id, UebDto dto, CancellationToken ct = default)
     {
         using var content = ToJsonContent(dto);
-        using var response = await _httpClient.PutAsync($"/api/organism/{id}", content, ct);
+        using var response = await _httpClient.PutAsync($"/api/ueb/{id}", content, ct);
 
         if (!response.IsSuccessStatusCode)
         {
-            var body = await ReadJsonAsync<ProcessResponse<OrganismDto>>(response, ct);
-            return body ?? ProcessResponse<OrganismDto>.Fail($"Error HTTP {(int)response.StatusCode}");
+            var body = await ReadJsonAsync<ProcessResponse<UebDto>>(response, ct);
+            return body ?? ProcessResponse<UebDto>.Fail($"Error HTTP {(int)response.StatusCode}");
         }
 
-        var result = await ReadJsonAsync<ProcessResponse<OrganismDto>>(response, ct);
-        return result ?? ProcessResponse<OrganismDto>.Fail("Respuesta inválida del servidor.");
+        var result = await ReadJsonAsync<ProcessResponse<UebDto>>(response, ct);
+        return result ?? ProcessResponse<UebDto>.Fail("Respuesta inválida del servidor.");
     }
 
     // ============================================================
@@ -131,7 +133,7 @@ public class OrganismService : IOrganismService
     // ============================================================
     public async Task<ProcessResponse<bool>> DeleteAsync(int id, CancellationToken ct = default)
     {
-        using var response = await _httpClient.DeleteAsync($"/api/organism/{id}", ct);
+        using var response = await _httpClient.DeleteAsync($"/api/ueb/{id}", ct);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -149,7 +151,7 @@ public class OrganismService : IOrganismService
     public async Task<ProcessResponse<int>> DeleteBatchAsync(BulkSelectionRequest request, CancellationToken ct = default)
     {
         using var content = ToJsonContent(request);
-        using var response = await _httpClient.PostAsync("/api/organism/batch-delete", content, ct);
+        using var response = await _httpClient.PostAsync("/api/ueb/batch-delete", content, ct);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -164,14 +166,14 @@ public class OrganismService : IOrganismService
     public async Task<HttpResponseMessage> ExportPdfAsync(BulkSelectionRequest request, CancellationToken ct = default)
     {
         using var content = ToJsonContent(request);
-        return await _httpClient.PostAsync("/api/organism/export-pdf", content, ct);
+        return await _httpClient.PostAsync("/api/ueb/export-pdf", content, ct);
     }
 
 
     public async Task<HttpResponseMessage> ExportExcelAsync(BulkSelectionRequest request, CancellationToken ct = default)
     {
         using var content = ToJsonContent(request);
-        return await _httpClient.PostAsync("/api/organism/export-excel", content, ct);
+        return await _httpClient.PostAsync("/api/ueb/export-excel", content, ct);
     }
 
 

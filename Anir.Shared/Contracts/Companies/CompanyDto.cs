@@ -7,6 +7,19 @@ public class CompanyDto
 {
     public int Id { get; set; }
 
+    [Required(ErrorMessage = "Debe seleccionar un organismo.")]
+    [Display(Name = "Organismo")]
+    public int OrganismId { get; set; }
+
+    // Solo para mostrar en grilla/detalle
+    public string? OrganismName { get; set; }
+
+
+    [Required(ErrorMessage = "El código es obligatorio.")]
+    [StringLength(20, ErrorMessage = "El código no puede exceder {1} caracteres.")]
+    [Display(Name = "Código DUINE")]
+    public string Code { get; set; } = string.Empty;
+
     [Required(ErrorMessage = "La abreviatura es obligatoria.")]
     [StringLength(50, ErrorMessage = "La abreviatura no puede exceder {1} caracteres.")]
     [Display(Name = "Abreviatura")]

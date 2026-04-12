@@ -7,6 +7,7 @@ using Anir.Client.Services.Company;
 using Anir.Client.Services.Files;
 using Anir.Client.Services.Organism;
 using Anir.Client.Services.Person;
+using Anir.Client.Services.Ueb;
 using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
@@ -64,12 +65,14 @@ builder.Services.AddScoped<UserState>();
 // ------------------------------------------------------------
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<FileService>();
-builder.Services.AddScoped<CompanyService>();
 builder.Services.AddScoped<ProvinceService>();
 builder.Services.AddScoped<MunicipalityService>();
 builder.Services.AddScoped<PersonService>();
-builder.Services.AddScoped<IAnirWorkService, AnirWorkService>();
 builder.Services.AddScoped<IOrganismService, OrganismService>();
+builder.Services.AddScoped<ICompanyService, CompanyService>();
+builder.Services.AddScoped<IUebService, UebService>();
+builder.Services.AddScoped<IAnirWorkService, AnirWorkService>();
+
 
 
 

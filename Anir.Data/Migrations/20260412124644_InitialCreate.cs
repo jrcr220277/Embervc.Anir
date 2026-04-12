@@ -255,7 +255,7 @@ namespace Anir.Data.Migrations
                         column: x => x.ProvinceId,
                         principalTable: "Provinces",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -283,7 +283,7 @@ namespace Anir.Data.Migrations
                         column: x => x.MunicipalityId,
                         principalTable: "Municipalities",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
                         name: "FK_Companies_Organisms_OrganismId",
                         column: x => x.OrganismId,
@@ -307,13 +307,13 @@ namespace Anir.Data.Migrations
                     Date = table.Column<DateOnly>(type: "date", nullable: false),
                     AnirNumber = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
                     Title = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
-                    Description = table.Column<string>(type: "text", nullable: true),
+                    Description = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
                     HasSocialEffect = table.Column<bool>(type: "boolean", nullable: false),
                     HasEconomicEffect = table.Column<bool>(type: "boolean", nullable: false),
                     Generalization = table.Column<int>(type: "integer", nullable: false),
                     EconomicImpact = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
-                    Recommendations = table.Column<string>(type: "text", nullable: true),
-                    ResolutionNumber = table.Column<string>(type: "text", nullable: true),
+                    Recommendations = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    ResolutionNumber = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
                     ImageId = table.Column<string>(type: "text", nullable: true),
                     PdfId = table.Column<string>(type: "text", nullable: true)
                 },
@@ -357,7 +357,7 @@ namespace Anir.Data.Migrations
                         column: x => x.MunicipalityId,
                         principalTable: "Municipalities",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.SetNull);
                 });
 
             migrationBuilder.CreateTable(

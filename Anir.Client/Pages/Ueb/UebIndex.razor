@@ -1,14 +1,16 @@
-﻿@page "/companies"
+﻿@page "/uebs"
+@using Anir.Client.Services.Ueb
 @using Anir.Shared.Contracts.Companies
 @using Anir.Shared.Contracts.Common
 @using Anir.Client.Services.Company
+@using Anir.Shared.Contracts.Uebs
 @using MudBlazor
 
 <MudContainer MaxWidth="MaxWidth.False" Class="pa-3">
 
     @if (IsInitializingPage)
     {
-        <UiLoading Indeterminate="true" Message="Cargando empresas..." ContainerHeight="100vh" Size="Size.Large" />
+        <UiLoading Indeterminate="true" Message="Cargando datos..." ContainerHeight="100vh" Size="Size.Large" />
         return;
     }
 
@@ -18,12 +20,12 @@
     <MudGrid Class="mb-2">
         <MudItem xs="12">
             <div class="d-flex align-center">
-                <MudIcon Icon="@Icons.Material.TwoTone.Domain" Style="font-size: 3rem;" />
+                <MudIcon Icon="@Icons.Material.TwoTone.Factory" Style="font-size: 3rem;" />
              
                 <div class="ml-3">
-                    <MudText Typo="Typo.h5" Class="fw-bold">Clasificador de Empresas</MudText>
+                    <MudText Typo="Typo.h5" Class="fw-bold">Clasificador de Establecimientos</MudText>
                     <MudText Typo="Typo.body2" Color="Color.Secondary">
-                        Gestión de empresas: búsqueda, filtros y acciones masivas
+                        Gestión de establecimientos: búsqueda, filtros y acciones masivas
                     </MudText>
                 </div>
             </div>
@@ -139,7 +141,7 @@
     <!-- ============================================================
          TABLA PRINCIPAL (Respira, se ve limpia)
      ============================================================ -->
-    <MudTable T="CompanyDto"
+    <MudTable T="UebDto"
               ServerData="ServerReload"
               @ref="TableRef"
               Hover="true"
@@ -152,32 +154,31 @@
               HorizontalScrollbar="true">
 
         <HeaderContent>
-            <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="Organism.ShortName">Organismo</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="Code">Código</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="ShortName">Abrev.</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="Name">Nombre</MudTableSortLabel></MudTh>
-            @* <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="Municipality.Province.Name">Provincia</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="Municipality.Name">Municipio</MudTableSortLabel></MudTh> *@
-            <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="Active">Estado</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="UebDto" SortLabel="Compamy.ShortName">Empresa</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="UebDto" SortLabel="Code">Código</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="UebDto" SortLabel="Name">Nombre</MudTableSortLabel></MudTh>
+            @* <MudTh><MudTableSortLabel T="UebDto" SortLabel="Municipality.Province.Name">Provincia</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="UebDto" SortLabel="Municipality.Name">Municipio</MudTableSortLabel></MudTh> *@
+            <MudTh><MudTableSortLabel T="UebDto" SortLabel="Active">Estado</MudTableSortLabel></MudTh>
             <MudTh Style="width: 120px; text-align:end">Acciones</MudTh>
         </HeaderContent>
 
-        <RowTemplate Context="company">
-            <MudTd>@company.OrganismName</MudTd>
-            <MudTd>@company.Code</MudTd>
-            <MudTd>@company.ShortName</MudTd>
-            <MudTd>@company.Name</MudTd>
+        <RowTemplate Context="Ueb">
+            <MudTd>@Ueb.CompanyName</MudTd>
+            <MudTd>@Ueb.Code</MudTd>
+         
+            <MudTd>@Ueb.Name</MudTd>
            @*  <MudTd>@company.ProvinceName</MudTd>
             <MudTd>@company.MunicipalityName</MudTd> *@
             <MudTd>
-                <MudChip T="string" Color="@(company.Active? Color.Success: Color.Error)" Variant="Variant.Text" Size="Size.Small">
-                    @(company.Active ? "Activa" : "Inactiva")
+                <MudChip T="string" Color="@(Ueb.Active? Color.Success: Color.Error)" Variant="Variant.Text" Size="Size.Small">
+                    @(Ueb.Active ? "Activa" : "Inactiva")
                 </MudChip>
             </MudTd>
             <MudTd Style="width: 120px; text-align:end">
-                <MudIconButton Icon="@Icons.Material.Rounded.Visibility" OnClick="@(() => ViewCompany(company))" Size="Size.Small" />
-                <MudIconButton Icon="@Icons.Material.Rounded.Edit" OnClick="@(() => EditCompany(company))" Size="Size.Small" />
-                <MudIconButton Icon="@Icons.Material.Rounded.Delete" Color="Color.Error" OnClick="@(() => DeleteCompany(company))" Size="Size.Small" />
+                <MudIconButton Icon="@Icons.Material.Rounded.Visibility" OnClick="@(() => ViewCompany(Ueb))" Size="Size.Small" />
+                <MudIconButton Icon="@Icons.Material.Rounded.Edit" OnClick="@(() => EditCompany(Ueb))" Size="Size.Small" />
+                <MudIconButton Icon="@Icons.Material.Rounded.Delete" Color="Color.Error" OnClick="@(() => DeleteCompany(Ueb))" Size="Size.Small" />
             </MudTd>
         </RowTemplate>
 
@@ -205,13 +206,13 @@
     // ============================================================
     // DEPENDENCIAS
     // ============================================================
-    [Inject] private IOrganismService OrganismService { get; set; } = default!;
+    [Inject] private IUebService UebService { get; set; } = default!;
     [Inject] private ICompanyService CompanyService { get; set; } = default!;
     [Inject] private NavigationManager NavManager { get; set; } = default!;
     [Inject] private IConfiguration Config { get; set; } = default!;
     [Inject] private IDialogService DialogService { get; set; } = default!;
     [Inject] private IAlertService AlertService { get; set; } = default!;
-    [Inject] private ILogger<CompanyIndex> Logger { get; set; } = default!;
+    [Inject] private ILogger<UebIndex> Logger { get; set; } = default!;
     [Inject] IJSRuntime JS { get; set; } = default!;
 
     // ============================================================
@@ -221,8 +222,8 @@
     private bool IsLoadingTable = false;
     private bool IsProcessingBulkAction = false;
 
-    private MudTable<CompanyDto>? TableRef;
-    private HashSet<CompanyDto> SelectedItems = new(new CompanyDtoComparer());
+    private MudTable<UebDto>? TableRef;
+    private HashSet<UebDto> SelectedItems = new(new UebDtoComparer());
     
     private bool IsGlobalSelected = false;
     private int _totalFilteredCount = 0;
@@ -230,7 +231,7 @@
     private string SearchText = string.Empty;
     private string StatusFilterValue = "Todos";
 
-    private IReadOnlyList<CompanyDto> LastPageItems = Array.Empty<CompanyDto>();
+    private IReadOnlyList<UebDto> LastPageItems = Array.Empty<UebDto>();
 
     private CancellationTokenSource? _searchDebounceCts;
     private CancellationTokenSource? _serverReloadCts;
@@ -245,7 +246,7 @@
     // ============================================================
     // SERVER DATA (Paginación + Orden + Filtros)
     // ============================================================
-    private async Task<TableData<CompanyDto>> ServerReload(TableState state, CancellationToken token)
+    private async Task<TableData<UebDto>> ServerReload(TableState state, CancellationToken token)
     {
         _serverReloadCts?.Cancel();
         _serverReloadCts = CancellationTokenSource.CreateLinkedTokenSource(token);
@@ -257,14 +258,14 @@
         {
             var query = MapTableStateToQuery(state);
 
-            var response = await CompanyService.GetPagedAsync(query, linkedToken);
+            var response = await UebService.GetPagedAsync(query, linkedToken);
 
             if (response.Result == ResponseStatus.Success && response.Value != null)
             {
                 LastPageItems = response.Value.Items.ToList().AsReadOnly();
                 _totalFilteredCount = response.Value.TotalCount;
 
-                return new TableData<CompanyDto>
+                return new TableData<UebDto>
                 {
                     Items = response.Value.Items,
                     TotalItems = response.Value.TotalCount
@@ -272,7 +273,7 @@
             }
 
             await AlertService.ShowError("Error", response.ErrorMessage ?? "Error cargando empresas");
-            return new TableData<CompanyDto>();
+            return new TableData<UebDto>();
         }
         finally
         {
@@ -280,7 +281,7 @@
         }
     }
 
-    private CompanyQueryDto MapTableStateToQuery(TableState state)
+    private UebQueryDto MapTableStateToQuery(TableState state)
     {
         var sortLabel = string.IsNullOrWhiteSpace(state.SortLabel)
             ? "Code"
@@ -292,7 +293,7 @@
             _ => false // None y Ascending → ASC
         };
 
-        return new CompanyQueryDto
+        return new UebQueryDto
         {
             Page = state.Page + 1,
             Size = state.PageSize,
@@ -349,8 +350,8 @@
     {
         var parameters = new DialogParameters
         {
-            ["CurrentMode"] = CompanyModal.ModalMode.Add,
-            ["Company"] = null
+            ["CurrentMode"] = UebModal.ModalMode.Add,
+            ["Ueb"] = null
         };
 
         var options = new DialogOptions
@@ -361,8 +362,8 @@
             Position = DialogPosition.Center
         };
 
-        var dialog = await DialogService.ShowAsync<CompanyModal>(
-            "Nueva Empresa", parameters, options);
+        var dialog = await DialogService.ShowAsync<UebModal>(
+            "Nuevo Establecimiento", parameters, options);
 
         var result = await dialog.Result;
 
@@ -370,12 +371,12 @@
             await TableRef.ReloadServerData();
     }
 
-    private async Task EditCompany(CompanyDto company)
+    private async Task EditCompany(UebDto dto)
     {
         var parameters = new DialogParameters
         {
-            ["CurrentMode"] = CompanyModal.ModalMode.Edit,
-            ["Company"] = company
+            ["CurrentMode"] = UebModal.ModalMode.Edit,
+            ["Ueb"] = dto
         };
 
         var options = new DialogOptions
@@ -386,8 +387,8 @@
             Position = DialogPosition.Center
         };
 
-        var dialog = await DialogService.ShowAsync<CompanyModal>(
-            "Editar Empresa", parameters, options);
+        var dialog = await DialogService.ShowAsync<UebModal>(
+            "Editar Establecimiento", parameters, options);
 
         var result = await dialog.Result;
 
@@ -395,12 +396,12 @@
             await TableRef.ReloadServerData();
     }
 
-    private async Task ViewCompany(CompanyDto company)
+    private async Task ViewCompany(UebDto ueb)
     {
         var parameters = new DialogParameters
         {
-            ["CurrentMode"] = CompanyModal.ModalMode.View,
-            ["Company"] = company
+            ["CurrentMode"] = UebModal.ModalMode.View,
+            ["Ueb"] = ueb
         };
 
         var options = new DialogOptions
@@ -411,19 +412,19 @@
             Position = DialogPosition.Center
         };
 
-        await DialogService.ShowAsync<CompanyModal>(
-            "Detalle Empresa", parameters, options);
+        await DialogService.ShowAsync<UebModal>(
+            "Detalle Establecimiento", parameters, options);
     }
     
     // ============================================================
     // CRUD: ELIMINAR INDIVIDUAL
     // ============================================================
-    private async Task DeleteCompany(CompanyDto company)
+    private async Task DeleteCompany(UebDto dto)
     {
         var confirmed = await ConfirmDialog.Show(
             DialogService,
             "Eliminar Empresa",
-            $"¿Eliminar {company.ShortName}?",
+            $"¿Eliminar {dto.Name}?",
             type: "Delete",
             confirmText: "Eliminar",
             centerMessage: true
@@ -432,11 +433,11 @@
         if (!confirmed)
             return;
 
-        var response = await CompanyService.DeleteAsync(company.Id);
+        var response = await CompanyService.DeleteAsync(dto.Id);
 
         if (response.Result == ResponseStatus.Success)
         {
-            SelectedItems.RemoveWhere(c => c.Id == company.Id);
+            SelectedItems.RemoveWhere(c => c.Id == dto.Id);
 
             if (TableRef != null)
                 await TableRef.ReloadServerData();
@@ -582,10 +583,10 @@
     // ============================================================
     // COMPARER PARA SELECCIÓN ESTABLE
     // ============================================================
-    private class CompanyDtoComparer : IEqualityComparer<CompanyDto>
+    private class UebDtoComparer : IEqualityComparer<UebDto>
     {
-        public bool Equals(CompanyDto? x, CompanyDto? y) => x?.Id == y?.Id;
-        public int GetHashCode(CompanyDto obj) => obj.Id.GetHashCode();
+        public bool Equals(UebDto? x, UebDto? y) => x?.Id == y?.Id;
+        public int GetHashCode(UebDto obj) => obj.Id.GetHashCode();
     }
 }
 

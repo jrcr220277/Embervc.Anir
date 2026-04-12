@@ -22,7 +22,7 @@ namespace Anir.Data.Configurations
 
             builder.HasIndex(p => p.Name).IsUnique();
             builder.HasIndex(p => p.ShortName).IsUnique();
+                       
         }
     }
-
 }

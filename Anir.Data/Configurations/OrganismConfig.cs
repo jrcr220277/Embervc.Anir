@@ -33,11 +33,6 @@ namespace Anir.Data.Configurations
             builder.HasIndex(o => o.ShortName).IsUnique();
             builder.HasIndex(o => o.Name).IsUnique();
 
-            // Relación con Company (1 Organism → N Companies)
-            builder.HasMany(o => o.Companies)
-                   .WithOne(c => c.Organism)
-                   .HasForeignKey(c => c.OrganismId)
-                   .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }
