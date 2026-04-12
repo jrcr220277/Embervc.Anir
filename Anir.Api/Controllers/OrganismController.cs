@@ -163,12 +163,34 @@ public class OrganismController : ControllerBase
     // ============================================================
     // DELETE
     // ============================================================
+    // ============================================================
+    // DELETE
+    // ============================================================
     [HttpDelete("{id:int}")]
     public async Task<ActionResult<ProcessResponse<bool>>> Delete(int id, CancellationToken ct = default)
     {
         var entity = await _db.Organisms.FindAsync(new object?[] { id }, ct);
         if (entity == null)
             return NotFound(ProcessResponse<bool>.Fail($"{ENTITY} no encontrada."));
+
+        // ============================================================
+        // VALIDACIÓN PREVIA (FK: Organism → Companies)
+        // ============================================================
+        var hasCompanies = await _db.Companies
+            .AnyAsync(c => c.OrganismId == id, ct);
+
+        if (hasCompanies)
+        {
+            return BadRequest(new ProcessResponse<bool>
+            {
+                Result = ResponseStatus.Failed,
+                ErrorMessage = "No se puede eliminar este organismo porque tiene dependencias asociadas.",
+                ValidationErrors = new Dictionary<string, string[]>
+            {
+                { "OrganismosConRestricciones", new[] { id.ToString() } }
+            }
+            });
+        }
 
         _db.Organisms.Remove(entity);
         await _db.SaveChangesAsync(ct);

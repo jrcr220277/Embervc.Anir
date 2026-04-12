@@ -35,7 +35,7 @@
      ============================================================ -->
     <MudPaper Elevation="0" Outlined="true" Class="pa-3 mb-3">
 
-        <MudGrid AlignItems="Center">
+        <MudGrid AlignItems="AlignItems.Center">
 
             <!-- IZQUIERDA (3 columnas) -->
             <MudItem xs="12" sm="3">
@@ -69,32 +69,37 @@
     <!-- ============================================================
          ACCIONES MASIVAS (Banner profesional)
          ============================================================ -->
-    <MudCollapse Expanded="@(SelectedItems?.Any() == true || IsGlobalSelected)">
-        <MudPaper Outlined="true" Elevation="0" Class="px-4 mb-3 d-flex align-center justify-space-between flex-wrap gap-2">
+    <MudCollapse Expanded="@(SelectedItems.Any() || IsGlobalSelected)">
+        <MudPaper Outlined="true" Elevation="0"
+                  Class="px-4 mb-3 d-flex align-center justify-space-between flex-wrap gap-2">
 
+            <!-- IZQUIERDA: Icono + texto corto -->
             <div class="d-flex align-center">
-                <MudTooltip Text="Seleccionar todo" Arrow="true">
-                    <MudIconButton Icon="@(IsGlobalSelected? Icons.Material.Rounded.Deselect : Icons.Material.Rounded.SelectAll)"
-                                   Edge="Edge.Start"
+
+                <MudTooltip Text="@(IsGlobalSelected ? "Cancelar selección global" : "Seleccionar todo el resultado")" Arrow="true">
+                    <MudIconButton Icon="@(IsGlobalSelected
+                                                       ? Icons.Material.Filled.Deselect
+                                                   : Icons.Material.Filled.SelectAll)"
+                                   Color="Color.Primary"
                                    Size="Size.Medium"
                                    OnClick="@(() => ToggleGlobalSelection())" />
                 </MudTooltip>
 
-
-                <MudText Typo="Typo.body2" Class="font-weight-medium ml-2">
+                <MudText Typo="Typo.body2" Class="ml-2 font-weight-medium">
                     @BulkSelectionText
                 </MudText>
-            </div>
-            
 
+            </div>
+
+
+            <!-- DERECHA: Acciones -->
             <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-               
+
                 <MudTooltip Text="Exportar PDF" Arrow="true">
                     <MudIconButton OnClick="@(() => ExportPdf())"
                                    Icon="@Icons.Custom.FileFormats.FilePdf"
                                    Color="Color.Default"
                                    Size="Size.Medium"
-                                   aria-label="PDF"
                                    Variant="Variant.Text" />
                 </MudTooltip>
 
@@ -102,17 +107,16 @@
                     <MudIconButton OnClick="@(() => ExportExcel())"
                                    Icon="@Icons.Custom.FileFormats.FileExcel"
                                    Color="Color.Default"
-                                   Size="Size.Medium"
-                                   aria-label="Excel" />
+                                   Size="Size.Medium" />
                 </MudTooltip>
 
                 <MudTooltip Text="Eliminar seleccionados" Arrow="true">
                     <MudIconButton OnClick="@(() => DeleteSelected())"
                                    Icon="@Icons.Material.Rounded.DeleteForever"
                                    Color="Color.Error"
-                                   Size="Size.Medium"
-                                   aria-label="Eliminar" />
+                                   Size="Size.Medium" />
                 </MudTooltip>
+
             </MudStack>
 
         </MudPaper>
@@ -162,12 +166,15 @@
         </NoRecordsContent>
 
         <PagerContent>
-            <MudTablePager PageSizeOptions="new int[] { 5, 10, 15, 20, 50, 100 }"
+            <MudTablePager PageSizeOptions="new int[] { 5, 10, 15, 20, 50, 100, int.MaxValue }"
                            RowsPerPageString="Filas por página:"
                            InfoFormat="{first_item}-{last_item} de {all_items}"
                            AllItemsText="Todas"
                            HorizontalAlignment="HorizontalAlignment.Right" />
+
+
         </PagerContent>
+
 
     </MudTable>
 
@@ -259,22 +266,23 @@
             ? "Code"
             : state.SortLabel;
 
-        var desc = state.SortDirection switch
-        {
-            SortDirection.Descending => true,
-            _ => false // None y Ascending → ASC
-        };
+        var desc = state.SortDirection == SortDirection.Descending;
+
+        // Si el usuario seleccionó "Todas"
+        var pageSize = state.PageSize == int.MaxValue
+             ? _totalFilteredCount
+             : state.PageSize;
 
         return new OrganismQueryDto
         {
             Page = state.Page + 1,
-            Size = state.PageSize,
+            Size = pageSize,
             Sort = sortLabel,
             Desc = desc,
             Search = string.IsNullOrWhiteSpace(SearchText) ? null : SearchText,
         };
+        
     }
-
 
     // ============================================================
     // BÚSQUEDA CON DEBOUNCE
@@ -401,6 +409,7 @@
 
         var response = await OrganismService.DeleteAsync(organism.Id);
 
+        // ÉXITO
         if (response.Result == ResponseStatus.Success)
         {
             SelectedItems.RemoveWhere(c => c.Id == organism.Id);
@@ -409,11 +418,23 @@
                 await TableRef.ReloadServerData();
 
             await AlertService.ShowSuccess("Éxito", "Registro eliminado correctamente.");
+            return;
         }
-        else
+
+        // RESTRICCIONES (misma lógica que el batch-delete)
+        if (response.ValidationErrors != null &&
+            response.ValidationErrors.TryGetValue("OrganismosConRestricciones", out var ids))
         {
-            await AlertService.ShowError("Error", response.ErrorMessage ?? "No se pudo eliminar.");
+            await AlertService.ShowWarning(
+                "Borrado no completado",
+                "Este organismo tiene dependencias asociadas. " +
+                "La acción de borrado no se realizó."
+            );
+            return;
         }
+
+        // ERROR GENÉRICO
+        await AlertService.ShowError("Error", response.ErrorMessage ?? "No se pudo eliminar.");
     }
 
 
