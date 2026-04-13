@@ -160,9 +160,7 @@ public class OrganismController : ControllerBase
         return Ok(ProcessResponse<OrganismDto>.Success(dto, $"{ENTITY} actualizada correctamente."));
     }
 
-    // ============================================================
-    // DELETE
-    // ============================================================
+
     // ============================================================
     // DELETE
     // ============================================================
@@ -173,25 +171,6 @@ public class OrganismController : ControllerBase
         if (entity == null)
             return NotFound(ProcessResponse<bool>.Fail($"{ENTITY} no encontrada."));
 
-        // ============================================================
-        // VALIDACIÓN PREVIA (FK: Organism → Companies)
-        // ============================================================
-        var hasCompanies = await _db.Companies
-            .AnyAsync(c => c.OrganismId == id, ct);
-
-        if (hasCompanies)
-        {
-            return BadRequest(new ProcessResponse<bool>
-            {
-                Result = ResponseStatus.Failed,
-                ErrorMessage = "No se puede eliminar este organismo porque tiene dependencias asociadas.",
-                ValidationErrors = new Dictionary<string, string[]>
-            {
-                { "OrganismosConRestricciones", new[] { id.ToString() } }
-            }
-            });
-        }
-
         _db.Organisms.Remove(entity);
         await _db.SaveChangesAsync(ct);
 
@@ -199,7 +178,7 @@ public class OrganismController : ControllerBase
     }
 
     // ============================================================
-    // DELETE BATCH (versión profesional con validación previa)
+    // DELETE BATCH (versión simple y profesional)
     // ============================================================
     [HttpPost("batch-delete")]
     public async Task<ActionResult<ProcessResponse<int>>> DeleteBatch(
@@ -226,32 +205,10 @@ public class OrganismController : ControllerBase
         if (!itemsToDelete.Any())
             return NotFound(ProcessResponse<int>.Fail($"No se encontraron {ENTITY.ToLower()} para eliminar."));
 
-        var idsToDelete = itemsToDelete.Select(o => o.Id).ToList();
-
         // ============================================================
-        // VALIDACIÓN PREVIA (FK: Organism → Companies)
-        // ============================================================
-        var organismsWithCompanies = await _db.Companies
-            .Where(c => idsToDelete.Contains(c.OrganismId))
-            .Select(c => c.OrganismId)
-            .Distinct()
-            .ToListAsync(ct);
-
-        if (organismsWithCompanies.Any())
-        {
-            return BadRequest(new ProcessResponse<int>
-            {
-                Result = ResponseStatus.Failed,
-                ErrorMessage = "No se pueden eliminar algunos organismos debido a restricciones de datos.",
-                ValidationErrors = new Dictionary<string, string[]>
-            {
-                { "OrganismosConRestricciones", organismsWithCompanies.Select(x => x.ToString()).ToArray() }
-            }
-            });
-        }
-
-        // ============================================================
-        // BORRADO REAL (transaccional)
+        // BORRADO REAL (sin validación previa)
+        // Si hay dependencias, la BD lanzará FK violation
+        // y el middleware devolverá un mensaje claro.
         // ============================================================
         _db.Organisms.RemoveRange(itemsToDelete);
         var affectedRows = await _db.SaveChangesAsync(ct);
@@ -261,6 +218,7 @@ public class OrganismController : ControllerBase
             $"Se eliminaron {affectedRows} {ENTITY.ToLower()}."
         ));
     }
+
 
 
     // ============================================================

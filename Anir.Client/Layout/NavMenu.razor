@@ -11,12 +11,10 @@
 
     @if (User.Active)
     {
-        <!-- ============================
-             ESTRUCTURA ORGANIZATIVA
-             ============================ -->
-        <MudNavGroup Text="Estructura Organizativa"
+        
+        <MudNavGroup Title="Estructura Organizativa"
                      Icon="@Icons.Material.Outlined.AccountTree"
-                     Expanded="false">
+                     Expanded="true">
 
             <MudNavLink Href="/organisms"
                         Icon="@Icons.Material.Outlined.AccountBalance"
@@ -27,24 +25,23 @@
             <MudNavLink Href="/companies"
                         Icon="@Icons.Material.Outlined.Domain"
                         Match="NavLinkMatch.Prefix">
-                Compañías
+                Empresas
             </MudNavLink>
 
             <MudNavLink Href="/uebs"
                         Icon="@Icons.Material.Outlined.Factory"
                         Match="NavLinkMatch.Prefix">
-                UEBs
+               Establecimientos
             </MudNavLink>
-
+            <!-- PERSONAS -->
+            <MudNavLink Href="/persons"
+                        Icon="@Icons.Material.Outlined.PeopleAlt"
+                        Match="NavLinkMatch.Prefix">
+                Aniristas
+            </MudNavLink>
         </MudNavGroup>
 
-        <!-- PERSONAS -->
-        <MudNavLink Href="/persons"
-                    Icon="@Icons.Material.Outlined.PeopleAlt"
-                    Match="NavLinkMatch.Prefix">
-            Personas
-        </MudNavLink>
-
+  
         <!-- REPORTES -->
         <MudNavLink Href="/reports"
                     Icon="@Icons.Material.Outlined.Assessment"
@@ -56,9 +53,9 @@
     <!-- MÓDULO ANIR -->
     @if (User.Active)
     {
-        <MudNavGroup Text="ANIR"
+        <MudNavGroup Title="Trabajos ANIR"
                      Icon="@Icons.Material.Outlined.Work"
-                     Expanded="false">
+                     Expanded="true">
 
             <MudNavLink Href="/anirworks"
                         Icon="@Icons.Material.Outlined.ListAlt"

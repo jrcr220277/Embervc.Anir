@@ -153,14 +153,21 @@ public class UebService : IUebService
         using var content = ToJsonContent(request);
         using var response = await _httpClient.PostAsync("/api/ueb/batch-delete", content, ct);
 
-        if (!response.IsSuccessStatusCode)
-        {
-            var body = await ReadJsonAsync<ProcessResponse<int>>(response, ct);
-            return body ?? ProcessResponse<int>.Fail($"Error HTTP {(int)response.StatusCode}");
-        }
+        var raw = await response.Content.ReadAsStringAsync(ct);
 
-        var result = await ReadJsonAsync<ProcessResponse<int>>(response, ct);
-        return result ?? ProcessResponse<int>.Fail("Respuesta inválida del servidor.");
+        if (response.IsSuccessStatusCode)
+        {
+            // Éxito → value es int
+            var ok = JsonSerializer.Deserialize<ProcessResponse<int>>(raw, _jsonOptions);
+            return ok ?? ProcessResponse<int>.Fail("Respuesta inválida del servidor.");
+        }
+        else
+        {
+            // Error → value es string o null
+            var error = JsonSerializer.Deserialize<ProcessResponse<string>>(raw, _jsonOptions);
+
+            return ProcessResponse<int>.Fail(error?.ErrorMessage ?? $"Error HTTP {(int)response.StatusCode}");
+        }
     }
 
     public async Task<HttpResponseMessage> ExportPdfAsync(BulkSelectionRequest request, CancellationToken ct = default)

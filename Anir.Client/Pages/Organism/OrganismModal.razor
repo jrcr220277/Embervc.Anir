@@ -69,14 +69,18 @@
                                     @if (IsViewMode)
                                     {
                                         <MudStack>
-                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Codigo</MudText>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                @ModelMetadataHelper.GetDisplayName(() => _formModel.Code)
+                                            </MudText>
                                             <MudText Typo="Typo.body1">@_formModel.Code</MudText>
                                         </MudStack>
                                     }
                                     else
                                     {
-                                        <MudTextField Label="Codigo"
+                                        <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Code)"
+                                                      For="@(() => _formModel.Code)"
                                                       @bind-Value="_formModel.Code"
+                                                      InputType="InputType.Text"
                                                       Variant="Variant.Outlined"
                                                       Required="true"
                                                       FullWidth="true"
@@ -90,19 +94,24 @@
                                     @if (IsViewMode)
                                     {
                                         <MudStack>
-                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Abreviatura</MudText>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                @ModelMetadataHelper.GetDisplayName(() => _formModel.ShortName)
+                                            </MudText>
                                             <MudText Typo="Typo.body1">@_formModel.ShortName</MudText>
                                         </MudStack>
                                     }
                                     else
                                     {
-                                        <MudTextField Label="Abreviatura"
+                                        <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.ShortName)"
+                                                      For="@(() => _formModel.ShortName)"
                                                       @bind-Value="_formModel.ShortName"
+                                                      InputType="InputType.Text"
                                                       Variant="Variant.Outlined"
                                                       Required="true"
                                                       FullWidth="true"
                                                       Margin="Margin.Dense"
-                                                      Clearable="true" />
+                                                      Clearable="true"/>
+                                                                                              
                                     }
                                 </MudItem>
 
@@ -111,14 +120,18 @@
                                     @if (IsViewMode)
                                     {
                                         <MudStack>
-                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Nombre</MudText>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                @ModelMetadataHelper.GetDisplayName(() => _formModel.Name)
+                                            </MudText>
                                             <MudText Typo="Typo.body1">@_formModel.Name</MudText>
                                         </MudStack>
                                     }
                                     else
                                     {
-                                        <MudTextField Label="Nombre"
+                                        <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Name)"
+                                                      For="@(() => _formModel.Name)"
                                                       @bind-Value="_formModel.Name"
+                                                      InputType="InputType.Text"
                                                       Variant="Variant.Outlined"
                                                       Required="true"
                                                       FullWidth="true"

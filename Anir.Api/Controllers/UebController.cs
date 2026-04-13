@@ -217,13 +217,16 @@ public class UebController : ControllerBase
     }
 
     // ============================================================
-    // DELETE BATCH
+    // DELETE BATCH (versión simple y profesional)
     // ============================================================
     [HttpPost("batch-delete")]
-    public async Task<ActionResult<ProcessResponse<int>>> DeleteBatch([FromBody] BulkSelectionRequest request, CancellationToken ct = default)
+    public async Task<ActionResult<ProcessResponse<int>>> DeleteBatch(
+        [FromBody] BulkSelectionRequest request,
+        CancellationToken ct = default)
     {
         List<Ueb> itemsToDelete;
 
+        // Selección global o por IDs
         if (request.SelectAll)
         {
             itemsToDelete = await _db.Uebs.ToListAsync(ct);
@@ -234,17 +237,25 @@ public class UebController : ControllerBase
                 return BadRequest(ProcessResponse<int>.Fail("No se recibieron Ids para eliminar."));
 
             itemsToDelete = await _db.Uebs
-                .Where(c => request.Ids.Contains(c.Id))
+                .Where(o => request.Ids.Contains(o.Id))
                 .ToListAsync(ct);
         }
 
         if (!itemsToDelete.Any())
             return NotFound(ProcessResponse<int>.Fail($"No se encontraron {ENTITY.ToLower()} para eliminar."));
 
+        // ============================================================
+        // BORRADO REAL (sin validación previa)
+        // Si hay dependencias, la BD lanzará FK violation
+        // y el middleware devolverá un mensaje claro.
+        // ============================================================
         _db.Uebs.RemoveRange(itemsToDelete);
         var affectedRows = await _db.SaveChangesAsync(ct);
 
-        return Ok(ProcessResponse<int>.Success(affectedRows, $"Se eliminaron {itemsToDelete.Count} {ENTITY.ToLower()}."));
+        return Ok(ProcessResponse<int>.Success(
+            affectedRows,
+            $"Se eliminaron {affectedRows} {ENTITY.ToLower()}."
+        ));
     }
 
     // ============================================================

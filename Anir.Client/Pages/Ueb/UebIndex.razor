@@ -59,7 +59,7 @@
                               Immediate="true"
                               Clearable="true"
                               Placeholder="Buscar..."
-                              Adornment="Adornment.End"
+                              Adornment="Adornment.Start"
                               AdornmentIcon="@Icons.Material.Rounded.Search" />
             </MudItem>
 
@@ -87,26 +87,33 @@
     <!-- ============================================================
          ACCIONES MASIVAS (Banner profesional)
          ============================================================ -->
-    <MudCollapse Expanded="@(SelectedItems?.Any() == true || IsGlobalSelected)">
-        <MudPaper Outlined="true" Elevation="0" Class="px-4 mb-3 d-flex align-center justify-space-between flex-wrap gap-2">
+    <MudCollapse Expanded="@(SelectedItems.Any() || IsGlobalSelected)">
+        <MudPaper Outlined="true" Elevation="0"
+                  Class="px-4 mb-3 d-flex align-center justify-space-between flex-wrap gap-2">
 
+            <!-- IZQUIERDA: Icono + texto corto -->
             <div class="d-flex align-center">
-                <MudTooltip Text="Seleccionar todo" Arrow="true">
-                    <MudIconButton Icon="@(IsGlobalSelected? Icons.Material.Rounded.Deselect : Icons.Material.Rounded.SelectAll)"
+
+                <MudTooltip Text="@(IsGlobalSelected ? "Cancelar selección global" : "Seleccionar global")" Arrow="true">
+                    <MudIconButton Icon="@(IsGlobalSelected
+                                                                                                              ? Icons.Material.Filled.Deselect
+                                                                                                      : Icons.Material.Filled.SelectAll)"
                                    Edge="Edge.Start"
+                                   Color="Color.Primary"
                                    Size="Size.Medium"
                                    OnClick="@(() => ToggleGlobalSelection())" />
                 </MudTooltip>
 
-
-                <MudText Typo="Typo.body2" Class="font-weight-medium ml-2">
+                <MudText Typo="Typo.body2" Class="ml-2 font-weight-medium">
                     @BulkSelectionText
                 </MudText>
-            </div>
-            
 
+            </div>
+
+
+            <!-- DERECHA: Acciones -->
             <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-               
+
                 <MudTooltip Text="Exportar PDF" Arrow="true">
                     <MudIconButton OnClick="@(() => ExportPdf())"
                                    Icon="@Icons.Custom.FileFormats.FilePdf"
@@ -129,8 +136,10 @@
                                    Icon="@Icons.Material.Rounded.DeleteForever"
                                    Color="Color.Error"
                                    Size="Size.Medium"
+                                   Edge="Edge.End"
                                    aria-label="Eliminar" />
                 </MudTooltip>
+
             </MudStack>
 
         </MudPaper>
@@ -150,8 +159,8 @@
               MultiSelection="true"
               @bind-SelectedItems="SelectedItems"
               SelectOnRowClick="false"
-              Loading="@IsLoadingTable"
-              HorizontalScrollbar="true">
+              Loading="@IsLoadingTable" 
+              HorizontalScrollbar="true" Elevation="0" Outlined="true">
 
         <HeaderContent>
             <MudTh><MudTableSortLabel T="UebDto" SortLabel="Compamy.ShortName">Empresa</MudTableSortLabel></MudTh>
@@ -189,11 +198,13 @@
         </NoRecordsContent>
 
         <PagerContent>
-            <MudTablePager PageSizeOptions="new int[] { 5, 10, 15, 20, 50, 100 }"
-                           RowsPerPageString="Filas por página:"
+            <MudTablePager PageSizeOptions="new int[] { 5, 10, 15, 20, 50, 100, int.MaxValue }"
+                           RowsPerPageString="Registros por página:"
                            InfoFormat="{first_item}-{last_item} de {all_items}"
-                           AllItemsText="Todas"
+                           AllItemsText="Todos"
                            HorizontalAlignment="HorizontalAlignment.Right" />
+
+
         </PagerContent>
 
     </MudTable>
@@ -292,6 +303,11 @@
             SortDirection.Descending => true,
             _ => false // None y Ascending → ASC
         };
+
+        // Si el usuario seleccionó "Todas"
+        var pageSize = state.PageSize == int.MaxValue
+              ? Math.Max(_totalFilteredCount, 1)
+              : state.PageSize;
 
         return new UebQueryDto
         {
@@ -423,8 +439,8 @@
     {
         var confirmed = await ConfirmDialog.Show(
             DialogService,
-            "Eliminar Empresa",
-            $"¿Eliminar {dto.Name}?",
+            "¿Está seguro de que desea eliminar este registro?",
+            $"¿Eliminar {dto.Code}?",
             type: "Delete",
             confirmText: "Eliminar",
             centerMessage: true
@@ -442,12 +458,12 @@
             if (TableRef != null)
                 await TableRef.ReloadServerData();
 
-            await AlertService.ShowSuccess("Éxito", "Empresa eliminada correctamente.");
+            await AlertService.ShowSuccess("Éxito", "Registro eliminado correctamente.");
+            return;
         }
-        else
-        {
-            await AlertService.ShowError("Error", response.ErrorMessage ?? "No se pudo eliminar.");
-        }
+
+        // Error genérico (incluye FK violation del middleware)
+        await AlertService.ShowError("Error", response.ErrorMessage ?? "No se pudo eliminar.");
     }
 
 
@@ -475,8 +491,8 @@
     /// </summary>
     private string BulkSelectionText =>
         IsGlobalSelected
-            ? $"Selección global: {_totalFilteredCount} empresa{(SelectedItems.Count == 1 ? "" : "s")} seleccionada{(SelectedItems.Count == 1 ? "" : "s")} del resultado actual"
-            : $"{SelectedItems.Count} empresa{(SelectedItems.Count == 1 ? "" : "s")} seleccionada{(SelectedItems.Count == 1 ? "" : "s")} del resultado actual";
+            ? $"Selección global: {_totalFilteredCount}registro{(SelectedItems.Count == 1 ? "" : "s")} seleccionado{(SelectedItems.Count == 1 ? "" : "s")} del resultado actual"
+            : $"{SelectedItems.Count} registro{(SelectedItems.Count == 1 ? "" : "s")} seleccionado{(SelectedItems.Count == 1 ? "" : "s")} del resultado actual";
 
     // ============================================================
     // ACCIONES MASIVAS
@@ -485,10 +501,10 @@
     {
         var confirmed = await ConfirmDialog.Show(
             DialogService,
-            "Eliminar seleccionadas",
+            "¿Desea eliminar los registros seleccionados?",
             IsGlobalSelected
-                ? $"¿Eliminar todas las {_totalFilteredCount} empresas del filtro?"
-                : $"¿Eliminar {SelectedItems.Count} empresa{(SelectedItems.Count == 1 ? "" : "s")} seleccionada{(SelectedItems.Count == 1 ? "" : "s")}?",
+                ? $"¿Eliminar todos los {_totalFilteredCount} registros del filtro?"
+                : $"¿Eliminar {SelectedItems.Count} registro(s) seleccionados?",
             type: "Delete",
             confirmText: "Eliminar",
             centerMessage: true
@@ -504,28 +520,34 @@
             var request = new BulkSelectionRequest
             {
                 SelectAll = IsGlobalSelected,
-                Ids = IsGlobalSelected ? new List<int>() : SelectedItems.Select(x => x.Id).ToList()
+                Ids = IsGlobalSelected
+                    ? new List<int>()
+                    : SelectedItems.Select(x => x.Id).ToList()
             };
 
-            var response = await CompanyService.DeleteBatchAsync(request);
+            var response = await UebService.DeleteBatchAsync(request);
 
             if (response.Result == ResponseStatus.Success)
             {
                 SelectedItems.Clear();
                 IsGlobalSelected = false;
-                if (TableRef != null) await TableRef.ReloadServerData();
-                await AlertService.ShowSuccess("Éxito", "Empresas eliminadas correctamente.");
+
+                if (TableRef != null)
+                    await TableRef.ReloadServerData();
+
+                await AlertService.ShowSuccess("Éxito", "Registros eliminados correctamente.");
+                return;
             }
-            else
-            {
-                await AlertService.ShowError("Error", response.ErrorMessage ?? "No se pudo eliminar.");
-            }
+
+            // Error genérico (incluye FK violation del middleware)
+            await AlertService.ShowError("Error", response.ErrorMessage ?? "No se pudo eliminar.");
         }
         finally
         {
             IsProcessingBulkAction = false;
         }
     }
+
 
     private async Task ExportPdf()
     {

@@ -1,6 +1,5 @@
 @using System
 @using System.Security.Claims
-// removed System.Linq import (not needed)
 @inherits LayoutComponentBase
 @using Anir.Shared.Enums
 @using Microsoft.AspNetCore.Components.Authorization
@@ -20,57 +19,66 @@
 
 <MudLayout>
 
-    <MudAppBar Elevation="6" Dense="true" Class="pa-0">
-
-        @if (_isAuthenticated)
-        {
-            <MudIconButton Icon="@(_drawerOpen? Icons.Material.Filled.MenuOpen : Icons.Material.Filled.Menu)"
-                           Color="Color.Inherit"
-                           Edge="Edge.Start"
-                           OnClick="DrawerToggle" />
-        }
-
-        <MudSpacer />
-        
-        @if (_isAuthenticated)
-        {
-            <UserMenu />
-
-        }
-        else
-        {
-            <MudTooltip Text="Entrar al sistema" Arrow="true">
-                <MudIconButton Icon="@(Icons.Material.Filled.Login)"
-                               Color="Color.Inherit"
-                               OnClick="OpenLogin" />
-            </MudTooltip>
-
-            <MudTooltip Text="Cambiar tema" Arrow="true">
-                <MudIconButton Icon="@DarkLightModeButtonIcon"
-                               Color="Color.Inherit"
-                               OnClick="DarkModeToggle" />
-            </MudTooltip>
-        }
-
-    </MudAppBar>
-
     @if (_isAuthenticated)
     {
         <MudDrawer @bind-Open="_drawerOpen"
+                   Anchor="Anchor.Start"
                    Color="Color.Inherit"
-                   ClipMode="DrawerClipMode.Always"
+                   ClipMode="DrawerClipMode.Never"
                    Variant="DrawerVariant.Mini"
-                   Elevation="2">
-
+                   Elevation="2"
+                   Width="240px">
             <NavMenu DrawerOpen="_drawerOpen" />
         </MudDrawer>
     }
 
     <MudMainContent>
-        @Body
+        <MudAppBar Elevation="1" Dense="true">
+            @if (_isAuthenticated)
+            {
+                <MudIconButton Icon="@(_drawerOpen? Icons.Material.Filled.MenuOpen : Icons.Material.Filled.Menu)"
+                               Color="Color.Inherit"
+                               OnClick="DrawerToggle"
+                               Class="ml-0" />
+            }
+            
+            
+           @*  <MudSpacer />
+            <MudText Typo="Typo.h6" Class="ml-2">Sistema ANIR</MudText>
+            <MudText Typo="Typo.body2">Empresa: EMBERVC</MudText> *@
+            <MudSpacer />
+
+            @if (_isAuthenticated)
+            {
+                <UserMenu />
+            }
+            else
+            {
+                <MudTooltip Text="Entrar al sistema" Arrow="true">
+                    <MudIconButton Icon="@(Icons.Material.Filled.Login)"
+                                   Color="Color.Inherit"
+                                   OnClick="OpenLogin" />
+                </MudTooltip>
+
+                <MudTooltip Text="Cambiar tema" Arrow="true">
+                    <MudIconButton Icon="@DarkLightModeButtonIcon"
+                                   Color="Color.Inherit"
+                                   OnClick="DarkModeToggle" />
+                </MudTooltip>
+            }
+        </MudAppBar>
+
+        <MudContainer MaxWidth="MaxWidth.False">
+            @Body
+        </MudContainer>
     </MudMainContent>
 
 </MudLayout>
+
+
+
+
+
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
@@ -405,109 +413,98 @@
         GrayDarker = "#4B5563"           // Slate 600 — gris profundo
     };
 
-
-
-
-
     private readonly PaletteDark _darkPalette = new()
     {
         // ============================================================
-        // CAPA 1 — FONDO GENERAL (Gunmetal / Slate 900)
+        // CAPA 1 — FONDO GENERAL
         // ============================================================
         Background = "#1E293B",          // Azul-gris oscuro (Slate 900) — fondo principal
-        BackgroundGray = "#2A3244",      // Slate 800 — secciones secundarias, headers
-        DrawerBackground = "#1E293B",    // Igual que Background — menú lateral moderno
-
-        DrawerText = "rgba(255,255,255,0.75)",   // Blanco suave — texto del menú
-        DrawerIcon = "rgba(255,255,255,0.75)",   // Blanco suave — íconos del menú
-
-        // ============================================================
-        // CAPA 2 — SUPERFICIES (tarjetas, tablas, modales)
-        // ============================================================
-        Surface = "#273447",             // Slate 850 — tarjetas, tablas, modales (más claro que fondo)
+        BackgroundGray = "#2A3244",      // Slate 800 — headers, secciones secundarias
+        DrawerBackground = "#1B2433",    // Igual que AppBar — marco único lateral
+        DrawerText = "rgba(255,255,255,0.75)",
+        DrawerIcon = "rgba(255,255,255,0.75)",
 
         // ============================================================
-        // APPBAR (Slate 950)
+        // CAPA 2 — SUPERFICIES
         // ============================================================
-        AppbarBackground = "#1B2433",    // Azul carbón profundo — barra superior
-        AppbarText = "rgba(255,255,255,0.85)",   // Blanco fuerte — texto del AppBar
+        Surface = "#273447",             // Slate 850 — tarjetas, tablas, modales
+
+        // ============================================================
+        // APPBAR
+        // ============================================================
+        AppbarBackground = "#1E293B",    // Igual que Drawer — barra superior integrada
+        AppbarText = "rgba(255,255,255,0.85)",
 
         // ============================================================
         // PRIMARY (Ubuntu Accent)
         // ============================================================
-        Primary = "#E95420",             // Naranja Ubuntu — acento cálido, elegante y visible
-        PrimaryDarken = "#C34114",       // Naranja quemado — hover/active
-        PrimaryLighten = "#FF8A5C",      // Naranja claro — estados suaves
+        Primary = "#E95420",
+        PrimaryDarken = "#C34114",
+        PrimaryLighten = "#FF8A5C",
 
         // ============================================================
         // SECUNDARIOS
         // ============================================================
-        Secondary = "#A0A0A0",           // Gris neutro — botones secundarios
-        SecondaryDarken = "#7A7A7A",     // Gris oscuro — hover
-        SecondaryLighten = "#C8C8C8",    // Gris claro — estados suaves
+        Secondary = "#A0A0A0",
+        SecondaryDarken = "#7A7A7A",
+        SecondaryLighten = "#C8C8C8",
 
         // ============================================================
         // TEXTO
         // ============================================================
-        TextPrimary = "#FFFFFF",         // Blanco puro — texto principal
-        TextSecondary = "#C0C0C0",       // Gris claro — texto secundario
-        TextDisabled = "#7A7A7A",        // Gris apagado — texto deshabilitado
+        TextPrimary = "#FFFFFF",
+        TextSecondary = "#C0C0C0",
+        TextDisabled = "#7A7A7A",
 
         // ============================================================
-        // LÍNEAS Y DIVISORES (más visibles)
+        // LÍNEAS Y DIVISORES
         // ============================================================
-        Divider = "#4B5563",             // Slate 600 — líneas visibles entre paneles
-        DividerLight = "rgba(255,255,255,0.10)", // Líneas suaves
-        LinesDefault = "#4B5563",        // Líneas generales
-        LinesInputs = "rgba(255,255,255,0.40)",  // Bordes de inputs
-        TableLines = "#4B5563",          // Líneas de tablas
+        Divider = "#4B5563",
+        DividerLight = "rgba(255,255,255,0.10)",
+        LinesDefault = "#4B5563",
+        LinesInputs = "rgba(255,255,255,0.40)",
+        TableLines = "#4B5563",
 
         // ============================================================
-        // TABLAS (hover y striped PRO)
+        // TABLAS
         // ============================================================
-        TableStriped = "rgba(255,255,255,0.03)", // Filas alternas — sutil y elegante
-        TableHover = "rgba(255,255,255,0.16)",   // Hover visible — contraste real
+        TableStriped = "rgba(255,255,255,0.03)",
+        TableHover = "rgba(255,255,255,0.16)",
 
         // ============================================================
-        // OVERLAYS (modales)
+        // OVERLAYS
         // ============================================================
-        OverlayDark = "rgba(0,0,0,0.55)",        // Oscurece fondo — modal resalta
-        OverlayLight = "rgba(255,255,255,0.50)", // No se usa en dark mode
+        OverlayDark = "rgba(0,0,0,0.55)",
+        OverlayLight = "rgba(255,255,255,0.50)",
 
         // ============================================================
-        // ESTADOS (Success, Warning, Error, Info)
+        // ESTADOS
         // ============================================================
-        Success = "#4CAF50",             // Verde éxito
-        SuccessDarken = "#099A6C",       // Hover
-        SuccessLighten = "#0DE29C",      // Suave
+        Success = "#4CAF50",
+        SuccessDarken = "#099A6C",
+        SuccessLighten = "#0DE29C",
 
-        Warning = "#FFC107",             // Amarillo advertencia
+        Warning = "#FFC107",
         WarningDarken = "#D68F00",
         WarningLighten = "#FFB624",
 
-        Error = "#EF5350",               // Rojo error
+        Error = "#EF5350",
         ErrorDarken = "#F42F1E",
         ErrorLighten = "#F87786",
 
-        Info = "#2196F3",                // Azul informativo
+        Info = "#2196F3",
         InfoDarken = "#0A85FF",
         InfoLighten = "#5CADFF",
 
         // ============================================================
-        // GRAYS (coherentes con Slate)
+        // GRAYS
         // ============================================================
-        GrayDefault = "#9CA3AF",         // Slate 400 — gris base
-        GrayLight = "#D1D5DB",           // Slate 300 — gris claro
-        GrayLighter = "#E5E7EB",         // Slate 200 — gris muy claro
-        GrayDark = "#6B7280",            // Slate 500 — gris oscuro
-        GrayDarker = "#4B5563"           // Slate 600 — gris profundo
+        GrayDefault = "#9CA3AF",
+        GrayLight = "#D1D5DB",
+        GrayLighter = "#E5E7EB",
+        GrayDark = "#6B7280",
+        GrayDarker = "#4B5563"
     };
-
-
-
-
-
-
 
 
 

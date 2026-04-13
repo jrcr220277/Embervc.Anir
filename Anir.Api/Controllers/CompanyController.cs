@@ -5,6 +5,7 @@ using Anir.Infrastructure.Reports.Template.Excel;
 using Anir.Shared.Contracts.Common;
 using Anir.Shared.Contracts.Companies;
 using Anir.Shared.Contracts.Organisms;
+using Anir.Shared.Enums;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -39,6 +40,8 @@ public class CompanyController : ControllerBase
         entity.ShortName = dto.ShortName;
         entity.Name = dto.Name;
         entity.Address = dto.Address;
+        entity.Phone = dto.Phone;
+        entity.Email = dto.Email;
         entity.MunicipalityId = dto.MunicipalityId;
         entity.OrganismId = dto.OrganismId;
         entity.Active = dto.Active;
@@ -51,6 +54,8 @@ public class CompanyController : ControllerBase
         ShortName = entity.ShortName,
         Name = entity.Name,
         Address = entity.Address,
+        Phone = entity.Phone,
+        Email = entity.Email,
         MunicipalityId = entity.MunicipalityId,
         MunicipalityName = entity.Municipality?.Name,
         ProvinceName = entity.Municipality?.Province?.Name,
@@ -219,14 +224,21 @@ public class CompanyController : ControllerBase
         return Ok(ProcessResponse<bool>.Success(true, $"{ENTITY} eliminada correctamente."));
     }
 
+
     // ============================================================
     // DELETE BATCH
     // ============================================================
+    // ============================================================
+    // DELETE BATCH (versión simple y profesional)
+    // ============================================================
     [HttpPost("batch-delete")]
-    public async Task<ActionResult<ProcessResponse<int>>> DeleteBatch([FromBody] BulkSelectionRequest request, CancellationToken ct = default)
+    public async Task<ActionResult<ProcessResponse<int>>> DeleteBatch(
+        [FromBody] BulkSelectionRequest request,
+        CancellationToken ct = default)
     {
         List<Company> itemsToDelete;
 
+        // Selección global o por IDs
         if (request.SelectAll)
         {
             itemsToDelete = await _db.Companies.ToListAsync(ct);
@@ -237,37 +249,27 @@ public class CompanyController : ControllerBase
                 return BadRequest(ProcessResponse<int>.Fail("No se recibieron Ids para eliminar."));
 
             itemsToDelete = await _db.Companies
-                .Where(c => request.Ids.Contains(c.Id))
+                .Where(o => request.Ids.Contains(o.Id))
                 .ToListAsync(ct);
         }
 
         if (!itemsToDelete.Any())
             return NotFound(ProcessResponse<int>.Fail($"No se encontraron {ENTITY.ToLower()} para eliminar."));
 
+        // ============================================================
+        // BORRADO REAL (sin validación previa)
+        // Si hay dependencias, la BD lanzará FK violation
+        // y el middleware devolverá un mensaje claro.
+        // ============================================================
         _db.Companies.RemoveRange(itemsToDelete);
         var affectedRows = await _db.SaveChangesAsync(ct);
 
-        return Ok(ProcessResponse<int>.Success(affectedRows, $"Se eliminaron {itemsToDelete.Count} {ENTITY.ToLower()}."));
+        return Ok(ProcessResponse<int>.Success(
+            affectedRows,
+            $"Se eliminaron {affectedRows} {ENTITY.ToLower()}."
+        ));
     }
 
-    // ============================================================
-    // EXPORT PDF
-    // ============================================================
-    [HttpPost("export-pdf")]
-    public async Task<IActionResult> ExportPdf([FromBody] BulkSelectionRequest request, CancellationToken ct = default)
-    {
-        IQueryable<Company> query = _db.Companies;
-
-        if (request.Ids is { Count: > 0 })
-            query = query.Where(c => request.Ids.Contains(c.Id));
-
-        var items = await query.Select(c => MapEntityToDto(c)).ToListAsync(ct);
-
-        var doc = new CompanyReportPdf(items);
-        var pdfBytes = await _pdfService.GenerateAsync(doc, ct);
-
-        return File(pdfBytes, "application/pdf");
-    }
 
     // ============================================================
     // EXPORT EXCEL

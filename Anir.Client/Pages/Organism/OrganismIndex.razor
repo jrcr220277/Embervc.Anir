@@ -55,7 +55,7 @@
                               Immediate="true"
                               Clearable="true"
                               Placeholder="Buscar..."
-                              Adornment="Adornment.End"
+                              Adornment="Adornment.Start"
                               AdornmentIcon="@Icons.Material.Rounded.Search" />
             </MudItem>
 
@@ -76,10 +76,11 @@
             <!-- IZQUIERDA: Icono + texto corto -->
             <div class="d-flex align-center">
 
-                <MudTooltip Text="@(IsGlobalSelected ? "Cancelar selección global" : "Seleccionar todo el resultado")" Arrow="true">
+                <MudTooltip Text="@(IsGlobalSelected ? "Cancelar selección global" : "Seleccionar global")" Arrow="true">
                     <MudIconButton Icon="@(IsGlobalSelected
                                                        ? Icons.Material.Filled.Deselect
                                                    : Icons.Material.Filled.SelectAll)"
+                                   Edge="Edge.Start"
                                    Color="Color.Primary"
                                    Size="Size.Medium"
                                    OnClick="@(() => ToggleGlobalSelection())" />
@@ -95,11 +96,12 @@
             <!-- DERECHA: Acciones -->
             <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
 
-                <MudTooltip Text="Exportar PDF" Arrow="true">
+               <MudTooltip Text="Exportar PDF" Arrow="true">
                     <MudIconButton OnClick="@(() => ExportPdf())"
                                    Icon="@Icons.Custom.FileFormats.FilePdf"
                                    Color="Color.Default"
                                    Size="Size.Medium"
+                                   aria-label="PDF"
                                    Variant="Variant.Text" />
                 </MudTooltip>
 
@@ -107,14 +109,17 @@
                     <MudIconButton OnClick="@(() => ExportExcel())"
                                    Icon="@Icons.Custom.FileFormats.FileExcel"
                                    Color="Color.Default"
-                                   Size="Size.Medium" />
+                                   Size="Size.Medium"
+                                   aria-label="Excel" />
                 </MudTooltip>
 
                 <MudTooltip Text="Eliminar seleccionados" Arrow="true">
                     <MudIconButton OnClick="@(() => DeleteSelected())"
                                    Icon="@Icons.Material.Rounded.DeleteForever"
                                    Color="Color.Error"
-                                   Size="Size.Medium" />
+                                   Size="Size.Medium"
+                                   Edge="Edge.End"
+                                   aria-label="Eliminar" />
                 </MudTooltip>
 
             </MudStack>
@@ -135,9 +140,10 @@
               Dense="true"
               MultiSelection="true"
               @bind-SelectedItems="SelectedItems"
-              SelectOnRowClick="false"
+              SelectOnRowClick="true"
               Loading="@IsLoadingTable"
-              HorizontalScrollbar="true">
+              HorizontalScrollbar="true" Elevation="0" Outlined="true">
+
 
         <HeaderContent>
             <MudTh><MudTableSortLabel T="OrganismDto" SortLabel="Code">Codigo</MudTableSortLabel></MudTh>
@@ -167,9 +173,9 @@
 
         <PagerContent>
             <MudTablePager PageSizeOptions="new int[] { 5, 10, 15, 20, 50, 100, int.MaxValue }"
-                           RowsPerPageString="Filas por página:"
+                           RowsPerPageString="Registros por página:"
                            InfoFormat="{first_item}-{last_item} de {all_items}"
-                           AllItemsText="Todas"
+                           AllItemsText="Todos"
                            HorizontalAlignment="HorizontalAlignment.Right" />
 
 
@@ -186,7 +192,7 @@
     // ============================================================
     // DEPENDENCIAS
     // ============================================================
-    [Inject] public IOrganismService OrganismService { get; set; }
+    [Inject] public IOrganismService OrganismService { get; set; } = default!;
     [Inject] private NavigationManager NavManager { get; set; } = default!;
     [Inject] private IConfiguration Config { get; set; } = default!;
     [Inject] private IDialogService DialogService { get; set; } = default!;
@@ -251,7 +257,7 @@
                 };
             }
 
-            await AlertService.ShowError("Error", response.ErrorMessage ?? "Error cargando empresas");
+            await AlertService.ShowError("Error", response.ErrorMessage ?? "Error cargando registros");
             return new TableData<OrganismDto>();
         }
         finally
@@ -270,8 +276,8 @@
 
         // Si el usuario seleccionó "Todas"
         var pageSize = state.PageSize == int.MaxValue
-             ? _totalFilteredCount
-             : state.PageSize;
+              ? Math.Max(_totalFilteredCount, 1)
+              : state.PageSize;
 
         return new OrganismQueryDto
         {
@@ -393,12 +399,12 @@
     // ============================================================
     // CRUD: ELIMINAR INDIVIDUAL
     // ============================================================
-    private async Task Deleteorganism(OrganismDto organism)
+    private async Task Deleteorganism(OrganismDto dto)
     {
         var confirmed = await ConfirmDialog.Show(
             DialogService,
-            "Eliminar Organismo",
-            $"¿Eliminar {organism.ShortName}?",
+            "¿Está seguro de que desea eliminar este registro?",
+            $"¿Eliminar {dto.ShortName}?",
             type: "Delete",
             confirmText: "Eliminar",
             centerMessage: true
@@ -407,12 +413,12 @@
         if (!confirmed)
             return;
 
-        var response = await OrganismService.DeleteAsync(organism.Id);
+        var response = await OrganismService.DeleteAsync(dto.Id);
 
         // ÉXITO
         if (response.Result == ResponseStatus.Success)
         {
-            SelectedItems.RemoveWhere(c => c.Id == organism.Id);
+            SelectedItems.RemoveWhere(c => c.Id == dto.Id);
 
             if (TableRef != null)
                 await TableRef.ReloadServerData();
@@ -423,11 +429,11 @@
 
         // RESTRICCIONES (misma lógica que el batch-delete)
         if (response.ValidationErrors != null &&
-            response.ValidationErrors.TryGetValue("OrganismosConRestricciones", out var ids))
+            response.ValidationErrors.TryGetValue("Restricciones", out var ids))
         {
             await AlertService.ShowWarning(
                 "Borrado no completado",
-                "Este organismo tiene dependencias asociadas. " +
+                "Este registro tiene dependencias asociadas. " +
                 "La acción de borrado no se realizó."
             );
             return;
@@ -452,8 +458,14 @@
     {
         IsGlobalSelected = !IsGlobalSelected;
         SelectedItems.Clear();
-    }
 
+        if (IsGlobalSelected)
+        {
+            foreach (var item in LastPageItems)
+                SelectedItems.Add(item);
+        }
+    }
+        
     /// <summary>
     /// Texto dinámico para mostrar la selección:
     /// - Local: cuántos elementos en SelectedItems.
@@ -462,8 +474,8 @@
     /// </summary>
     private string BulkSelectionText =>
         IsGlobalSelected
-            ? $"Selección global: {_totalFilteredCount} empresa{(SelectedItems.Count == 1 ? "" : "s")} seleccionada{(SelectedItems.Count == 1 ? "" : "s")} del resultado actual"
-            : $"{SelectedItems.Count} empresa{(SelectedItems.Count == 1 ? "" : "s")} seleccionada{(SelectedItems.Count == 1 ? "" : "s")} del resultado actual";
+            ? $"Selección global: {_totalFilteredCount}registro{(SelectedItems.Count == 1 ? "" : "s")} seleccionado{(SelectedItems.Count == 1 ? "" : "s")} del resultado actual"
+            : $"{SelectedItems.Count} registro{(SelectedItems.Count == 1 ? "" : "s")} seleccionado{(SelectedItems.Count == 1 ? "" : "s")} del resultado actual";
 
     // ============================================================
     // ACCIONES MASIVAS
@@ -473,7 +485,7 @@
         // Confirmación previa
         var confirmed = await ConfirmDialog.Show(
             DialogService,
-            "Eliminar seleccionados",
+            "¿Desea eliminar los registros seleccionados?",
             IsGlobalSelected
                 ? $"¿Eliminar todos los {_totalFilteredCount} registros del filtro?"
                 : $"¿Eliminar {SelectedItems.Count} registro{(SelectedItems.Count == 1 ? "" : "s")} seleccionado{(SelectedItems.Count == 1 ? "" : "s")}?",
@@ -515,11 +527,11 @@
             }
 
             // Error con IDs bloqueados
-            if (response.ValidationErrors != null && response.ValidationErrors.TryGetValue("OrganismosConRestricciones", out var ids))
+            if (response.ValidationErrors != null && response.ValidationErrors.TryGetValue("Restricciones", out var ids))
             {
                 await AlertService.ShowWarning(
                     "Borrado no completado",
-                    $"{ids.Length} organismo(s) tienen dependencias asociadas. " +
+                    $"{ids.Length} registro(s) tienen dependencias asociadas. " +
                     "El borrado masivo no se realizó y todos los cambios fueron revertidos."
                 );
 

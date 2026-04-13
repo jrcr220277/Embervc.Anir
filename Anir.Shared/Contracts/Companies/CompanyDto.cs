@@ -34,6 +34,15 @@ public class CompanyDto
     [Display(Name = "Dirección")]
     public string? Address { get; set; }
 
+    [StringLength(20, ErrorMessage = "El teléfono no puede exceder {1} caracteres.")]
+    [Display(Name = "Teléfono")]
+    public string? Phone { get; set; }
+
+    [EmailAddress(ErrorMessage = "El correo electrónico no es válido.")]
+    [StringLength(100, ErrorMessage = "El correo no puede exceder {1} caracteres.")]
+    [Display(Name = "Correo electrónico")]
+    public string? Email { get; set; }
+
     [Display(Name = "Provincia")]
     public string? ProvinceName { get; set; }
 
