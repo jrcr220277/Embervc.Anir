@@ -5,7 +5,6 @@ using Anir.Shared.Contracts.AnirWorks;
 using Anir.Shared.Contracts.AnirWorks.Persons;
 using Anir.Shared.Contracts.AnirWorks.Presentations;
 using Anir.Shared.Contracts.Common;
-using DocumentFormat.OpenXml.Office2016.Excel;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -36,25 +35,24 @@ public class AnirWorkController : ControllerBase
     // ============================================================
     private static void MapDtoToEntity(AnirWorkDto dto, AnirWork entity)
     {
-        entity.CompanyId = dto.CompanyId;
+        entity.UebId = dto.UebId;
         entity.Date = dto.Date;
         entity.AnirNumber = dto.AnirNumber;
         entity.Title = dto.Title;
         entity.Description = dto.Description;
 
-        // Nuevos campos booleanos
         entity.HasSocialEffect = dto.HasSocialEffect;
         entity.HasEconomicEffect = dto.HasEconomicEffect;
-
-        // Enum en lugar de IsGeneralized
         entity.Generalization = dto.Generalization;
 
         entity.EconomicImpact = dto.EconomicImpact;
         entity.Recommendations = dto.Recommendations;
         entity.ResolutionNumber = dto.ResolutionNumber;
+
         entity.ImageId = dto.ImageId;
         entity.PdfId = dto.PdfId;
     }
+
 
 
     private static AnirWorkDto MapEntityToDto(AnirWork entity)
@@ -62,25 +60,39 @@ public class AnirWorkController : ControllerBase
         return new AnirWorkDto
         {
             Id = entity.Id,
-            CompanyId = entity.CompanyId,
-            CompanyName = entity.Company?.Name,
+
+            // Organización
+            UebId = entity.UebId,
+            UebName = entity.Ueb.Name,
+            CompanyId = entity.Ueb.CompanyId,
+            CompanyName = entity.Ueb.Company.Name,
+
+            // Datos base
             Date = entity.Date,
             AnirNumber = entity.AnirNumber,
             Title = entity.Title,
             Description = entity.Description,
+
+            // Efectos
             HasSocialEffect = entity.HasSocialEffect,
             HasEconomicEffect = entity.HasEconomicEffect,
+            Generalization = entity.Generalization,
+
+            // Economía
             EconomicImpact = entity.EconomicImpact,
             Recommendations = entity.Recommendations,
             ResolutionNumber = entity.ResolutionNumber,
+
+            // Archivos
             ImageId = entity.ImageId,
             PdfId = entity.PdfId,
 
+            // Relaciones
             Persons = entity.AnirWorkPersons.Select(p => new AnirWorkPersonDto
             {
                 Id = p.Id,
                 PersonId = p.PersonId,
-                PersonName = p.Person?.FullName,
+                PersonName = p.Person.FullName,
                 ParticipationPercentage = p.ParticipationPercentage
             }).ToList(),
 
@@ -93,71 +105,97 @@ public class AnirWorkController : ControllerBase
         };
     }
 
+
     // ============================================================
     // GET PAGED
     // ============================================================
     [HttpPost("getpaged")]
     public async Task<ActionResult<ProcessResponse<PagedResponse<AnirWorkDto>>>> GetPaged(
-        [FromBody] AnirWorkQueryDto queryDto,
-        CancellationToken ct = default)
+     [FromBody] AnirWorkQueryDto queryDto,
+     CancellationToken ct = default)
     {
-        try
+        if (!ModelState.IsValid)
+            return BadRequest(ProcessResponse<PagedResponse<AnirWorkDto>>.Fail("Datos inválidos."));
+
+        var query = _db.AnirWorks
+            .Include(w => w.Ueb)
+                .ThenInclude(u => u.Company)
+            .AsNoTracking();
+
+        // ============================================================
+        // SEARCH
+        // ============================================================
+        if (!string.IsNullOrWhiteSpace(queryDto.Search))
         {
-            var query = _db.AnirWorks
-                .Include(w => w.Company)
-                .AsNoTracking();
+            var s = queryDto.Search.Trim().ToLower();
 
-            // Búsqueda
-            if (!string.IsNullOrWhiteSpace(queryDto.Search))
-            {
-                var s = queryDto.Search.Trim().ToLower();
-                query = query.Where(w =>
-                    w.Title.ToLower().Contains(s) ||
-                    w.AnirNumber.ToLower().Contains(s) ||
-                    (w.Description != null && w.Description.ToLower().Contains(s)) ||
-                    (w.Company != null && w.Company.Name.ToLower().Contains(s))
-                );
-            }
-
-            // Filtros
-            if (queryDto.CompanyId.HasValue)
-                query = query.Where(w => w.CompanyId == queryDto.CompanyId.Value);
-
-            if (queryDto.HasSocialEffect.HasValue)
-                query = query.Where(w => w.HasSocialEffect == queryDto.HasSocialEffect.Value);
-
-
-            if (queryDto.HasEconomicEffect.HasValue)
-                query = query.Where(w => w.HasEconomicEffect == queryDto.HasEconomicEffect.Value);
-
-            if (queryDto.Generalization.HasValue)
-                query = query.Where(w => w.Generalization == queryDto.Generalization.Value);
-
-            if (queryDto.FromDate.HasValue)
-                query = query.Where(w => w.Date >= queryDto.FromDate.Value);
-
-            if (queryDto.ToDate.HasValue)
-                query = query.Where(w => w.Date <= queryDto.ToDate.Value);
-
-            // Ordenamiento
-            var orderedQuery = query.ApplySorting(queryDto);
-
-            // Paginado + proyección
-            var pagedResult = await orderedQuery
-                .Select(w => MapEntityToDto(w))
-                .ToPagedResultAsync(queryDto, ct);
-
-            return Ok(ProcessResponse<PagedResponse<AnirWorkDto>>.Success(pagedResult));
+            query = query.Where(w =>
+                w.Title.ToLower().Contains(s) ||
+                w.AnirNumber.ToLower().Contains(s) ||
+                w.Ueb.Name.ToLower().Contains(s) ||
+                w.Ueb.Company.Name.ToLower().Contains(s)
+            );
         }
-        catch (Exception ex)
+
+        // ============================================================
+        // FILTERS
+        // ============================================================
+        if (queryDto.CompanyId.HasValue)
+            query = query.Where(w => w.Ueb.CompanyId == queryDto.CompanyId.Value);
+
+        if (queryDto.UebId.HasValue)
+            query = query.Where(w => w.UebId == queryDto.UebId.Value);
+
+        if (queryDto.HasSocialEffect.HasValue)
+            query = query.Where(w => w.HasSocialEffect == queryDto.HasSocialEffect.Value);
+
+        if (queryDto.HasEconomicEffect.HasValue)
+            query = query.Where(w => w.HasEconomicEffect == queryDto.HasEconomicEffect.Value);
+
+        if (queryDto.FromDate.HasValue)
+            query = query.Where(w => w.Date >= queryDto.FromDate.Value);
+
+        if (queryDto.ToDate.HasValue)
+            query = query.Where(w => w.Date <= queryDto.ToDate.Value);
+
+        // ============================================================
+        // SORT
+        // ============================================================
+        queryDto.Sort = queryDto.Sort switch
         {
-            _logger.LogError(ex, $"Error obteniendo {ENTITY.ToLower()}.");
-            return StatusCode(500,
-                ProcessResponse<PagedResponse<AnirWorkDto>>.Fail(
-                    $"Ocurrió un error al obtener los {ENTITY.ToLower()}."
-                ));
-        }
+            "CompanyName" => "Ueb.Company.Name",
+            "UebName" => "Ueb.Name",
+            _ => queryDto.Sort
+        };
+
+        var orderedQuery = query.ApplySorting(queryDto);
+
+        // ============================================================
+        // PROJECTION
+        // ============================================================
+        var projectedQuery = orderedQuery.Select(w => new AnirWorkDto
+        {
+            Id = w.Id,
+            UebId = w.UebId,
+            UebName = w.Ueb.Name,
+            CompanyId = w.Ueb.CompanyId,
+            CompanyName = w.Ueb.Company.Name,
+            Date = w.Date,
+            AnirNumber = w.AnirNumber,
+            Title = w.Title,
+            HasSocialEffect = w.HasSocialEffect,
+            HasEconomicEffect = w.HasEconomicEffect
+        });
+
+        // ============================================================
+        // PAGING
+        // ============================================================
+        var paged = await projectedQuery.ToPagedResultAsync(queryDto, ct);
+
+        return Ok(ProcessResponse<PagedResponse<AnirWorkDto>>.Success(paged));
     }
+
+
 
     // ============================================================
     // GET BY ID
@@ -167,30 +205,20 @@ public class AnirWorkController : ControllerBase
         int id,
         CancellationToken ct = default)
     {
-        try
-        {
-            var entity = await _db.AnirWorks
-                .Include(w => w.Company)
+        var entity = await _db.AnirWorks
+                .Include(w => w.Ueb)
+                .ThenInclude(u => u.Company)
                 .Include(w => w.AnirWorkPersons).ThenInclude(p => p.Person)
                 .Include(w => w.AnirWorkPresentations)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(w => w.Id == id, ct);
 
-            if (entity == null)
+
+        if (entity == null)
                 return NotFound(ProcessResponse<AnirWorkDto>.Fail($"{ENTITY} no encontrado."));
 
             var dto = MapEntityToDto(entity);
-
-            return Ok(ProcessResponse<AnirWorkDto>.Success(dto));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error obteniendo {Entity} {Id}", ENTITY, id);
-            return StatusCode(500,
-                ProcessResponse<AnirWorkDto>.Fail(
-                    $"Ocurrió un error al obtener el {ENTITY.ToLower()}."
-                ));
-        }
+            return Ok(ProcessResponse<AnirWorkDto>.Success(dto));  
     }
 
     // ============================================================
@@ -204,55 +232,44 @@ public class AnirWorkController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ProcessResponse<AnirWorkDto>.Fail("Datos inválidos."));
 
-        using var tx = await _db.Database.BeginTransactionAsync(ct);
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
 
-        try
+        var entity = new AnirWork();
+        MapDtoToEntity(dto, entity);
+
+        _db.AnirWorks.Add(entity);
+        await _db.SaveChangesAsync(ct);
+
+        // Personas
+        foreach (var p in dto.Persons)
         {
-            var entity = new AnirWork();
-            MapDtoToEntity(dto, entity);
-
-            _db.AnirWorks.Add(entity);
-            await _db.SaveChangesAsync(ct);
-
-            // Personas
-            foreach (var p in dto.Persons)
+            _db.AnirWorkPersons.Add(new AnirWorkPerson
             {
-                _db.AnirWorkPersons.Add(new AnirWorkPerson
-                {
-                    AnirWorkId = entity.Id,
-                    PersonId = p.PersonId,
-                    ParticipationPercentage = p.ParticipationPercentage
-                });
-            }
-
-            // Presentaciones
-            foreach (var pr in dto.Presentations)
-            {
-                _db.AnirWorkPresentations.Add(new AnirWorkPresentation
-                {
-                    AnirWorkId = entity.Id,
-                    PresentationDate = pr.PresentationDate,
-                    Notes = pr.Notes
-                });
-            }
-
-            await _db.SaveChangesAsync(ct);
-            await tx.CommitAsync(ct);
-
-            dto.Id = entity.Id;
-
-            return Ok(ProcessResponse<AnirWorkDto>.Success(dto, $"{ENTITY} creado correctamente."));
+                AnirWorkId = entity.Id,
+                PersonId = p.PersonId,
+                ParticipationPercentage = p.ParticipationPercentage
+            });
         }
-        catch (Exception ex)
+
+        // Presentaciones
+        foreach (var pr in dto.Presentations)
         {
-            await tx.RollbackAsync(ct);
-            _logger.LogError(ex, "Error inesperado al crear {Entity}", ENTITY);
-            return StatusCode(500,
-                ProcessResponse<AnirWorkDto>.Fail(
-                    $"Ocurrió un error al crear el {ENTITY.ToLower()}."
-                ));
+            _db.AnirWorkPresentations.Add(new AnirWorkPresentation
+            {
+                AnirWorkId = entity.Id,
+                PresentationDate = pr.PresentationDate,
+                Notes = pr.Notes
+            });
         }
+
+        await _db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+
+        dto.Id = entity.Id;
+
+        return Ok(ProcessResponse<AnirWorkDto>.Success(dto, $"{ENTITY} creado correctamente."));
     }
+
 
     // ============================================================
     // UPDATE
@@ -267,60 +284,49 @@ public class AnirWorkController : ControllerBase
             return BadRequest(ProcessResponse<AnirWorkDto>.Fail(
                 "El ID de la ruta no coincide con el del cuerpo."));
 
-        using var tx = await _db.Database.BeginTransactionAsync(ct);
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
 
-        try
+        var entity = await _db.AnirWorks
+            .Include(w => w.AnirWorkPersons)
+            .Include(w => w.AnirWorkPresentations)
+            .FirstOrDefaultAsync(w => w.Id == id, ct);
+
+        if (entity == null)
+            return NotFound(ProcessResponse<AnirWorkDto>.Fail($"{ENTITY} no encontrado."));
+
+        // Mapear cambios principales
+        MapDtoToEntity(dto, entity);
+
+        // Reemplazar personas
+        _db.AnirWorkPersons.RemoveRange(entity.AnirWorkPersons);
+        foreach (var p in dto.Persons)
         {
-            var entity = await _db.AnirWorks
-                .Include(w => w.AnirWorkPersons)
-                .Include(w => w.AnirWorkPresentations)
-                .FirstOrDefaultAsync(w => w.Id == id, ct);
-
-            if (entity == null)
-                return NotFound(ProcessResponse<AnirWorkDto>.Fail($"{ENTITY} no encontrado."));
-
-            // Mapear cambios
-            MapDtoToEntity(dto, entity);
-
-            // Reemplazar personas
-            _db.AnirWorkPersons.RemoveRange(entity.AnirWorkPersons);
-            foreach (var p in dto.Persons)
+            _db.AnirWorkPersons.Add(new AnirWorkPerson
             {
-                _db.AnirWorkPersons.Add(new AnirWorkPerson
-                {
-                    AnirWorkId = entity.Id,
-                    PersonId = p.PersonId,
-                    ParticipationPercentage = p.ParticipationPercentage
-                });
-            }
-
-            // Reemplazar presentaciones
-            _db.AnirWorkPresentations.RemoveRange(entity.AnirWorkPresentations);
-            foreach (var pr in dto.Presentations)
-            {
-                _db.AnirWorkPresentations.Add(new AnirWorkPresentation
-                {
-                    AnirWorkId = entity.Id,
-                    PresentationDate = pr.PresentationDate,
-                    Notes = pr.Notes
-                });
-            }
-
-            await _db.SaveChangesAsync(ct);
-            await tx.CommitAsync(ct);
-
-            return Ok(ProcessResponse<AnirWorkDto>.Success(dto, $"{ENTITY} actualizado correctamente."));
+                AnirWorkId = entity.Id,
+                PersonId = p.PersonId,
+                ParticipationPercentage = p.ParticipationPercentage
+            });
         }
-        catch (Exception ex)
+
+        // Reemplazar presentaciones
+        _db.AnirWorkPresentations.RemoveRange(entity.AnirWorkPresentations);
+        foreach (var pr in dto.Presentations)
         {
-            await tx.RollbackAsync(ct);
-            _logger.LogError(ex, "Error inesperado al actualizar {Entity}", ENTITY);
-            return StatusCode(500,
-                ProcessResponse<AnirWorkDto>.Fail(
-                    $"Ocurrió un error al actualizar el {ENTITY.ToLower()}."
-                ));
+            _db.AnirWorkPresentations.Add(new AnirWorkPresentation
+            {
+                AnirWorkId = entity.Id,
+                PresentationDate = pr.PresentationDate,
+                Notes = pr.Notes
+            });
         }
+
+        await _db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+
+        return Ok(ProcessResponse<AnirWorkDto>.Success(dto, $"{ENTITY} actualizado correctamente."));
     }
+
 
     // ============================================================
     // DELETE
@@ -328,37 +334,26 @@ public class AnirWorkController : ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<ActionResult<ProcessResponse<bool>>> Delete(int id, CancellationToken ct = default)
     {
-        using var tx = await _db.Database.BeginTransactionAsync(ct);
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
 
-        try
-        {
-            var entity = await _db.AnirWorks
-                .Include(w => w.AnirWorkPersons)
-                .Include(w => w.AnirWorkPresentations)
-                .FirstOrDefaultAsync(w => w.Id == id, ct);
+        var entity = await _db.AnirWorks
+            .Include(w => w.AnirWorkPersons)
+            .Include(w => w.AnirWorkPresentations)
+            .FirstOrDefaultAsync(w => w.Id == id, ct);
 
-            if (entity == null)
-                return NotFound(ProcessResponse<bool>.Fail($"{ENTITY} no encontrado."));
+        if (entity == null)
+            return NotFound(ProcessResponse<bool>.Fail($"{ENTITY} no encontrado."));
 
-            _db.AnirWorkPersons.RemoveRange(entity.AnirWorkPersons);
-            _db.AnirWorkPresentations.RemoveRange(entity.AnirWorkPresentations);
-            _db.AnirWorks.Remove(entity);
+        _db.AnirWorkPersons.RemoveRange(entity.AnirWorkPersons);
+        _db.AnirWorkPresentations.RemoveRange(entity.AnirWorkPresentations);
+        _db.AnirWorks.Remove(entity);
 
-            await _db.SaveChangesAsync(ct);
-            await tx.CommitAsync(ct);
+        await _db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
 
-            return Ok(ProcessResponse<bool>.Success(true, $"{ENTITY} eliminado correctamente."));
-        }
-        catch (Exception ex)
-        {
-            await tx.RollbackAsync(ct);
-            _logger.LogError(ex, "Error inesperado al eliminar {Entity}", ENTITY);
-            return StatusCode(500,
-                ProcessResponse<bool>.Fail(
-                    $"Ocurrió un error al eliminar el {ENTITY.ToLower()}."
-                ));
-        }
+        return Ok(ProcessResponse<bool>.Success(true, $"{ENTITY} eliminado correctamente."));
     }
+
 
     // ============================================================
     // BATCH DELETE
@@ -368,57 +363,49 @@ public class AnirWorkController : ControllerBase
         [FromBody] BulkSelectionRequest request,
         CancellationToken ct = default)
     {
-        using var tx = await _db.Database.BeginTransactionAsync(ct);
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
 
-        try
+        List<AnirWork> items;
+
+        if (request.SelectAll)
         {
-            List<AnirWork> items;
-
-            if (request.SelectAll)
-            {
-                items = await _db.AnirWorks
-                    .Include(w => w.AnirWorkPersons)
-                    .Include(w => w.AnirWorkPresentations)
-                    .ToListAsync(ct);
-            }
-            else
-            {
-                if (request.Ids == null || request.Ids.Count == 0)
-                    return BadRequest(ProcessResponse<int>.Fail("No se recibieron Ids para eliminar."));
-
-                items = await _db.AnirWorks
-                    .Include(w => w.AnirWorkPersons)
-                    .Include(w => w.AnirWorkPresentations)
-                    .Where(w => request.Ids.Contains(w.Id))
-                    .ToListAsync(ct);
-            }
-
-            if (!items.Any())
-                return NotFound(ProcessResponse<int>.Fail($"No se encontraron {ENTITY.ToLower()} para eliminar."));
-
-            foreach (var w in items)
-            {
-                _db.AnirWorkPersons.RemoveRange(w.AnirWorkPersons);
-                _db.AnirWorkPresentations.RemoveRange(w.AnirWorkPresentations);
-            }
-
-            _db.AnirWorks.RemoveRange(items);
-
-            var affected = await _db.SaveChangesAsync(ct);
-            await tx.CommitAsync(ct);
-
-            return Ok(ProcessResponse<int>.Success(affected, $"Se eliminaron {items.Count} {ENTITY.ToLower()}."));
+            items = await _db.AnirWorks
+                .Include(w => w.AnirWorkPersons)
+                .Include(w => w.AnirWorkPresentations)
+                .ToListAsync(ct);
         }
-        catch (Exception ex)
+        else
         {
-            await tx.RollbackAsync(ct);
-            _logger.LogError(ex, $"Error inesperado en eliminación masiva de {ENTITY.ToLower()}");
-            return StatusCode(500,
-                ProcessResponse<int>.Fail(
-                    $"Ocurrió un error al eliminar los {ENTITY.ToLower()}."
-                ));
+            if (request.Ids == null || request.Ids.Count == 0)
+                return BadRequest(ProcessResponse<int>.Fail("No se recibieron Ids para eliminar."));
+
+            items = await _db.AnirWorks
+                .Include(w => w.AnirWorkPersons)
+                .Include(w => w.AnirWorkPresentations)
+                .Where(w => request.Ids.Contains(w.Id))
+                .ToListAsync(ct);
         }
+
+        if (!items.Any())
+            return NotFound(ProcessResponse<int>.Fail($"No se encontraron {ENTITY.ToLower()} para eliminar."));
+
+        foreach (var w in items)
+        {
+            _db.AnirWorkPersons.RemoveRange(w.AnirWorkPersons);
+            _db.AnirWorkPresentations.RemoveRange(w.AnirWorkPresentations);
+        }
+
+        _db.AnirWorks.RemoveRange(items);
+
+        var affected = await _db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+
+        return Ok(ProcessResponse<int>.Success(
+            affected,
+            $"Se eliminaron {items.Count} {ENTITY.ToLower()}."
+        ));
     }
+
 
     // ============================================================
     // EXPORT PDF LIST
@@ -428,7 +415,8 @@ public class AnirWorkController : ControllerBase
         [FromBody] BulkSelectionRequest request,
         CancellationToken ct = default)
     {
-        IQueryable<AnirWork> query = _db.AnirWorks.Include(w => w.Company);
+        IQueryable<AnirWork> query = _db.AnirWorks.Include(w => w.Ueb).ThenInclude(u => u.Company);
+
 
         if (request.Ids is { Count: > 0 })
             query = query.Where(w => request.Ids.Contains(w.Id));
@@ -451,7 +439,7 @@ public class AnirWorkController : ControllerBase
         [FromBody] BulkSelectionRequest request,
         CancellationToken ct = default)
     {
-        IQueryable<AnirWork> query = _db.AnirWorks.Include(w => w.Company);
+        IQueryable<AnirWork> query = _db.AnirWorks.Include(w => w.Ueb).ThenInclude(u => u.Company);
 
         if (request.Ids is { Count: > 0 })
             query = query.Where(w => request.Ids.Contains(w.Id));

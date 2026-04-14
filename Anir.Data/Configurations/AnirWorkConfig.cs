@@ -11,6 +11,9 @@ public class AnirWorkConfig : IEntityTypeConfiguration<AnirWork>
         builder.HasKey(a => a.Id);
         builder.Property(a => a.Id).ValueGeneratedOnAdd();
 
+        // ============================
+        // CAMPOS BASE
+        // ============================
         builder.Property(a => a.AnirNumber)
                .IsRequired()
                .HasMaxLength(20);
@@ -19,7 +22,8 @@ public class AnirWorkConfig : IEntityTypeConfiguration<AnirWork>
                .IsRequired()
                .HasMaxLength(150);
 
-        builder.Property(a => a.Description).HasMaxLength(2000);
+        builder.Property(a => a.Description)
+               .HasMaxLength(2000);
 
         builder.Property(a => a.EconomicImpact)
                .HasColumnType("numeric(18,2)");
@@ -31,16 +35,24 @@ public class AnirWorkConfig : IEntityTypeConfiguration<AnirWork>
                .HasConversion<int>()
                .IsRequired();
 
-        builder.Property(a => a.Recommendations).HasMaxLength(2000);
-        builder.Property(a => a.ResolutionNumber).HasMaxLength(50);
+        builder.Property(a => a.Recommendations)
+               .HasMaxLength(2000);
 
-        builder.HasIndex(a => new { a.CompanyId, a.AnirNumber }).IsUnique();
-        builder.HasIndex(a => new { a.CompanyId, a.ResolutionNumber }).IsUnique();
+        builder.Property(a => a.ResolutionNumber)
+               .HasMaxLength(50);
 
-        // ✔️ Relación con Company (HIJO)
-        builder.HasOne(a => a.Company)
-               .WithMany(c => c.AnirWorks)
-               .HasForeignKey(a => a.CompanyId)
+        // ============================
+        // ÍNDICES PROFESIONALES
+        // ============================
+        builder.HasIndex(a => new { a.UebId, a.AnirNumber }).IsUnique();
+        builder.HasIndex(a => new { a.UebId, a.ResolutionNumber }).IsUnique();
+
+        // ============================
+        // RELACIÓN CORRECTA (UEB)
+        // ============================
+        builder.HasOne(a => a.Ueb)
+               .WithMany(u => u.AnirWorks)
+               .HasForeignKey(a => a.UebId)
                .OnDelete(DeleteBehavior.Restrict);
     }
 }

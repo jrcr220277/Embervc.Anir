@@ -298,37 +298,6 @@ namespace Anir.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "AnirWorks",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    CompanyId = table.Column<int>(type: "integer", nullable: false),
-                    Date = table.Column<DateOnly>(type: "date", nullable: false),
-                    AnirNumber = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
-                    Title = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
-                    Description = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
-                    HasSocialEffect = table.Column<bool>(type: "boolean", nullable: false),
-                    HasEconomicEffect = table.Column<bool>(type: "boolean", nullable: false),
-                    Generalization = table.Column<int>(type: "integer", nullable: false),
-                    EconomicImpact = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
-                    Recommendations = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
-                    ResolutionNumber = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
-                    ImageId = table.Column<string>(type: "text", nullable: true),
-                    PdfId = table.Column<string>(type: "text", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_AnirWorks", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_AnirWorks_Companies_CompanyId",
-                        column: x => x.CompanyId,
-                        principalTable: "Companies",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Uebs",
                 columns: table => new
                 {
@@ -358,6 +327,37 @@ namespace Anir.Data.Migrations
                         principalTable: "Municipalities",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AnirWorks",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    UebId = table.Column<int>(type: "integer", nullable: false),
+                    Date = table.Column<DateOnly>(type: "date", nullable: false),
+                    AnirNumber = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Title = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    Description = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    HasSocialEffect = table.Column<bool>(type: "boolean", nullable: false),
+                    HasEconomicEffect = table.Column<bool>(type: "boolean", nullable: false),
+                    Generalization = table.Column<int>(type: "integer", nullable: false),
+                    EconomicImpact = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    Recommendations = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    ResolutionNumber = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    ImageId = table.Column<string>(type: "text", nullable: true),
+                    PdfId = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AnirWorks", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AnirWorks_Uebs_UebId",
+                        column: x => x.UebId,
+                        principalTable: "Uebs",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -425,15 +425,15 @@ namespace Anir.Data.Migrations
                 column: "AnirWorkId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_AnirWorks_CompanyId_AnirNumber",
+                name: "IX_AnirWorks_UebId_AnirNumber",
                 table: "AnirWorks",
-                columns: new[] { "CompanyId", "AnirNumber" },
+                columns: new[] { "UebId", "AnirNumber" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_AnirWorks_CompanyId_ResolutionNumber",
+                name: "IX_AnirWorks_UebId_ResolutionNumber",
                 table: "AnirWorks",
-                columns: new[] { "CompanyId", "ResolutionNumber" },
+                columns: new[] { "UebId", "ResolutionNumber" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -587,9 +587,6 @@ namespace Anir.Data.Migrations
                 name: "SystemSettings");
 
             migrationBuilder.DropTable(
-                name: "Uebs");
-
-            migrationBuilder.DropTable(
                 name: "Persons");
 
             migrationBuilder.DropTable(
@@ -600,6 +597,9 @@ namespace Anir.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");
+
+            migrationBuilder.DropTable(
+                name: "Uebs");
 
             migrationBuilder.DropTable(
                 name: "Companies");

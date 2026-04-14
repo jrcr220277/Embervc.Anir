@@ -3,6 +3,8 @@
 @page "/anirworks/view/{Id:int}"
 
 @using Anir.Client.Pages.AnirWork
+@using Anir.Client.Services.Ueb
+@using Anir.Shared.Contracts.Uebs
 @using MudBlazor
 @using Anir.Shared.Contracts.AnirWorks
 @using Anir.Client.Services.AnirWorks
@@ -10,79 +12,64 @@
 @using Anir.Client.Services
 
 @inject IAnirWorkService WorkService
-@inject CompanyService CompanyService
+
 @inject IAlertService AlertService
 @inject NavigationManager Nav
 
-<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+<MudContainer MaxWidth="MaxWidth.False" Class="px-3">
 
     <!-- ============================================================
          ENCABEZADO PROFESIONAL
     ============================================================ -->
-    <MudPaper Class="pa-3 mb-4" Elevation="1">
-
-        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-
-            <!-- IZQUIERDA: Icono + Títulos -->
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+    <MudGrid Class="mb-2">
+        <MudItem xs="12">
+            <div class="d-flex align-center">
                 <MudIcon Icon="@Icons.Material.TwoTone.Work" Style="font-size: 3rem;" />
-
-                <MudStack>
+             
+                <div class="ml-3">
                     <MudText Typo="Typo.h5" Class="font-weight-bold">
                         @(IsViewMode ? "Ver Trabajo ANIR" : Id == null ? "Crear Trabajo ANIR" : "Editar Trabajo ANIR")
                     </MudText>
-
                     <MudText Typo="Typo.caption" Color="Color.Secondary">
                         Gestión integral de trabajos ANIR
                     </MudText>
-                </MudStack>
-            </MudStack>
+                </div>
+            </div>
+        </MudItem>
+    </MudGrid>
 
-            <!-- DERECHA: Chip de estado -->
-            <MudStack Row="true" Spacing="1">
-                <MudChip T="string"
-                         Color="Color.Info"
-                         Variant="Variant.Outlined">
-                    @(IsViewMode ? "Modo lectura" : Id == null ? "Nuevo" : "Edición")
-                </MudChip>
-            </MudStack>
-
-        </MudStack>
-
-
-    </MudPaper>
-
-    @if (IsLoading)
+    <MudDivider Class="mb-3" />
+   
+    @if (IsInitializingPage)
     {
-        <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Style="min-height:200px;">
-            <MudProgressCircular Indeterminate="true" Size="Size.Large" />
-        </MudStack>
+        <UiLoading Indeterminate="true" Message="Cargando datos..." ContainerHeight="100vh" Size="Size.Large" />
+        return;
     }
     else
     {
         <!-- ============================================================
              LAYOUT PRINCIPAL: SIDEBAR + CONTENIDO
         ============================================================ -->
-        <EditForm Model="Model" OnValidSubmit="Save">
+        <EditForm Model="_formModel" OnValidSubmit="Save">
             <DataAnnotationsValidator />
 
-            <MudGrid>
+            <MudGrid Spacing="3">
 
                 <!-- ============================================================
                      SIDEBAR FIJO (columna izquierda)
                 ============================================================ -->
                 <MudItem xs="12" md="3">
 
-                    <MudPaper Class="pa-3 rounded-lg" Elevation="1">
+                    <MudPaper Class="pa-3" Elevation="1" Outlined="true">
 
                         <!-- IMAGEN -->
                         <MudText Typo="Typo.subtitle2" Class="mb-1 font-weight-semibold">
                             Imagen
                         </MudText>
 
-                        <PhotoUploader Value="@Model.ImageUrl"
+                        <PhotoUploader Value="@_formModel.ImageUrl"
                                        IsProfile="false"
-                                       Size="140"
+                                       Size="350"
                                        OnChanged="HandleImageChanged"
                                        IsViewMode="IsViewMode" />
 
@@ -95,16 +82,16 @@
 
                         @if (!IsViewMode)
                         {
-                            <PdfUpload Value="@Model.PdfUrl"
+                            <PdfUpload Value="@_formModel.PdfUrl"
                                        OnChanged="HandlePdfChanged" />
                         }
 
-                        @if (!string.IsNullOrEmpty(Model.PdfUrl))
+                        @if (!string.IsNullOrEmpty(_formModel.PdfUrl))
                         {
                             <MudButton Variant="Variant.Outlined"
                                        Color="Color.Primary"
                                        StartIcon="@Icons.Material.Outlined.PictureAsPdf"
-                                       Href="@Model.PdfUrl"
+                                       Href="@_formModel.PdfUrl"
                                        Target="_blank"
                                        Dense="true"
                                        Class="mt-1">
@@ -126,18 +113,17 @@
 
                 </MudItem>
 
-
                 <!-- ============================================================
                      CONTENIDO PRINCIPAL (columna derecha)
                 ============================================================ -->
                 <MudItem xs="12" md="9">
 
-                    <MudPaper Class="pa-3 rounded-lg" Elevation="1">
+                    <MudPaper Class="pa-3" Elevation="1" Outlined="true">
 
                         <MudTabs Vertical="true"
                                  ApplyEffectsToContainer="true"
                                  Border="true"
-                                 TabPanelsClass="pa-4">
+                                 TabPanelsClass="pa-3">
 
                             <!-- DATOS GENERALES -->
                             <MudTabPanel Text="Datos generales" Icon="@Icons.Material.Outlined.Info">
@@ -147,24 +133,53 @@
                                     <!-- Empresa -->
                                     <MudItem xs="12" md="6">
                                         <MudSelect T="int"
-                                                   Label="Empresa"
-                                                   @bind-Value="Model.CompanyId"
-                                                   Disabled="IsViewMode"
-                                                   Required="true"
+                                                   Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.CompanyId)"
+                                                   @bind-Value="_formModel.CompanyId"
                                                    Variant="Variant.Outlined"
-                                                   Dense="true"
-                                                   Class="w-100">
-                                            @foreach (var c in Companies)
+                                                   Required="true"
+                                                   Strict="true"
+                                                   FullWidth="true"
+                                                   Margin="Margin.Dense"
+                                                   Dense="true">
+
+                                            @foreach (var item in AllCompanies)
                                             {
-                                                <MudSelectItem Value="@c.Id">@c.Name</MudSelectItem>
+                                                <MudSelectItem T="int" Value="@item.Id">
+                                                    @($"{item.ShortName} – {item.Name}")
+                                                </MudSelectItem>
                                             }
                                         </MudSelect>
+
+
+                                    </MudItem>
+
+                                    <!-- Esptablecimiento -->
+                                    <MudItem xs="12" md="6">
+                                        <MudSelect T="int"
+                                                   Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.UebId)"
+                                                   For="@(() => _formModel.UebId)"
+                                                   @bind-Value="_formModel.UebId"
+                                                   Variant="Variant.Outlined"
+                                                   Strict="true"
+                                                   Required="true"
+                                                   FullWidth="true"
+                                                   Margin="Margin.Dense"
+                                                   Dense="true">
+
+                                            @foreach (var item in AllUebs)
+                                            {
+                                                <MudSelectItem T="int?" Value="@item.Id">
+                                                    @($"{item.Code} - {item.Name}")
+                                                </MudSelectItem>
+                                            }
+                                        </MudSelect>
+
                                     </MudItem>
 
                                     <!-- Número ANIR -->
-                                    <MudItem xs="12" md="6">
+                                    <MudItem xs="12" md="12">
                                         <MudTextField Label="Número ANIR"
-                                                      @bind-Value="Model.AnirNumber"
+                                                      @bind-Value="_formModel.AnirNumber"
                                                       Disabled="IsViewMode"
                                                       Required="true"
                                                       Variant="Variant.Outlined"
@@ -175,8 +190,8 @@
                                     <!-- Fecha -->
                                     <MudItem xs="12" md="6">
                                         <MudDatePicker Label="Fecha"
-                                                       Date="@Model.Date.ToDateTime(TimeOnly.MinValue)"
-                                                       DateChanged="@(d => Model.Date = DateOnly.FromDateTime(d ?? DateTime.Now))"
+                                                       Date="@_formModel.Date.ToDateTime(TimeOnly.MinValue)"
+                                                       DateChanged="@(d => _formModel.Date = DateOnly.FromDateTime(d ?? DateTime.Now))"
                                                        Disabled="IsViewMode"
                                                        Variant="Variant.Outlined"
                                                        Dense="true"
@@ -186,7 +201,7 @@
                                     <!-- Título -->
                                     <MudItem xs="12">
                                         <MudTextField Label="Título"
-                                                      @bind-Value="Model.Title"
+                                                      @bind-Value="_formModel.Title"
                                                       Disabled="IsViewMode"
                                                       Required="true"
                                                       Variant="Variant.Outlined"
@@ -197,7 +212,7 @@
                                     <!-- Descripción -->
                                     <MudItem xs="12">
                                         <MudTextField Label="Descripción"
-                                                      @bind-Value="Model.Description"
+                                                      @bind-Value="_formModel.Description"
                                                       Disabled="IsViewMode"
                                                       Variant="Variant.Outlined"
                                                       Dense="true"
@@ -210,7 +225,7 @@
                                     ============================ -->
 
                                     <MudItem xs="12" md="6">
-                                        <MudSwitch T="bool" @bind-Checked="Model.HasSocialEffect"
+                                        <MudSwitch T="bool" @bind-Checked="_formModel.HasSocialEffect"
                                                    Disabled="IsViewMode"
                                                    Color="Color.Success"
                                                    Dense="true">
@@ -219,7 +234,7 @@
                                     </MudItem>
 
                                     <MudItem xs="12" md="6">
-                                        <MudSwitch T="bool" @bind-Checked="Model.HasEconomicEffect"
+                                        <MudSwitch T="bool" @bind-Checked="_formModel.HasEconomicEffect"
                                                    Disabled="IsViewMode"
                                                    Color="Color.Success"
                                                    Dense="true">
@@ -230,7 +245,7 @@
                                     <MudItem xs="12" md="6">
                                         <MudSelect T="GeneralizationStatus"
                                                    Label="Generalización"
-                                                   @bind-Value="Model.Generalization"
+                                                   @bind-Value="_formModel.Generalization"
                                                    Disabled="IsViewMode"
                                                    Variant="Variant.Outlined"
                                                    Dense="true"
@@ -244,7 +259,7 @@
                                     <MudItem xs="12" md="6">
                                         <MudNumericField T="decimal"
                                                          Label="Impacto Económico"
-                                                         @bind-Value="Model.EconomicImpact"
+                                                         @bind-Value="_formModel.EconomicImpact"
                                                          Disabled="IsViewMode"
                                                          Variant="Variant.Outlined"
                                                          Dense="true"
@@ -253,7 +268,7 @@
 
                                     <MudItem xs="12">
                                         <MudTextField Label="Número de Resolución"
-                                                      @bind-Value="Model.ResolutionNumber"
+                                                      @bind-Value="_formModel.ResolutionNumber"
                                                       Disabled="IsViewMode"
                                                       Variant="Variant.Outlined"
                                                       Dense="true"
@@ -267,19 +282,19 @@
 
                             <!-- PERSONAS -->
                             <MudTabPanel Text="Personas" Icon="@Icons.Material.Outlined.Group">
-                                <AnirWorkPersonsSection Persons="Model.Persons" IsViewMode="IsViewMode" />
+                                <AnirWorkPersonsSection Persons="_formModel.Persons" IsViewMode="IsViewMode" />
                             </MudTabPanel>
 
                             <!-- PRESENTACIONES -->
                             <MudTabPanel Text="Presentaciones" Icon="@Icons.Material.Outlined.PresentToAll">
-                                <AnirWorkPresentationsSection Presentations="Model.Presentations" IsViewMode="IsViewMode" />
+                                <AnirWorkPresentationsSection Presentations="_formModel.Presentations" IsViewMode="IsViewMode" />
                             </MudTabPanel>
 
                             <!-- ADMINISTRATIVO (DETALLE) -->
                             <MudTabPanel Text="Administrativo" Icon="@Icons.Material.Outlined.AdminPanelSettings">
 
                                 <MudTextField Label="Recomendaciones"
-                                              @bind-Value="Model.Recommendations"
+                                              @bind-Value="_formModel.Recommendations"
                                               Disabled="IsViewMode"
                                               Variant="Variant.Outlined"
                                               Dense="true"
@@ -321,7 +336,7 @@
                     </MudButton>
                 }
                 <MudAlert Severity="Severity.Info">
-                    Personas: @Model.Persons?.Count — Presentaciones: @Model.Presentations?.Count
+                    Personas: @_formModel.Persons?.Count — Presentaciones: @_formModel.Presentations?.Count
                 </MudAlert>
 
             </MudStack>
@@ -331,17 +346,29 @@
 </MudContainer>
 
 @code {
+    [Inject] private ICompanyService CompanyService { get; set; } = default!;
+    [Inject] private IUebService UebService { get; set; } = default!;
 
     [Parameter] public int? Id { get; set; }
-
-    private bool IsLoading = true;
+    
+    private bool IsInitializingPage = true;
     private bool IsViewMode => Nav.Uri.Contains("/view");
 
-    private AnirWorkDto Model = new();
+    // ============================================================
+    // UBICACIÓN
+    // ============================================================
+    private List<CompanyDto> AllCompanies = new();
+    private List<UebDto> AllUebs = new();
+
+    private AnirWorkDto _formModel = new();
     private List<CompanyDto> Companies = new();
+
 
     protected override async Task OnInitializedAsync()
     {
+        AllCompanies = await CompanyService.GetAllAsync() ?? new();
+        AllUebs = await UebService.GetAllAsync() ?? new();
+
         var query = new CompanyQueryDto
         {
             Page = 1,
@@ -358,7 +385,7 @@
 
         if (Id is null)
         {
-            Model = new AnirWorkDto
+            _formModel = new AnirWorkDto
             {
                 Persons = new(),
                 Presentations = new()
@@ -369,7 +396,7 @@
             var response = await WorkService.GetByIdAsync(Id.Value);
 
             if (response?.Result == ResponseStatus.Success)
-                Model = response.Value!;
+                _formModel = response.Value!;
             else
             {
                 await AlertService.ShowError("Error", "No se pudo cargar el trabajo.");
@@ -378,25 +405,25 @@
             }
         }
        
-         IsLoading = false;
+        IsInitializingPage = false;
     }
 
     private void HandleImageChanged(FileResponse? file)
     {
-        Model.ImageId = file?.Id;
-        Model.ImageUrl = file?.Url;
+        _formModel.ImageId = file?.Id;
+        _formModel.ImageUrl = file?.Url;
     }
 
     private void HandlePdfChanged(FileResponse? file)
     {
-        Model.PdfId = file?.Id;
-        Model.PdfUrl = file?.Url;
+        _formModel.PdfId = file?.Id;
+        _formModel.PdfUrl = file?.Url;
     }
 
     private void DeletePdf()
     {
-        Model.PdfId = null;
-        Model.PdfUrl = null;
+        _formModel.PdfId = null;
+        _formModel.PdfUrl = null;
     }
 
     private async Task Save()
@@ -406,8 +433,8 @@
 
         ProcessResponse<AnirWorkDto>? response =
             Id is null
-            ? await WorkService.CreateAsync(Model)
-            : await WorkService.UpdateAsync(Model.Id, Model);
+            ? await WorkService.CreateAsync(_formModel)
+            : await WorkService.UpdateAsync(_formModel.Id, _formModel);
 
         if (response?.Result == ResponseStatus.Success)
         {

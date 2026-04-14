@@ -3,6 +3,7 @@ using Anir.Data.Entities;
 using Anir.Infrastructure.Extensions;
 using Anir.Infrastructure.Reports.Template.Excel;
 using Anir.Shared.Contracts.Common;
+using Anir.Shared.Contracts.Companies;
 using Anir.Shared.Contracts.Uebs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -61,6 +62,26 @@ public class UebController : ControllerBase
     };
 
     // ============================================================
+    // GET ALL
+    // ============================================================
+    [HttpGet("all")]
+    public async Task<ActionResult<List<UebDto>>> GetAll(CancellationToken ct = default)
+    {
+        var items = await _db.Uebs
+            .AsNoTracking()
+            .OrderBy(o => o.Name)
+            .Select(o => new UebDto
+            {
+                Id = o.Id,
+                Code = o.Code,
+                Name = o.Name
+            })
+            .ToListAsync(ct);
+
+        return Ok(items);
+    }
+
+    // ============================================================
     // GET PAGED
     // ============================================================
     [HttpPost("getpaged")]
@@ -72,50 +93,67 @@ public class UebController : ControllerBase
             return BadRequest(ProcessResponse<PagedResponse<UebDto>>.Fail("Datos inválidos."));
 
         var query = _db.Uebs
-            .Include(c => c.Municipality)
-            .ThenInclude(m => m.Province)
             .Include(c => c.Company)
             .AsNoTracking();
 
+        // ============================================================
+        // SEARCH
+        // ============================================================
         if (!string.IsNullOrWhiteSpace(queryDto.Search))
         {
             var s = queryDto.Search.Trim().ToLower();
-            query = query.Where(entity =>
-                entity.Company.ShortName.ToLower().Contains(s) ||
-                entity.Code.ToLower().Contains(s) ||
-                entity.Name.ToLower().Contains(s) ||
-                entity.Phone.ToLower().Contains(s) ||
-                entity.Email.ToLower().Contains(s) 
-             
-               
+
+            query = query.Where(x =>
+                x.Company.ShortName.ToLower().Contains(s) ||
+                x.Code.ToLower().Contains(s) ||
+                x.Name.ToLower().Contains(s) ||
+                x.Phone.ToLower().Contains(s) ||
+                x.Email.ToLower().Contains(s)
             );
         }
 
+        // ============================================================
+        // FILTER ACTIVE
+        // ============================================================
         if (queryDto.ActiveFilter.HasValue)
             query = query.Where(x => x.Active == queryDto.ActiveFilter.Value);
 
+        // ============================================================
+        // SORT (mapeo DTO → entidad real)
+        // ============================================================
+        queryDto.Sort = queryDto.Sort switch
+        {
+            "CompanyName" => "Company.ShortName",
+            _ => queryDto.Sort
+        };
+
         var orderedQuery = query.ApplySorting(queryDto);
 
-        var pagedResult = await orderedQuery
-         .Select(c => new UebDto
-         {
-             Id = c.Id,
-             Code = c.Code,
-             Name = c.Name,
-             Address = c.Address,
-             Phone = c.Phone,
-             Email = c.Email,
-             MunicipalityId = c.MunicipalityId,
-             MunicipalityName = c.Municipality!.Name,
-             ProvinceName = c.Municipality!.Province!.Name,
-             CompanyId = c.CompanyId,
-             CompanyName = c.Company!.ShortName,
-             Active = c.Active
-         })
-         .ToPagedResultAsync(queryDto, ct);
+        // ============================================================
+        // PROJECTION
+        // ============================================================
+        var projectedQuery = orderedQuery.Select(x => new UebDto
+        {
+            Id = x.Id,
+            Code = x.Code,
+            Name = x.Name,
+            Address = x.Address,
+            Phone = x.Phone,
+            Email = x.Email,
+            CompanyId = x.CompanyId,
+            CompanyName = x.Company.ShortName,
+            Active = x.Active
+        });
 
-        return Ok(ProcessResponse<PagedResponse<UebDto>>.Success(pagedResult));
+        // ============================================================
+        // PAGING
+        // ============================================================
+        var paged = await projectedQuery.ToPagedResultAsync(queryDto, ct);
+
+        return Ok(ProcessResponse<PagedResponse<UebDto>>.Success(paged));
     }
+
+
 
     // ============================================================
     // GET BY ID

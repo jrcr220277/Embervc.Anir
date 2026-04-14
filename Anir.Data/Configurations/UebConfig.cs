@@ -46,6 +46,12 @@ namespace Anir.Data.Configurations
                    .WithMany(c => c.Uebs)
                    .HasForeignKey(u => u.CompanyId)
                    .OnDelete(DeleteBehavior.Restrict);
+
+            // ⭐ NUEVA RELACIÓN CORRECTA
+            builder.HasMany(u => u.AnirWorks)
+                   .WithOne(a => a.Ueb)
+                   .HasForeignKey(a => a.UebId)
+                   .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

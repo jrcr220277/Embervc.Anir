@@ -15,25 +15,25 @@
     <TitleContent>
         <MudStack Row="true" AlignItems="AlignItems.Center">
 
-            <MudAvatar Size="Size.Large" Variant="Variant.Filled">
-                <MudIcon Icon="@(CurrentMode == ModalMode.Add ? Icons.Material.TwoTone.AddCircle
+           
+           <MudIcon Icon="@(CurrentMode == ModalMode.Add ? Icons.Material.TwoTone.AddCircle
                                                      : CurrentMode == ModalMode.Edit
                                                          ? Icons.Material.TwoTone.Edit
                                                          : Icons.Material.TwoTone.Visibility)"
-                         Size="Size.Large" />
-            </MudAvatar>
+                   Size="Size.Large" />
+           
 
             <MudStack Spacing="0">
                 <MudText Typo="Typo.h6" Class="font-weight-semibold">
-                    @(CurrentMode == ModalMode.Add ? "Crear Persona" :
-                      CurrentMode == ModalMode.Edit ? "Editar Persona" :
-                      "Detalle de la Persona")
+                    @(CurrentMode == ModalMode.Add ? "Crear Anirista" :
+                      CurrentMode == ModalMode.Edit ? "Editar Anirista" :
+                      "Detalle del Anirista")
                 </MudText>
 
                 <MudText Typo="Typo.body2" Color="Color.Secondary">
-                    @(CurrentMode == ModalMode.Add ? "Complete los datos para registrar una nueva persona" :
-                      CurrentMode == ModalMode.Edit ? "Modifique los datos de la persona seleccionada" :
-                      "Visualización de la información de la persona")
+                    @(CurrentMode == ModalMode.Add ? "Complete los datos para registrar una nuevo anirista" :
+                      CurrentMode == ModalMode.Edit ? "Modifique los datos del anirista seleccionado" :
+                      "Visualización de la información del anirista")
                 </MudText>
             </MudStack>
 
@@ -47,7 +47,7 @@
 
     @if (_isLoading)
     {
-        <UiLoading Indeterminate="true" Message="Cargando..." Size="Size.Medium" />
+        <UiLoading Indeterminate="true" Message="Cargando datos..." Size="Size.Medium" />
     }
     else
     {
@@ -61,8 +61,8 @@
                 <MudItem xs="12" sm="3">
                     <MudPaper Elevation="1" Class="pa-3 rounded-lg" Style="background:var(--mud-palette-background);">
                         <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Start" Class="mb-2">
-                            <MudIcon Icon="@Icons.Material.Outlined.PermContactCalendar" Color="Color.Info" Size="Size.Small" />
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">Imagen de usuario</MudText>
+                            <MudIcon Icon="@Icons.Material.Outlined.PermContactCalendar" Size="Size.Small" />
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Imagen de perfil</MudText>
                         </MudStack>
 
                             <PhotoUploader Value="@_formModel.ImagenUrl"
@@ -82,7 +82,7 @@
                         <MudItem xs="12">
                             <MudPaper Elevation="1" Class="pa-3 rounded-lg" Outlined="true">
                                 <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Start" Class="mb-2">
-                                    <MudIcon Icon="@Icons.Material.Outlined.Badge" Color="Color.Info" Size="Size.Small" />
+                                        <MudIcon Icon="@Icons.Material.Outlined.Hail" Size="Size.Small" />
                                     <MudText Typo="Typo.body2" Color="Color.Secondary">Datos básicos</MudText>
                                 </MudStack>
 
@@ -93,19 +93,24 @@
                                             @if (IsViewMode)
                                             {
                                                 <MudStack>
-                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">DNI</MudText>
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                        @ModelMetadataHelper.GetDisplayName(() => _formModel.Dni)
+                                                    </MudText>
                                                     <MudText Typo="Typo.body1">@_formModel.Dni</MudText>
                                                 </MudStack>
                                             }
                                             else
                                             {
-                                                <MudTextField Label="DNI"
+                                                <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Dni)"
+                                                              For="@(() => _formModel.Dni)"
                                                               @bind-Value="_formModel.Dni"
+                                                              InputType="InputType.Text"
                                                               Variant="Variant.Outlined"
                                                               Required="true"
                                                               FullWidth="true"
                                                               Margin="Margin.Dense"
                                                               Clearable="true" />
+                                                
                                             }
                                         </MudItem>
 
@@ -114,14 +119,18 @@
                                             @if (IsViewMode)
                                             {
                                                 <MudStack>
-                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Nombre</MudText>
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                        @ModelMetadataHelper.GetDisplayName(() => _formModel.FullName)"
+                                                    </MudText>
                                                     <MudText Typo="Typo.body1">@_formModel.FullName</MudText>
                                                 </MudStack>
                                             }
                                             else
                                             {
-                                                <MudTextField Label="Nombre"
+                                                <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.FullName)"
+                                                              For="@(() => _formModel.FullName)"
                                                               @bind-Value="_formModel.FullName"
+                                                              InputType="InputType.Text"
                                                               Variant="Variant.Outlined"
                                                               Required="true"
                                                               FullWidth="true"
@@ -135,14 +144,18 @@
                                             @if (IsViewMode)
                                             {
                                                 <MudStack>
-                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Teléfono</MudText>
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                        @ModelMetadataHelper.GetDisplayName(() => _formModel.CellPhone)"
+                                                    </MudText>
                                                     <MudText Typo="Typo.body1">@_formModel.CellPhone</MudText>
                                                 </MudStack>
                                             }
                                             else
                                             {
-                                                <MudTextField Label="Teléfono"
+                                                <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.CellPhone)"
+                                                              For="@(() => _formModel.CellPhone)"
                                                               @bind-Value="_formModel.CellPhone"
+                                                              InputType="InputType.Telephone"
                                                               Variant="Variant.Outlined"
                                                               FullWidth="true"
                                                               Margin="Margin.Dense"
@@ -155,18 +168,22 @@
                                         @if (IsViewMode)
                                         {
                                             <MudStack>
-                                                <MudText Typo="Typo.caption" Color="Color.Secondary">Email</MudText>
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                    @ModelMetadataHelper.GetDisplayName(() => _formModel.Email)"
+                                                </MudText>
                                                 <MudText Typo="Typo.body1">@_formModel.Email</MudText>
                                             </MudStack>
                                         }
                                         else
                                         {
-                                            <MudTextField Label="Email"
-                                                          @bind-Value="_formModel.Email"
-                                                          Variant="Variant.Outlined"
-                                                          FullWidth="true"
-                                                          Margin="Margin.Dense"
-                                                          Clearable="true" />
+                                                <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Email)"
+                                                              For="@(() => _formModel.Email)"
+                                                              @bind-Value="_formModel.Email"
+                                                              InputType="InputType.Email"
+                                                              Variant="Variant.Outlined"
+                                                              FullWidth="true"
+                                                              Margin="Margin.Dense"
+                                                              Clearable="true" />
                                         }
                                     </MudItem>
                                                                        
@@ -186,19 +203,22 @@
                                 @if (IsViewMode)
                                 {
                                     <MudStack>
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Descripción</MudText>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                @ModelMetadataHelper.GetDisplayName(() => _formModel.Description)"
+                                            </MudText>
                                         <MudText Typo="Typo.body1">@_formModel.Description</MudText>
                                     </MudStack>
                                 }
                                 else
                                 {
-                                    <MudTextField Label="Descripción"
-                                                  @bind-Value="_formModel.Description"
-                                                  Variant="Variant.Outlined"
-                                                  FullWidth="true"
-                                                  Margin="Margin.Dense"
-                                                  Lines="3"
-                                                  Clearable="true" />
+                                        <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Description)"
+                                                      For="@(() => _formModel.Description)"
+                                                      @bind-Value="_formModel.Description"
+                                                      InputType="InputType.Text"
+                                                      Variant="Variant.Outlined"
+                                                      FullWidth="true"
+                                                      Margin="Margin.Dense"
+                                                      Clearable="true" />
                                 }
                             </MudPaper>
                         </MudItem>
@@ -208,7 +228,9 @@
                             <MudPaper Class="pa-3 rounded-lg" Outlined="true">
                                 <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="mb-2">
                                     <MudIcon Icon="@Icons.Material.Outlined.Verified" Color="Color.Default" Size="Size.Small" />
-                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Estado del usuario</MudText>
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                            @ModelMetadataHelper.GetDisplayName(() => _formModel.Active)"
+                                        </MudText>
                                 </MudStack>
 
                                 @if (IsViewMode)

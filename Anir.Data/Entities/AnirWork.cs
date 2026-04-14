@@ -3,46 +3,52 @@
 namespace Anir.Data.Entities
 {
     /// <summary>
-    /// Represents an ANIR work carried out by a company.
-    /// Contains administrative, economic, and documentary information,
-    /// as well as relations with people and associated presentations.
+    /// Represents an ANIR work carried out by a specific UEB.
+    /// The UEB determines the Company and Organism through navigation.
     /// </summary>
     public class AnirWork
     {
         public int Id { get; set; }
-        public int CompanyId { get; set; }
+
+        // ============================
+        // RELACIÓN ORGANIZATIVA REAL
+        // ============================
+        public int UebId { get; set; }
+        public Ueb Ueb { get; set; } = null!;
+
+        // ============================
+        // DATOS BASE
+        // ============================
         public DateOnly Date { get; set; } = DateOnly.FromDateTime(DateTime.Now);
         public string AnirNumber { get; set; } = null!;
         public string Title { get; set; } = null!;
         public string? Description { get; set; }
 
-        // Replaced IsPaid with two boolean fields
+        // ============================
+        // EFECTOS
+        // ============================
         public bool HasSocialEffect { get; set; }
         public bool HasEconomicEffect { get; set; }
-
-        // Replaced IsGeneralized with an enum
         public GeneralizationStatus Generalization { get; set; } = GeneralizationStatus.No;
 
+        // ============================
+        // ECONOMÍA
+        // ============================
         public decimal EconomicImpact { get; set; }
         public string? Recommendations { get; set; }
         public string? ResolutionNumber { get; set; }
+
+        // ============================
+        // ARCHIVOS
+        // ============================
         public string? ImageId { get; set; }
         public string? PdfId { get; set; }
 
-        /// <summary>
-        /// Owning company of the work.
-        /// </summary>
-        public Company Company { get; set; } = null!;
-
-        /// <summary>
-        /// People associated with the work.
-        /// </summary>
+        // ============================
+        // RELACIONES
+        // ============================
         public ICollection<AnirWorkPerson> AnirWorkPersons { get; set; } = new List<AnirWorkPerson>();
-
-        /// <summary>
-        /// Presentations associated with the work.
-        /// </summary>
         public ICollection<AnirWorkPresentation> AnirWorkPresentations { get; set; } = new List<AnirWorkPresentation>();
-    }
 
+    }
 }

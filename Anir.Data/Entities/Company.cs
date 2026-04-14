@@ -49,11 +49,6 @@
         public bool Active { get; set; } = true;
 
         /// <summary>
-        /// Trabajos ANIR asociados a la empresa.
-        /// </summary>
-        public ICollection<AnirWork>? AnirWorks { get; set; }
-
-        /// <summary>
         /// UEBs subordinadas a esta empresa.
         /// </summary>
         public ICollection<Ueb>? Uebs { get; set; }

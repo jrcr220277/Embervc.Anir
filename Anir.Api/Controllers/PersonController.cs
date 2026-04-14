@@ -63,28 +63,52 @@ public class PersonController : ControllerBase
     // GET PAGED
     // ============================================================
     [HttpPost("getpaged")]
-    public async Task<ActionResult<ProcessResponse<PagedResponse<PersonDto>>>> GetPaged([FromBody] PersonQueryDto queryDto, CancellationToken ct = default)
+    public async Task<ActionResult<ProcessResponse<PagedResponse<PersonDto>>>> GetPaged(
+     [FromBody] PersonQueryDto queryDto,
+     CancellationToken ct = default)
     {
         if (!ModelState.IsValid)
             return BadRequest(ProcessResponse<PagedResponse<PersonDto>>.Fail("Datos inválidos."));
 
         var query = _db.Persons.AsNoTracking();
 
+        // ============================================================
+        // SEARCH
+        // ============================================================
         if (!string.IsNullOrWhiteSpace(queryDto.Search))
         {
             var s = queryDto.Search.Trim();
-            query = query.Where(x => x.Dni.Contains(s) || x.FullName.Contains(s));
+
+            query = query.Where(x =>
+                x.Dni.Contains(s) ||
+                x.FullName.Contains(s) ||
+                x.CellPhone.Contains(s) ||
+                x.Email.Contains(s) ||
+                x.ImagenId.Contains(s)
+            );
         }
 
+        // ============================================================
+        // FILTER ACTIVE
+        // ============================================================
         if (queryDto.ActiveFilter.HasValue)
             query = query.Where(x => x.Active == queryDto.ActiveFilter.Value);
 
+        // ============================================================
+        // SORT
+        // ============================================================
         var orderedQuery = query.ApplySorting(queryDto);
 
+        // ============================================================
+        // PROJECTION
+        // ============================================================
         var projectedQuery = orderedQuery.Select(x => new PersonDto
         {
             Id = x.Id,
             ImagenId = x.ImagenId,
+            ImagenUrl = string.IsNullOrWhiteSpace(x.ImagenId)
+                ? null
+                : $"{Request.Scheme}://{Request.Host}/{x.ImagenId}",
             Dni = x.Dni,
             FullName = x.FullName,
             CellPhone = x.CellPhone,
@@ -93,14 +117,10 @@ public class PersonController : ControllerBase
             Active = x.Active
         });
 
+        // ============================================================
+        // PAGING
+        // ============================================================
         var paged = await projectedQuery.ToPagedResultAsync(queryDto, ct);
-
-        foreach (var item in paged.Items)
-        {
-            item.ImagenUrl = string.IsNullOrWhiteSpace(item.ImagenId)
-                ? null
-                : $"{Request.Scheme}://{Request.Host}/{item.ImagenId}";
-        }
 
         return Ok(ProcessResponse<PagedResponse<PersonDto>>.Success(paged));
     }
@@ -171,7 +191,7 @@ public class PersonController : ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<ActionResult<ProcessResponse<bool>>> Delete(int id, CancellationToken ct = default)
     {
-        var entity = await _db.Persons.FindAsync(id, ct);
+        var entity = await _db.Persons.FindAsync(new object?[] { id }, ct);
         if (entity == null)
             return NotFound(ProcessResponse<bool>.Fail($"{ENTITY} no encontrada."));
 
@@ -180,15 +200,17 @@ public class PersonController : ControllerBase
 
         return Ok(ProcessResponse<bool>.Success(true, $"{ENTITY} eliminada correctamente."));
     }
-
     // ============================================================
-    // BATCH DELETE
+    // DELETE BATCH (versión simple y profesional)
     // ============================================================
     [HttpPost("batch-delete")]
-    public async Task<ActionResult<ProcessResponse<int>>> DeleteBatch([FromBody] BulkSelectionRequest request, CancellationToken ct = default)
+    public async Task<ActionResult<ProcessResponse<int>>> DeleteBatch(
+        [FromBody] BulkSelectionRequest request,
+        CancellationToken ct = default)
     {
         List<Person> itemsToDelete;
 
+        // Selección global o por IDs
         if (request.SelectAll)
         {
             itemsToDelete = await _db.Persons.ToListAsync(ct);
@@ -198,16 +220,26 @@ public class PersonController : ControllerBase
             if (request.Ids == null || request.Ids.Count == 0)
                 return BadRequest(ProcessResponse<int>.Fail("No se recibieron Ids para eliminar."));
 
-            itemsToDelete = await _db.Persons.Where(c => request.Ids.Contains(c.Id)).ToListAsync(ct);
+            itemsToDelete = await _db.Persons
+                .Where(o => request.Ids.Contains(o.Id))
+                .ToListAsync(ct);
         }
 
         if (!itemsToDelete.Any())
             return NotFound(ProcessResponse<int>.Fail($"No se encontraron {ENTITY.ToLower()} para eliminar."));
 
+        // ============================================================
+        // BORRADO REAL (sin validación previa)
+        // Si hay dependencias, la BD lanzará FK violation
+        // y el middleware devolverá un mensaje claro.
+        // ============================================================
         _db.Persons.RemoveRange(itemsToDelete);
         var affectedRows = await _db.SaveChangesAsync(ct);
 
-        return Ok(ProcessResponse<int>.Success(affectedRows, $"Se eliminaron {itemsToDelete.Count} {ENTITY.ToLower()}."));
+        return Ok(ProcessResponse<int>.Success(
+            affectedRows,
+            $"Se eliminaron {affectedRows} {ENTITY.ToLower()}."
+        ));
     }
 
     // ============================================================

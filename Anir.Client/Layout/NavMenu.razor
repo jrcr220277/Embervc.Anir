@@ -35,24 +35,12 @@
             </MudNavLink>
             <!-- PERSONAS -->
             <MudNavLink Href="/persons"
-                        Icon="@Icons.Material.Outlined.PeopleAlt"
+                        Icon="@Icons.Material.Outlined.Hail"
                         Match="NavLinkMatch.Prefix">
                 Aniristas
             </MudNavLink>
         </MudNavGroup>
 
-  
-        <!-- REPORTES -->
-        <MudNavLink Href="/reports"
-                    Icon="@Icons.Material.Outlined.Assessment"
-                    Match="NavLinkMatch.Prefix">
-            Reportes
-        </MudNavLink>
-    }
-
-    <!-- MÓDULO ANIR -->
-    @if (User.Active)
-    {
         <MudNavGroup Title="Trabajos ANIR"
                      Icon="@Icons.Material.Outlined.Work"
                      Expanded="true">

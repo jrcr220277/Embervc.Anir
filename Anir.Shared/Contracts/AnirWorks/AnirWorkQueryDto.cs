@@ -8,7 +8,7 @@ public class AnirWorkQueryDto : BaseQuery
     public string? Search { get; set; }
 
     public int? CompanyId { get; set; }
-
+    public int? UebId { get; set; }
     public bool? HasSocialEffect { get; set; }
     public bool? HasEconomicEffect { get; set; }
 

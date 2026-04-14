@@ -50,7 +50,7 @@
             </MudItem>
 
             <!-- CENTRO (6 columnas, centrado REAL) -->
-            <MudItem xs="12" sm="6" Class="d-flex justify-center">
+            <MudItem xs="12" sm="6" Class="d-flex justify-center align-end">
                 <MudTextField T="string"
                               Value="@SearchText"
                               ValueChanged="OnSearchInput"
@@ -62,7 +62,7 @@
             </MudItem>
 
             <!-- DERECHA (3 columnas, alineado a la derecha) -->
-            <MudItem xs="12" sm="3" Class="d-flex justify-end">
+            <MudItem xs="12" sm="3" Class="d-flex justify-end align-end">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                     <MudIcon Icon="@Icons.Material.Rounded.FilterAlt" Size="Size.Medium" />
                     <MudSelect T="string"

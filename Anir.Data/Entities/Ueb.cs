@@ -28,6 +28,11 @@
         public Company Company { get; set; } = null!;
 
         /// <summary>
+        /// Trabajos ANIR asociados a la empresa.
+        /// </summary>
+        public ICollection<AnirWork>? AnirWorks { get; set; }
+
+        /// <summary>
         /// Estado de la UEB.
         /// </summary>
         public bool Active { get; set; } = true;

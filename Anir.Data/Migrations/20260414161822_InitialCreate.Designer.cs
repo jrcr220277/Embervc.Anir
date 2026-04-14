@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Anir.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260412124644_InitialCreate")]
+    [Migration("20260414161822_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -38,9 +38,6 @@ namespace Anir.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
-
-                    b.Property<int>("CompanyId")
-                        .HasColumnType("integer");
 
                     b.Property<DateOnly>("Date")
                         .HasColumnType("date");
@@ -80,12 +77,15 @@ namespace Anir.Data.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
+                    b.Property<int>("UebId")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("CompanyId", "AnirNumber")
+                    b.HasIndex("UebId", "AnirNumber")
                         .IsUnique();
 
-                    b.HasIndex("CompanyId", "ResolutionNumber")
+                    b.HasIndex("UebId", "ResolutionNumber")
                         .IsUnique();
 
                     b.ToTable("AnirWorks", (string)null);
@@ -677,13 +677,13 @@ namespace Anir.Data.Migrations
 
             modelBuilder.Entity("Anir.Data.Entities.AnirWork", b =>
                 {
-                    b.HasOne("Anir.Data.Entities.Company", "Company")
+                    b.HasOne("Anir.Data.Entities.Ueb", "Ueb")
                         .WithMany("AnirWorks")
-                        .HasForeignKey("CompanyId")
+                        .HasForeignKey("UebId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Company");
+                    b.Navigation("Ueb");
                 });
 
             modelBuilder.Entity("Anir.Data.Entities.AnirWorkPerson", b =>
@@ -827,8 +827,6 @@ namespace Anir.Data.Migrations
 
             modelBuilder.Entity("Anir.Data.Entities.Company", b =>
                 {
-                    b.Navigation("AnirWorks");
-
                     b.Navigation("Uebs");
                 });
 
@@ -854,6 +852,11 @@ namespace Anir.Data.Migrations
                     b.Navigation("Companies");
 
                     b.Navigation("Municipalities");
+                });
+
+            modelBuilder.Entity("Anir.Data.Entities.Ueb", b =>
+                {
+                    b.Navigation("AnirWorks");
                 });
 #pragma warning restore 612, 618
         }

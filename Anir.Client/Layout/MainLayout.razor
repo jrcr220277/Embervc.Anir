@@ -33,7 +33,7 @@
     }
 
     <MudMainContent>
-        <MudAppBar Elevation="1" Dense="true">
+        <MudAppBar Elevation="0" Dense="true">
             @if (_isAuthenticated)
             {
                 <MudIconButton Icon="@(_drawerOpen? Icons.Material.Filled.MenuOpen : Icons.Material.Filled.Menu)"
@@ -418,9 +418,9 @@
         // ============================================================
         // CAPA 1 — FONDO GENERAL
         // ============================================================
-        Background = "#1E293B",          // Azul-gris oscuro (Slate 900) — fondo principal
+        Background = "#1B2433",          // Azul-gris oscuro (Slate 900) — fondo principal
         BackgroundGray = "#2A3244",      // Slate 800 — headers, secciones secundarias
-        DrawerBackground = "#1B2433",    // Igual que AppBar — marco único lateral
+        DrawerBackground = "#1E293B",    // Igual que AppBar — marco único lateral
         DrawerText = "rgba(255,255,255,0.75)",
         DrawerIcon = "rgba(255,255,255,0.75)",
 
@@ -432,7 +432,7 @@
         // ============================================================
         // APPBAR
         // ============================================================
-        AppbarBackground = "#1E293B",    // Igual que Drawer — barra superior integrada
+        AppbarBackground = "#1B2433",    // Igual que Drawer — barra superior integrada
         AppbarText = "rgba(255,255,255,0.85)",
 
         // ============================================================

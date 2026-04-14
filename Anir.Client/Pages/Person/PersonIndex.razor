@@ -14,22 +14,19 @@
     <MudGrid Class="mb-2">
         <MudItem xs="12">
             <div class="d-flex align-center">
-                <MudAvatar Size="Size.Large"  Variant="Variant.Filled">
-                    <MudIcon Icon="@Icons.Material.TwoTone.PeopleAlt"  Style="font-size: 3rem;" />
-                </MudAvatar>
-                              
+                <MudIcon Icon="@Icons.Material.TwoTone.Hail" Style="font-size: 3rem;" />
              
                 <div class="ml-3">
-                    <MudText Typo="Typo.h5" Class="fw-bold">Clasificador de Personas</MudText>
+                    <MudText Typo="Typo.h5" Class="fw-bold">Clasificador de Aniristas</MudText>
                     <MudText Typo="Typo.body2" Color="Color.Secondary">
-                        Gestión de personas: búsqueda, filtros y acciones masivas
+                        Gestión de aniristas: búsqueda, filtros y acciones masivas
                     </MudText>
                 </div>
             </div>
         </MudItem>
     </MudGrid>
 
-    <MudDivider Class="mb-4" />
+    <MudDivider Class="mb-3" />
 
     <!-- ============================================================
      ACTION BAR (Profesional, alineada, con peso visual)
@@ -49,7 +46,7 @@
             </MudItem>
 
             <!-- CENTRO (6 columnas, centrado REAL) -->
-            <MudItem xs="12" sm="6" Class="d-flex justify-center">
+            <MudItem xs="12" sm="6" Class="d-flex justify-center align-end">
                 <MudTextField T="string"
                               Value="@SearchText"
                               ValueChanged="OnSearchInput"
@@ -61,7 +58,7 @@
             </MudItem>
 
             <!-- DERECHA (3 columnas, alineado a la derecha) -->
-            <MudItem xs="12" sm="3" Class="d-flex justify-end">
+            <MudItem xs="12" sm="3" Class="d-flex justify-end align-end">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                     <MudIcon Icon="@Icons.Material.Rounded.FilterAlt" Size="Size.Medium" />
                     <MudSelect T="string"
@@ -84,26 +81,33 @@
     <!-- ============================================================
          ACCIONES MASIVAS (Banner profesional)
          ============================================================ -->
-    <MudCollapse Expanded="@(SelectedItems?.Any() == true || IsGlobalSelected)">
-        <MudPaper Outlined="true" Elevation="0" Class="px-4 mb-3 d-flex align-center justify-space-between flex-wrap gap-2">
+    <MudCollapse Expanded="@(SelectedItems.Any() || IsGlobalSelected)">
+        <MudPaper Outlined="true" Elevation="0"
+                  Class="px-4 mb-3 d-flex align-center justify-space-between flex-wrap gap-2">
 
+            <!-- IZQUIERDA: Icono + texto corto -->
             <div class="d-flex align-center">
-                <MudTooltip Text="Seleccionar todo" Arrow="true">
-                    <MudIconButton Icon="@(IsGlobalSelected? Icons.Material.Rounded.Deselect : Icons.Material.Rounded.SelectAll)"
+
+                <MudTooltip Text="@(IsGlobalSelected ? "Cancelar selección global" : "Seleccionar global")" Arrow="true">
+                    <MudIconButton Icon="@(IsGlobalSelected
+                                                                                                                                                                     ? Icons.Material.Filled.Deselect
+                                                                                                                                                         : Icons.Material.Filled.SelectAll)"
                                    Edge="Edge.Start"
+                                   Color="Color.Primary"
                                    Size="Size.Medium"
                                    OnClick="@(() => ToggleGlobalSelection())" />
                 </MudTooltip>
 
-
-                <MudText Typo="Typo.body2" Class="font-weight-medium ml-2">
+                <MudText Typo="Typo.body2" Class="ml-2 font-weight-medium">
                     @BulkSelectionText
                 </MudText>
-            </div>
-            
 
+            </div>
+
+
+            <!-- DERECHA: Acciones -->
             <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-               
+
                 <MudTooltip Text="Exportar PDF" Arrow="true">
                     <MudIconButton OnClick="@(() => ExportPdf())"
                                    Icon="@Icons.Custom.FileFormats.FilePdf"
@@ -126,12 +130,15 @@
                                    Icon="@Icons.Material.Rounded.DeleteForever"
                                    Color="Color.Error"
                                    Size="Size.Medium"
+                                   Edge="Edge.End"
                                    aria-label="Eliminar" />
                 </MudTooltip>
+
             </MudStack>
 
         </MudPaper>
     </MudCollapse>
+
 
 
 
@@ -148,18 +155,33 @@
               @bind-SelectedItems="SelectedItems"
               SelectOnRowClick="false"
               Loading="@IsLoadingTable"
-              HorizontalScrollbar="true">
+              HorizontalScrollbar="true" Elevation="0" Outlined="true">
 
         <HeaderContent>
+            <MudTh>Foto</MudTh>
             <MudTh><MudTableSortLabel T="PersonDto" SortLabel="Dni">CI</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="PersonDto" SortLabel="Name">Nombre</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="PersonDto" SortLabel="Municipality.Province.Name">Provincia</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="PersonDto" SortLabel="Municipality.Name">Municipio</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="PersonDto" SortLabel="CellPhone">Teléfono</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="PersonDto" SortLabel="Email">Correo</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="PersonDto" SortLabel="Active">Estado</MudTableSortLabel></MudTh>
             <MudTh Style="width: 120px; text-align:end">Acciones</MudTh>
         </HeaderContent>
 
         <RowTemplate Context="entity">
+            <!-- FOTO -->
+            <MudTd>
+                @if (!string.IsNullOrWhiteSpace(entity.ImagenUrl))
+                {
+                    <MudAvatar Size="Size.Medium">
+                        <MudImage Src="@entity.ImagenUrl" />
+                    </MudAvatar>
+
+                }
+                else
+                {
+                    <MudAvatar Size="Size.Medium"> <MudIcon Icon="@Icons.Material.Filled.Person" /> </MudAvatar>
+                }
+            </MudTd>
             <MudTd>@entity.Dni</MudTd>
             <MudTd>@entity.FullName</MudTd>
             <MudTd>@entity.CellPhone</MudTd>
@@ -170,9 +192,9 @@
                 </MudChip>
             </MudTd>
             <MudTd Style="width: 120px; text-align:end">
-                <MudIconButton Icon="@Icons.Material.Rounded.Visibility" OnClick="@(() => ViewCompany(entity))" Size="Size.Small" />
-                <MudIconButton Icon="@Icons.Material.Rounded.Edit" OnClick="@(() => EditCompany(entity))" Size="Size.Small" />
-                <MudIconButton Icon="@Icons.Material.Rounded.Delete" Color="Color.Error" OnClick="@(() => DeleteCompany(entity))" Size="Size.Small" />
+                <MudIconButton Icon="@Icons.Material.Rounded.Visibility" OnClick="@(() => ViewModal(entity))" Size="Size.Small" />
+                <MudIconButton Icon="@Icons.Material.Rounded.Edit" OnClick="@(() => Editmodal(entity))" Size="Size.Small" />
+                <MudIconButton Icon="@Icons.Material.Rounded.Delete" Color="Color.Error" OnClick="@(() => DeleteModal(entity))" Size="Size.Small" />
                 
             </MudTd>
         </RowTemplate>
@@ -184,11 +206,13 @@
         </NoRecordsContent>
 
         <PagerContent>
-            <MudTablePager PageSizeOptions="new int[] { 5, 10, 15, 20, 50, 100 }"
-                           RowsPerPageString="Filas por página:"
+            <MudTablePager PageSizeOptions="new int[] { 5, 10, 15, 20, 50, 100, int.MaxValue }"
+                           RowsPerPageString="Registros por página:"
                            InfoFormat="{first_item}-{last_item} de {all_items}"
-                           AllItemsText="Todas"
+                           AllItemsText="Todos"
                            HorizontalAlignment="HorizontalAlignment.Right" />
+
+
         </PagerContent>
 
     </MudTable>
@@ -240,35 +264,6 @@
     // ============================================================
     // SERVER DATA (Paginación + Orden + Filtros)
     // ============================================================
-    
-    private PersonQueryDto MapTableStateToQuery(TableState state)
-    {
-        var sortLabel = string.IsNullOrWhiteSpace(state.SortLabel)
-            ? "Dni"
-            : state.SortLabel;
-
-        var desc = state.SortDirection switch
-        {
-            SortDirection.Descending => true,
-            _ => false // None y Ascending → ASC
-        };
-
-        return new PersonQueryDto
-        {
-            Page = state.Page + 1,
-            Size = state.PageSize,
-            Sort = sortLabel,
-            Desc = desc,
-            Search = string.IsNullOrWhiteSpace(SearchText) ? null : SearchText,
-            ActiveFilter = StatusFilterValue switch
-            {
-                "Activo" => true,
-                "Inactivo" => false,
-                _ => null
-            }
-        };
-    }
-
     private async Task<TableData<PersonDto>> ServerReload(TableState state, CancellationToken token)
     {
         _serverReloadCts?.Cancel();
@@ -304,8 +299,40 @@
         }
     }
 
+    private PersonQueryDto MapTableStateToQuery(TableState state)
+    {
+        var sortLabel = string.IsNullOrWhiteSpace(state.SortLabel)
+            ? "Dni"
+            : state.SortLabel;
 
-    // ============================================================
+        var desc = state.SortDirection switch
+        {
+            SortDirection.Descending => true,
+            _ => false // None y Ascending → ASC
+        };
+
+        // Si el usuario seleccionó "Todas"
+        var pageSize = state.PageSize == int.MaxValue
+              ? Math.Max(_totalFilteredCount, 1)
+              : state.PageSize;
+
+        return new PersonQueryDto
+        {
+            Page = state.Page + 1,
+            Size = state.PageSize,
+            Sort = sortLabel,
+            Desc = desc,
+            Search = string.IsNullOrWhiteSpace(SearchText) ? null : SearchText,
+            ActiveFilter = StatusFilterValue switch
+            {
+                "Activo" => true,
+                "Inactivo" => false,
+                _ => null
+            }
+        };
+    }
+
+     // ============================================================
     // BÚSQUEDA CON DEBOUNCE
     // ============================================================
     private void OnSearchInput(string value)
@@ -357,7 +384,7 @@
         };
 
         var dialog = await DialogService.ShowAsync<PersonModal>(
-            "Nueva Persona", parameters, options);
+            "Nuevo Anirista", parameters, options);
 
         var result = await dialog.Result;
 
@@ -365,7 +392,7 @@
             await TableRef.ReloadServerData();
     }
 
-    private async Task EditCompany(PersonDto person)
+    private async Task Editmodal(PersonDto person)
     {
         var parameters = new DialogParameters
         {
@@ -390,7 +417,7 @@
             await TableRef.ReloadServerData();
     }
 
-    private async Task ViewCompany(PersonDto person)
+    private async Task ViewModal(PersonDto person)
     {
         var parameters = new DialogParameters
         {
@@ -407,18 +434,18 @@
         };
 
         await DialogService.ShowAsync<PersonModal>(
-            "Detalle persona", parameters, options);
+            "Detalle del Anirista", parameters, options);
     }
     
     // ============================================================
     // CRUD: ELIMINAR INDIVIDUAL
     // ============================================================
-    private async Task DeleteCompany(PersonDto entity)
+    private async Task DeleteModal(PersonDto dto)
     {
         var confirmed = await ConfirmDialog.Show(
             DialogService,
-            "Eliminar Empresa",
-            $"¿Eliminar {entity.FullName}?",
+            "¿Está seguro de que desea eliminar este registro?",
+            $"¿Eliminar {dto.Dni}?",
             type: "Delete",
             confirmText: "Eliminar",
             centerMessage: true
@@ -427,21 +454,21 @@
         if (!confirmed)
             return;
 
-        var response = await PersonService.DeleteAsync(entity.Id);
+        var response = await PersonService.DeleteAsync(dto.Id);
 
         if (response.Result == ResponseStatus.Success)
         {
-            SelectedItems.RemoveWhere(c => c.Id == entity.Id);
+            SelectedItems.RemoveWhere(c => c.Id == dto.Id);
 
             if (TableRef != null)
                 await TableRef.ReloadServerData();
 
             await AlertService.ShowSuccess("Éxito", "Registro eliminado correctamente.");
+            return;
         }
-        else
-        {
-            await AlertService.ShowError("Error", response.ErrorMessage ?? "No se pudo eliminar.");
-        }
+
+        // Error genérico (incluye FK violation del middleware)
+        await AlertService.ShowError("Error", response.ErrorMessage ?? "No se pudo eliminar.");
     }
 
 
@@ -469,7 +496,7 @@
     /// </summary>
     private string BulkSelectionText =>
         IsGlobalSelected
-            ? $"Selección global: {_totalFilteredCount} registro{(SelectedItems.Count == 1 ? "" : "s")} seleccionado{(SelectedItems.Count == 1 ? "" : "s")} del resultado actual"
+            ? $"Selección global: {_totalFilteredCount}registro{(SelectedItems.Count == 1 ? "" : "s")} seleccionado{(SelectedItems.Count == 1 ? "" : "s")} del resultado actual"
             : $"{SelectedItems.Count} registro{(SelectedItems.Count == 1 ? "" : "s")} seleccionado{(SelectedItems.Count == 1 ? "" : "s")} del resultado actual";
 
     // ============================================================
@@ -479,10 +506,10 @@
     {
         var confirmed = await ConfirmDialog.Show(
             DialogService,
-            "Eliminar seleccionadas",
+            "¿Desea eliminar los registros seleccionados?",
             IsGlobalSelected
                 ? $"¿Eliminar todos los {_totalFilteredCount} registros del filtro?"
-                : $"¿Eliminar {SelectedItems.Count} registro{(SelectedItems.Count == 1 ? "" : "s")} seleccionado{(SelectedItems.Count == 1 ? "" : "s")}?",
+                : $"¿Eliminar {SelectedItems.Count} registro(s) seleccionados?",
             type: "Delete",
             confirmText: "Eliminar",
             centerMessage: true
@@ -498,7 +525,9 @@
             var request = new BulkSelectionRequest
             {
                 SelectAll = IsGlobalSelected,
-                Ids = IsGlobalSelected ? new List<int>() : SelectedItems.Select(x => x.Id).ToList()
+                Ids = IsGlobalSelected
+                    ? new List<int>()
+                    : SelectedItems.Select(x => x.Id).ToList()
             };
 
             var response = await PersonService.DeleteBatchAsync(request);
@@ -507,13 +536,16 @@
             {
                 SelectedItems.Clear();
                 IsGlobalSelected = false;
-                if (TableRef != null) await TableRef.ReloadServerData();
+
+                if (TableRef != null)
+                    await TableRef.ReloadServerData();
+
                 await AlertService.ShowSuccess("Éxito", "Registros eliminados correctamente.");
+                return;
             }
-            else
-            {
-                await AlertService.ShowError("Error", response.ErrorMessage ?? "No se pudo eliminar.");
-            }
+
+            // Error genérico (incluye FK violation del middleware)
+            await AlertService.ShowError("Error", response.ErrorMessage ?? "No se pudo eliminar.");
         }
         finally
         {
