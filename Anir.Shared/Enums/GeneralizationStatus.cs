@@ -3,8 +3,8 @@
     public enum GeneralizationStatus
     {
         No = 0,
-        Yes = 1,
-        Pending = 2
+        Si = 1,
+        Pendiente = 2
     }
 }
 

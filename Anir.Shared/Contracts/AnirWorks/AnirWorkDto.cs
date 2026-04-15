@@ -32,12 +32,12 @@ public class AnirWorkDto
     // ============================================================
 
     [Required(ErrorMessage = "La fecha es obligatoria.")]
-    [Display(Name = "Fecha")]
+    [Display(Name = "Fecha de Registro")]
     public DateOnly Date { get; set; } = DateOnly.FromDateTime(DateTime.Now);
 
-    [Required(ErrorMessage = "El número ANIR es obligatorio.")]
-    [StringLength(50, ErrorMessage = "El número ANIR no puede exceder {1} caracteres.")]
-    [Display(Name = "Número ANIR")]
+    [Required(ErrorMessage = "El número registro es obligatorio.")]
+    [StringLength(50, ErrorMessage = "El número registro no puede exceder {1} caracteres.")]
+    [Display(Name = "Número Registro")]
     public string AnirNumber { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "El título es obligatorio.")]
@@ -59,8 +59,20 @@ public class AnirWorkDto
     [Display(Name = "Efecto Económico")]
     public bool HasEconomicEffect { get; set; }
 
+    [Display(Name = "Categoría")]
+    public JobCategory Category { get; set; } = JobCategory.Innovacion;
+
     [Display(Name = "Generalización")]
-    public GeneralizationStatus Generalization { get; set; } = GeneralizationStatus.Pending;
+    public GeneralizationStatus Generalization { get; set; } = GeneralizationStatus.No;
+
+    [Display(Name = "Es Experimental")]
+    public bool IsExperimental { get; set; }
+
+    [Display(Name = "Fecha Inicio Experimental")]
+    public DateTime? ExperimentalStartDate { get; set; }
+
+    [Display(Name = "Fecha Fin Experimental")]
+    public DateTime? ExperimentalEndDate { get; set; }
 
     // ============================================================
     // ECONOMÍA
@@ -73,6 +85,9 @@ public class AnirWorkDto
     [StringLength(2000, ErrorMessage = "Las recomendaciones no pueden exceder {1} caracteres.")]
     [Display(Name = "Recomendaciones")]
     public string? Recommendations { get; set; }
+
+    [Display(Name = "Estado")]
+    public JobState State { get; set; } = JobState.Aprobado;
 
     [StringLength(50, ErrorMessage = "El número de resolución no puede exceder {1} caracteres.")]
     [Display(Name = "Número de Resolución")]

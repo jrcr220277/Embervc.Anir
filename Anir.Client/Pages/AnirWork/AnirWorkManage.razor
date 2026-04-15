@@ -82,7 +82,7 @@
 
                         @if (!IsViewMode)
                         {
-                            <PdfUpload Value="@_formModel.PdfUrl"
+                            <PdfUploader Value="@_formModel.PdfUrl"
                                        OnChanged="HandlePdfChanged" />
                         }
 
@@ -177,25 +177,29 @@
                                     </MudItem>
 
                                     <!-- Número ANIR -->
-                                    <MudItem xs="12" md="12">
-                                        <MudTextField Label="Número ANIR"
+                                    <MudItem xs="12" md="6">
+                                        <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.AnirNumber)"
+                                                      For="@(() => _formModel.AnirNumber)"
                                                       @bind-Value="_formModel.AnirNumber"
-                                                      Disabled="IsViewMode"
-                                                      Required="true"
+                                                      InputType="InputType.Text"
                                                       Variant="Variant.Outlined"
-                                                      Dense="true"
-                                                      Class="w-100" />
+                                                      Required="true"
+                                                      FullWidth="true"
+                                                      Margin="Margin.Dense"
+                                                      Clearable="true" />
+                                                                                             
                                     </MudItem>
 
                                     <!-- Fecha -->
                                     <MudItem xs="12" md="6">
-                                        <MudDatePicker Label="Fecha"
+                                        <MudDatePicker Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Date)"
                                                        Date="@_formModel.Date.ToDateTime(TimeOnly.MinValue)"
                                                        DateChanged="@(d => _formModel.Date = DateOnly.FromDateTime(d ?? DateTime.Now))"
                                                        Disabled="IsViewMode"
                                                        Variant="Variant.Outlined"
-                                                       Dense="true"
-                                                       Class="w-100" />
+                                                       Required="true"
+                                                       Margin="Margin.Dense"
+                                                       Clearable="true" />
                                     </MudItem>
 
                                     <!-- Título -->

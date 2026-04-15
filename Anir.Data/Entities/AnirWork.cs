@@ -29,13 +29,18 @@ namespace Anir.Data.Entities
         // ============================
         public bool HasSocialEffect { get; set; }
         public bool HasEconomicEffect { get; set; }
+        public JobCategory Category { get; set; } = JobCategory.Innovacion;
         public GeneralizationStatus Generalization { get; set; } = GeneralizationStatus.No;
+        public bool IsExperimental { get; set; }
+        public DateTime? ExperimentalStartDate { get; set; }
+        public DateTime? ExperimentalEndDate { get; set; }
 
         // ============================
         // ECONOMÍA
         // ============================
         public decimal EconomicImpact { get; set; }
         public string? Recommendations { get; set; }
+        public JobState State { get; set; } = JobState.Aprobado;
         public string? ResolutionNumber { get; set; }
 
         // ============================

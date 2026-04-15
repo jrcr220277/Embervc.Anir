@@ -1,0 +1,14 @@
+Drop-Database -Context ApplicationDataContext -Project Anir.Data -StartupProject Anir.Api
+Add-Migration InitialCreate -Project Anir.Data -StartupProject Anir.Api
+Update-Database -Context ApplicationDataContext -Project Anir.Data -StartupProject Anir.Api
+
+
+
+
+
+
+
+
+usurua se registra 					el admin - resgistra al usuario
+
+
