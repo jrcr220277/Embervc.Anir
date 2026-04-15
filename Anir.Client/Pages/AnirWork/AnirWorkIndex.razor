@@ -191,12 +191,12 @@
 
             <MudTd>
                 <MudChip T="string"
-                         Color="@(work.Generalization == GeneralizationStatus.Yes ? Color.Success
+                         Color="@(work.Generalization == GeneralizationStatus.Si ? Color.Success
                                                       : work.Generalization == GeneralizationStatus.No ? Color.Error
                                                       : Color.Warning)"
                          Variant="Variant.Text"
                          Size="Size.Small">
-                    @(work.Generalization == GeneralizationStatus.Yes ? "Sí"
+                    @(work.Generalization == GeneralizationStatus.Si ? "Sí"
                       : work.Generalization == GeneralizationStatus.No ? "No"
                       : "Pendiente")
                 </MudChip>
@@ -344,9 +344,9 @@
 
             Generalization = GeneralizationFilterValue switch
             {
-                "Si" => GeneralizationStatus.Yes,
+                "Si" => GeneralizationStatus.Si,
                 "No" => GeneralizationStatus.No,
-                "Pendiente" => GeneralizationStatus.Pending,
+                "Pendiente" => GeneralizationStatus.Pendiente,
                 _ => null
             }
         };

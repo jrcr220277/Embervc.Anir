@@ -36,6 +36,9 @@ namespace Anir.Data.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<int>("Category")
+                        .HasColumnType("integer");
+
                     b.Property<DateOnly>("Date")
                         .HasColumnType("date");
 
@@ -45,6 +48,12 @@ namespace Anir.Data.Migrations
 
                     b.Property<decimal>("EconomicImpact")
                         .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime?>("ExperimentalEndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ExperimentalStartDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("Generalization")
                         .HasColumnType("integer");
@@ -58,6 +67,9 @@ namespace Anir.Data.Migrations
                     b.Property<string>("ImageId")
                         .HasColumnType("text");
 
+                    b.Property<bool>("IsExperimental")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("PdfId")
                         .HasColumnType("text");
 
@@ -68,6 +80,9 @@ namespace Anir.Data.Migrations
                     b.Property<string>("ResolutionNumber")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<int>("State")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Title")
                         .IsRequired()

@@ -35,25 +35,37 @@ public class AnirWorkController : ControllerBase
     // ============================================================
     private static void MapDtoToEntity(AnirWorkDto dto, AnirWork entity)
     {
+        // Organización
         entity.UebId = dto.UebId;
+
+        // Datos base
         entity.Date = dto.Date;
         entity.AnirNumber = dto.AnirNumber;
         entity.Title = dto.Title;
         entity.Description = dto.Description;
 
+        // Efectos
         entity.HasSocialEffect = dto.HasSocialEffect;
         entity.HasEconomicEffect = dto.HasEconomicEffect;
+        entity.Category = dto.Category;
         entity.Generalization = dto.Generalization;
+        entity.IsExperimental = dto.IsExperimental;
+        entity.ExperimentalStartDate = dto.ExperimentalStartDate;
+        entity.ExperimentalEndDate = dto.ExperimentalEndDate;
 
+        // Economía
         entity.EconomicImpact = dto.EconomicImpact;
         entity.Recommendations = dto.Recommendations;
+        entity.State = dto.State;
         entity.ResolutionNumber = dto.ResolutionNumber;
 
+        // Archivos
         entity.ImageId = dto.ImageId;
         entity.PdfId = dto.PdfId;
+
+        // Relaciones (se manejan fuera: add/remove)
+        // Persons y Presentations se gestionan en el servicio
     }
-
-
 
     private static AnirWorkDto MapEntityToDto(AnirWork entity)
     {
@@ -76,11 +88,16 @@ public class AnirWorkController : ControllerBase
             // Efectos
             HasSocialEffect = entity.HasSocialEffect,
             HasEconomicEffect = entity.HasEconomicEffect,
+            Category = entity.Category,
             Generalization = entity.Generalization,
+            IsExperimental = entity.IsExperimental,
+            ExperimentalStartDate = entity.ExperimentalStartDate,
+            ExperimentalEndDate = entity.ExperimentalEndDate,
 
             // Economía
             EconomicImpact = entity.EconomicImpact,
             Recommendations = entity.Recommendations,
+            State = entity.State,
             ResolutionNumber = entity.ResolutionNumber,
 
             // Archivos
@@ -104,6 +121,7 @@ public class AnirWorkController : ControllerBase
             }).ToList()
         };
     }
+
 
 
     // ============================================================
