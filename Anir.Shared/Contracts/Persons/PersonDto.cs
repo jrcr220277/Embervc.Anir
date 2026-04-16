@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Anir.Shared.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace Anir.Shared.Contracts.Persons;
 
@@ -29,6 +30,10 @@ public class PersonDto
     [StringLength(150, ErrorMessage = "El correo no puede exceder {1} caracteres.")]
     [Display(Name = "Correo electrónico")]
     public string? Email { get; set; }
+
+    [Display(Name = "Afiliacion")]
+    public PersonAffiliation Affiliation { get; set; }
+
 
     [StringLength(250, ErrorMessage = "La descripción no puede exceder {1} caracteres.")]
     [Display(Name = "Descripción")]

@@ -1,4 +1,6 @@
-﻿namespace Anir.Data.Entities
+﻿using Anir.Shared.Enums;
+
+namespace Anir.Data.Entities
 {
     /// <summary>
     /// Entidad del dominio que representa una persona dentro del sistema.
@@ -25,6 +27,7 @@
 
         public string? CellPhone { get; set; }
         public string? Email { get; set; }
+        public PersonAffiliation Affiliation { get; set; } = PersonAffiliation.ANIR;
         public string? Description { get; set; }
 
         public bool Active { get; set; } = true;
