@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Anir.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260415144034_InitialCreate")]
+    [Migration("20260416164323_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -151,6 +151,9 @@ namespace Anir.Data.Migrations
 
                     b.Property<DateOnly?>("PresentationDate")
                         .HasColumnType("date");
+
+                    b.Property<int>("Result")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 

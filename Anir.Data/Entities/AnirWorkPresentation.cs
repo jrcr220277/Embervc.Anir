@@ -1,4 +1,6 @@
-﻿namespace Anir.Data.Entities
+﻿using Anir.Shared.Enums;
+
+namespace Anir.Data.Entities
 {
     /// <summary>
     /// Representa una presentación asociada a un trabajo ANIR,
@@ -18,6 +20,7 @@
         /// </summary>
         public DateOnly? PresentationDate { get; set; }
 
+        public PresentationResult Result { get; set; } = PresentationResult.Participacion;
         /// <summary>
         /// Notas o comentarios adicionales sobre la presentación.
         /// </summary>

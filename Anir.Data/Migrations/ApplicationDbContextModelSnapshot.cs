@@ -149,6 +149,9 @@ namespace Anir.Data.Migrations
                     b.Property<DateOnly?>("PresentationDate")
                         .HasColumnType("date");
 
+                    b.Property<int>("Result")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AnirWorkId");

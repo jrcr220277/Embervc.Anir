@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Anir.Shared.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace Anir.Shared.Contracts.AnirWorks.Presentations;
 
@@ -8,6 +9,8 @@ public class AnirWorkPresentationDto
 
     [Display(Name = "Fecha de presentación")]
     public DateOnly? PresentationDate { get; set; }
+
+    public PresentationResult Result { get; set; }
 
     [Display(Name = "Notas")]
     public string? Notes { get; set; }

@@ -33,6 +33,7 @@
 
             <HeaderContent>
                 <MudTh>Fecha</MudTh>
+                <MudTh>Resultados</MudTh>
                 <MudTh>Notas</MudTh>
                 @if (!IsViewMode)
                 {
@@ -42,6 +43,7 @@
 
             <RowTemplate>
                 <MudTd>@context.PresentationDate?.ToString("dd/MM/yyyy")</MudTd>
+                <MudTd>@context.Result</MudTd>
                 <MudTd>@context.Notes</MudTd>
 
                 @if (!IsViewMode)
@@ -81,6 +83,25 @@
                        Dense="true"
                        Class="w-100" />
 
+        <MudItem xs="12" md="6">
+            <MudText Typo="Typo.subtitle2" Class="mb-1">Resultado Obtenido</MudText>
+
+            <MudRadioGroup T="PresentationResult"
+                           @bind-Value="_editingPresentation.Result"
+                           Dense="true"
+                           Inline="true"
+                           Disabled="IsViewMode">
+
+                <MudRadio Value="PresentationResult.AltoImpacto">Alto impacto</MudRadio>
+                <MudRadio Value="PresentationResult.Relevante">Relevante</MudRadio>
+                <MudRadio Value="PresentationResult.Destacado">Destacado</MudRadio>
+                <MudRadio Value="PresentationResult.Mencion">Mención</MudRadio>
+                <MudRadio Value="PresentationResult.Participacion">Participación</MudRadio>
+
+            </MudRadioGroup>
+        </MudItem>
+
+
         <MudTextField Label="Notas"
                       @bind-Value="_editingPresentation.Notes"
                       Variant="Variant.Outlined"
@@ -116,6 +137,7 @@
         {
             Id = p.Id,
             PresentationDate = p.PresentationDate,
+            Result = p.Result,
             Notes = p.Notes
         };
         _modalOpen = true;
@@ -131,6 +153,7 @@
         {
             var existing = Presentations.First(x => x.Id == _editingPresentation.Id);
             existing.PresentationDate = _editingPresentation.PresentationDate;
+            existing.Result = _editingPresentation.Result;
             existing.Notes = _editingPresentation.Notes;
         }
 

@@ -400,6 +400,7 @@ namespace Anir.Data.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     AnirWorkId = table.Column<int>(type: "integer", nullable: false),
                     PresentationDate = table.Column<DateOnly>(type: "date", nullable: true),
+                    Result = table.Column<int>(type: "integer", nullable: false),
                     Notes = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true)
                 },
                 constraints: table =>
