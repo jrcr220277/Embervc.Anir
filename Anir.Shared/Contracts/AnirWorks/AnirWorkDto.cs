@@ -66,7 +66,7 @@ public class AnirWorkDto
     public GeneralizationStatus Generalization { get; set; } = GeneralizationStatus.No;
 
     [Display(Name = "Es Experimental")]
-    public bool IsExperimental { get; set; }
+    public bool IsExperimental { get; set; } = false;
 
     [Display(Name = "Fecha Inicio Experimental")]
     public DateTime? ExperimentalStartDate { get; set; }
