@@ -7,6 +7,7 @@ namespace Anir.Client.Services.Ueb
     public interface IUebService
     {
         Task<List<UebDto>> GetAllAsync(CancellationToken ct = default);
+        Task<List<UebDto>> GetByCompanyIdAsync(int companyId, CancellationToken ct = default);
         Task<ProcessResponse<PagedResponse<UebDto>>> GetPagedAsync(UebQueryDto query, CancellationToken ct = default);
         Task<ProcessResponse<UebDto>> GetByIdAsync(int id, CancellationToken ct = default);
         Task<ProcessResponse<UebDto>> CreateAsync(UebDto dto, CancellationToken ct = default);

@@ -1,6 +1,7 @@
 ﻿using Anir.Data;
 using Anir.Data.Entities;
 using Anir.Infrastructure.Extensions;
+using Anir.Infrastructure.Storage;
 using Anir.Shared.Contracts.AnirWorks;
 using Anir.Shared.Contracts.AnirWorks.Persons;
 using Anir.Shared.Contracts.AnirWorks.Presentations;
@@ -19,15 +20,18 @@ public class AnirWorkController : ControllerBase
     private readonly ApplicationDbContext _db;
     private readonly ILogger<AnirWorkController> _logger;
     private readonly IPdfService _pdfService;
+    private readonly IFileStorage _storage;
 
     public AnirWorkController(
         ApplicationDbContext db,
         ILogger<AnirWorkController> logger,
-        IPdfService pdfService)
+        IPdfService pdfService,
+         IFileStorage storage)
     {
         _db = db;
         _logger = logger;
         _pdfService = pdfService;
+        _storage = storage;
     }
 
     // ============================================================
@@ -35,16 +39,12 @@ public class AnirWorkController : ControllerBase
     // ============================================================
     private static void MapDtoToEntity(AnirWorkDto dto, AnirWork entity)
     {
-        // Organización
         entity.UebId = dto.UebId;
-
-        // Datos base
         entity.Date = dto.Date;
         entity.AnirNumber = dto.AnirNumber;
         entity.Title = dto.Title;
         entity.Description = dto.Description;
 
-        // Efectos
         entity.HasSocialEffect = dto.HasSocialEffect;
         entity.HasEconomicEffect = dto.HasEconomicEffect;
         entity.Category = dto.Category;
@@ -53,21 +53,17 @@ public class AnirWorkController : ControllerBase
         entity.ExperimentalStartDate = dto.ExperimentalStartDate;
         entity.ExperimentalEndDate = dto.ExperimentalEndDate;
 
-        // Economía
         entity.EconomicImpact = dto.EconomicImpact;
         entity.Recommendations = dto.Recommendations;
         entity.State = dto.State;
         entity.ResolutionNumber = dto.ResolutionNumber;
 
-        // Archivos
         entity.ImageId = dto.ImageId;
         entity.PdfId = dto.PdfId;
-
-        // Relaciones (se manejan fuera: add/remove)
-        // Persons y Presentations se gestionan en el servicio
     }
 
-    private static AnirWorkDto MapEntityToDto(AnirWork entity)
+
+    private AnirWorkDto MapEntityToDto(AnirWork entity)
     {
         return new AnirWorkDto
         {
@@ -100,9 +96,16 @@ public class AnirWorkController : ControllerBase
             State = entity.State,
             ResolutionNumber = entity.ResolutionNumber,
 
-            // Archivos
+            // ⭐ ARCHIVOS (IGUAL QUE PERSONCONTROLLER)
             ImageId = entity.ImageId,
+            ImageUrl = string.IsNullOrWhiteSpace(entity.ImageId)
+                ? null
+                : $"{Request.Scheme}://{Request.Host}/images/{entity.ImageId}",
+
             PdfId = entity.PdfId,
+            PdfUrl = string.IsNullOrWhiteSpace(entity.PdfId)
+                ? null
+                : $"{Request.Scheme}://{Request.Host}/docs/{entity.PdfId}",
 
             // Relaciones
             Persons = entity.AnirWorkPersons.Select(p => new AnirWorkPersonDto
@@ -121,6 +124,7 @@ public class AnirWorkController : ControllerBase
             }).ToList()
         };
     }
+
 
 
 
@@ -362,6 +366,14 @@ public class AnirWorkController : ControllerBase
         if (entity == null)
             return NotFound(ProcessResponse<bool>.Fail($"{ENTITY} no encontrado."));
 
+        // ⭐ BORRAR ARCHIVOS ANTES DE BORRAR EL REGISTRO
+        if (!string.IsNullOrEmpty(entity.ImageId))
+            await _storage.DeleteAsync(entity.ImageId, "images");
+
+        if (!string.IsNullOrEmpty(entity.PdfId))
+            await _storage.DeleteAsync(entity.PdfId, "docs");
+
+
         _db.AnirWorkPersons.RemoveRange(entity.AnirWorkPersons);
         _db.AnirWorkPresentations.RemoveRange(entity.AnirWorkPresentations);
         _db.AnirWorks.Remove(entity);
@@ -373,13 +385,14 @@ public class AnirWorkController : ControllerBase
     }
 
 
+
     // ============================================================
     // BATCH DELETE
     // ============================================================
     [HttpPost("batch-delete")]
     public async Task<ActionResult<ProcessResponse<int>>> DeleteBatch(
-        [FromBody] BulkSelectionRequest request,
-        CancellationToken ct = default)
+     [FromBody] BulkSelectionRequest request,
+     CancellationToken ct = default)
     {
         await using var tx = await _db.Database.BeginTransactionAsync(ct);
 
@@ -409,6 +422,14 @@ public class AnirWorkController : ControllerBase
 
         foreach (var w in items)
         {
+            // ⭐ BORRAR ARCHIVOS
+            if (!string.IsNullOrEmpty(w.ImageId))
+                await _storage.DeleteAsync(w.ImageId, "images");
+
+            if (!string.IsNullOrEmpty(w.PdfId))
+                await _storage.DeleteAsync(w.PdfId, "docs");
+
+            // ⭐ BORRAR RELACIONES
             _db.AnirWorkPersons.RemoveRange(w.AnirWorkPersons);
             _db.AnirWorkPresentations.RemoveRange(w.AnirWorkPresentations);
         }
@@ -423,6 +444,7 @@ public class AnirWorkController : ControllerBase
             $"Se eliminaron {items.Count} {ENTITY.ToLower()}."
         ));
     }
+
 
 
     // ============================================================

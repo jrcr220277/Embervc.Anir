@@ -47,13 +47,23 @@ public class UebService : IUebService
     }
 
     // ============================================================
-    // GET PAGED (POST, profesional, limpio)
+    // GET ALL
     // ============================================================
     public async Task<List<UebDto>> GetAllAsync(CancellationToken ct = default)
     {
         var response = await _httpClient.GetFromJsonAsync<List<UebDto>>("/api/ueb/all", ct);
         return response ?? new();
     }
+
+    // ============================================================
+    // GET All X Company
+    // ============================================================
+    public async Task<List<UebDto>> GetByCompanyIdAsync(int companyId, CancellationToken ct = default)
+    {
+        var response = await _httpClient.GetFromJsonAsync<List<UebDto>>($"/api/ueb/by-company/{companyId}", ct);
+        return response ?? new();
+    }
+
 
     // ============================================================
     // GET PAGED (POST, profesional, limpio)

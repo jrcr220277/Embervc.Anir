@@ -210,11 +210,16 @@ public class PersonController : ControllerBase
         if (entity == null)
             return NotFound(ProcessResponse<bool>.Fail($"{ENTITY} no encontrada."));
 
+        // ⭐ BORRAR IMAGEN SI EXISTE
+        if (!string.IsNullOrEmpty(entity.ImagenId))
+            await _storage.DeleteAsync(entity.ImagenId, "images");
+
         _db.Persons.Remove(entity);
         await _db.SaveChangesAsync(ct);
 
         return Ok(ProcessResponse<bool>.Success(true, $"{ENTITY} eliminada correctamente."));
     }
+
     // ============================================================
     // DELETE BATCH (versión simple y profesional)
     // ============================================================

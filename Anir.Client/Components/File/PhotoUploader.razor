@@ -1,26 +1,26 @@
 ﻿@using Anir.Client.Services
 @using Anir.Shared
-@inject FileService FileService
 @inject IAlertService AlertService
+@using MudBlazor
 
 <MudStack AlignItems="AlignItems.Center" Spacing="2">
 
-    <MudAvatar Rounded="@(!IsProfile)"
-               Style="@($"width:{Size}px;height:{Size}px;overflow:hidden;")">
+    <div style="@($"position:relative; width:{Size}px; height:{Size}px;")">
 
-        @if (PreviewUrl != null)
+        @if (PreviewUrl != null || !string.IsNullOrEmpty(Value))
         {
-            <MudImage Src="@PreviewUrl" Fluid="true" />
-        }
-        else if (!string.IsNullOrEmpty(Value))
-        {
-            <MudImage Src="@Value" Fluid="true" />
+            <img src="@(PreviewUrl ?? Value)"
+                 style="width:100%; height:100%; object-fit:cover; border-radius:@(IsProfile ? "50%" : "6px");" />
         }
         else
         {
-            <MudIcon Icon="@DefaultIcon" Style="font-size:4rem;" />
+            <MudAvatar Rounded="@(!IsProfile)"
+                       Style="@($"width:{Size}px; height:{Size}px; overflow:hidden;")">
+                <MudIcon Icon="@DefaultIcon" Style="font-size:3rem;" />
+            </MudAvatar>
         }
-    </MudAvatar>
+
+    </div>
 
     @if (!IsViewMode)
     {
@@ -33,8 +33,7 @@
                            SuppressOnChangeWhenInvalid="true"
                            SelectedTemplate="@(file => null)">
                 <CustomContent>
-                    <MudIconButton Disabled="@IsUploading"
-                                   OnClick="@context.OpenFilePickerAsync"
+                    <MudIconButton OnClick="@context.OpenFilePickerAsync"
                                    Icon="@Icons.Material.Filled.Upload" />
                 </CustomContent>
             </MudFileUpload>
@@ -43,7 +42,6 @@
             {
                 <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                Color="Color.Error"
-                               Disabled="@IsUploading"
                                OnClick="HandleDelete" />
             }
         </MudStack>
@@ -56,21 +54,23 @@
     [Parameter] public int Size { get; set; } = 150;
     [Parameter] public bool ShowDelete { get; set; } = true;
     [Parameter] public EventCallback<FileResponse?> OnChanged { get; set; }
+
     [Parameter] public bool IsProfile { get; set; } = true;
     [Parameter] public bool IsViewMode { get; set; } = false;
- 
+
     private const long MaxFileSize = 10 * 1024 * 1024;
     private string? PreviewUrl;
-    private bool IsUploading = false;
 
-    private string DefaultIcon =>
-        IsProfile ? Icons.Material.Filled.Person : Icons.Material.Filled.Image;
+    private IBrowserFile? _pendingFile;
+
+    private string DefaultIcon => IsProfile ? Icons.Material.Filled.Person : Icons.Material.Filled.Image;
 
     private async Task HandleSelected(IBrowserFile? file)
     {
         if (file == null)
         {
             PreviewUrl = Value;
+            _pendingFile = null;
             await OnChanged.InvokeAsync(null);
             return;
         }
@@ -82,45 +82,23 @@
             return;
         }
 
-        try
-        {
-            IsUploading = true;
-            StateHasChanged();
+        _pendingFile = file;
 
-            using var stream = file.OpenReadStream(MaxFileSize);
-            using var ms = new MemoryStream();
-            await stream.CopyToAsync(ms);
+        using var stream = file.OpenReadStream(MaxFileSize);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
 
-            PreviewUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+        PreviewUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
 
-            var result = await FileService.UploadAsync(file);
-
-            await OnChanged.InvokeAsync(result);
-        }
-        finally
-        {
-            IsUploading = false;
-            StateHasChanged();
-        }
+        await OnChanged.InvokeAsync(null);
     }
 
     private async Task HandleDelete()
     {
-        if (!string.IsNullOrEmpty(Value))
-        {
-            try
-            {
-                var uri = new Uri(Value);
-                var fileId = uri.LocalPath.TrimStart('/');
-                await FileService.DeleteAsync(fileId);
-            }
-            catch
-            {
-                await FileService.DeleteAsync(Value);
-            }
-        }
-
         PreviewUrl = null;
+        _pendingFile = null;
         await OnChanged.InvokeAsync(null);
     }
+
+    public IBrowserFile? GetPendingFile() => _pendingFile;
 }

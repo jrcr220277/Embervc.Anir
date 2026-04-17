@@ -1,4 +1,4 @@
-﻿@using Anir.Client.Services.Files
+﻿
 @using Anir.Shared
 @inject FileService FileService
 @inject IJSRuntime JS
@@ -34,7 +34,10 @@
             return;
         }
 
+        // ⭐ Subimos el archivo
         var result = await FileService.UploadAsync(file);
+
+        // ⭐ Notificamos al padre
         await OnChanged.InvokeAsync(result);
     }
 

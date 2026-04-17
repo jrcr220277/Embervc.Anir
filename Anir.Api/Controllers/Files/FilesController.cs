@@ -23,29 +23,26 @@ public class FilesController : ControllerBase
 
         string extension = Path.GetExtension(file.FileName);
 
-        // ⭐ Folder automático según tipo MIME
         string folder = file.ContentType.StartsWith("image")
             ? "images"
             : "docs";
 
-        string id = await _storage.SaveAsync(bytes, extension, folder);
+        // ⭐ SaveAsync devuelve SOLO el nombre del archivo
+        string fileName = await _storage.SaveAsync(bytes, extension, folder);
 
         return Ok(new FileResponse
         {
-            Id = id, // images/xxxx.jpg o docs/xxxx.pdf
-            Url = $"{Request.Scheme}://{Request.Host}/{id}",
+            Id = fileName, // ⭐ SOLO el nombre
+            Url = $"{Request.Scheme}://{Request.Host}/{folder}/{fileName}",
             Name = file.FileName,
             Size = file.Length,
             Type = file.ContentType
         });
     }
 
-    [HttpDelete("{id}")]
-    public async Task<ActionResult> Delete(string id)
+    [HttpDelete("{folder}/{fileName}")]
+    public async Task<ActionResult> Delete(string folder, string fileName)
     {
-        var folder = id.Split('/')[0];
-        var fileName = id.Split('/')[1];
-
         return await _storage.DeleteAsync(fileName, folder)
             ? Ok()
             : NotFound();

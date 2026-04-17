@@ -21,7 +21,8 @@ public class FileStorageService : IFileStorage
 
         await File.WriteAllBytesAsync(path, content);
 
-        return $"{folder}/{newName}";
+        // ⭐ DEVUELVE SOLO EL NOMBRE DEL ARCHIVO
+        return newName;
     }
 
     public Task<bool> DeleteAsync(string fileId, string folder)

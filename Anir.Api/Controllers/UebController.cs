@@ -82,6 +82,30 @@ public class UebController : ControllerBase
     }
 
     // ============================================================
+    // GET BY COMPANY
+    // ============================================================
+    [HttpGet("by-company/{companyId:int}")]
+    public async Task<ActionResult<List<UebDto>>> GetByCompany(int companyId, CancellationToken ct = default)
+    {
+        var items = await _db.Uebs
+            .AsNoTracking()
+            .Where(u => u.CompanyId == companyId)
+            .OrderBy(u => u.Name)
+            .Select(u => new UebDto
+            {
+                Id = u.Id,
+                Code = u.Code,
+                Name = u.Name,
+                CompanyId = u.CompanyId,
+                CompanyName = u.Company.ShortName,
+                Active = u.Active
+            })
+            .ToListAsync(ct);
+
+        return Ok(items);
+    }
+
+    // ============================================================
     // GET PAGED
     // ============================================================
     [HttpPost("getpaged")]

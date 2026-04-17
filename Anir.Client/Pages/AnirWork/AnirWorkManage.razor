@@ -8,13 +8,10 @@
 @using MudBlazor
 @using Anir.Shared.Contracts.AnirWorks
 @using Anir.Client.Services.AnirWorks
-@using Anir.Client.Services.Files
+
 @using Anir.Client.Services
+@using Anir.Client.Components.File
 
-@inject IAnirWorkService WorkService
-
-@inject IAlertService AlertService
-@inject NavigationManager Nav
 
 <MudContainer MaxWidth="MaxWidth.False" Class="px-3">
 
@@ -66,12 +63,14 @@
                         <MudText Typo="Typo.subtitle2" Class="mb-1 font-weight-semibold">
                             Imagen
                         </MudText>
-
-                        <PhotoUploader Value="@_formModel.ImageUrl"
+                        
+                        <PhotoUploader @ref="PhotoUploaderRef"
+                                       Value="@_formModel.ImageUrl"
                                        IsProfile="false"
-                                       Size="350"
+                                       Size="250"
                                        OnChanged="HandleImageChanged"
                                        IsViewMode="IsViewMode" />
+
 
                         <MudDivider Class="my-3" />
 
@@ -136,16 +135,19 @@
                                     <MudGrid Spacing="2">
 
                                         <!-- ORGANIZACIÓN -->
+                                        <!-- COMPANY -->
                                         <MudItem xs="12" md="6">
                                             <MudSelect T="int"
                                                        Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.CompanyId)"
-                                                       @bind-Value="_formModel.CompanyId"
+                                                       Value="_formModel.CompanyId"
+                                                       ValueChanged="OnCompanyChanged"
                                                        Variant="Variant.Outlined"
                                                        Required="true"
                                                        Strict="true"
                                                        FullWidth="true"
                                                        Margin="Margin.Dense"
                                                        Dense="true">
+                                                <MudSelectItem T="int" Value="0">- Seleccionar -</MudSelectItem>
                                                 @foreach (var item in AllCompanies)
                                                 {
                                                     <MudSelectItem T="int" Value="@item.Id">
@@ -155,6 +157,7 @@
                                             </MudSelect>
                                         </MudItem>
 
+                                        <!-- UEB -->
                                         <MudItem xs="12" md="6">
                                             <MudSelect T="int"
                                                        Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.UebId)"
@@ -165,7 +168,8 @@
                                                        FullWidth="true"
                                                        Margin="Margin.Dense"
                                                        Dense="true">
-                                                @foreach (var item in AllUebs)
+                                                <MudSelectItem T="int" Value="0">- Seleccionar -</MudSelectItem>
+                                                @foreach (var item in FilteredUebs)
                                                 {
                                                     <MudSelectItem T="int" Value="@item.Id">
                                                         @($"{item.Code} - {item.Name}")
@@ -173,6 +177,7 @@
                                                 }
                                             </MudSelect>
                                         </MudItem>
+
 
                                         <!-- DATOS BASE -->
                                         <MudItem xs="12" md="6">
@@ -435,18 +440,23 @@
 @code {
     [Inject] private ICompanyService CompanyService { get; set; } = default!;
     [Inject] private IUebService UebService { get; set; } = default!;
+    [Inject] private IAnirWorkService WorkService { get; set; } = default!;
+    [Inject] private IAlertService AlertService { get; set; } = default!;
+    [Inject] private NavigationManager Nav { get; set; } = default!;
+    [Inject] private FileService FileService { get; set; } = default!;
+
 
     [Parameter] public int? Id { get; set; }
     
     private bool IsInitializingPage = true;
     private bool IsViewMode => Nav.Uri.Split('?')[0].EndsWith("/view");
-
+    private PhotoUploader? PhotoUploaderRef;
 
     // ============================================================
     // UBICACIÓN
     // ============================================================
     private List<CompanyDto> AllCompanies = new();
-    private List<UebDto> AllUebs = new();
+    private List<UebDto> FilteredUebs = new();
 
     private AnirWorkDto _formModel = new();
     private List<CompanyDto> Companies = new();
@@ -460,7 +470,6 @@
     protected override async Task OnInitializedAsync()
     {
         AllCompanies = await CompanyService.GetAllAsync() ?? new();
-        AllUebs = await UebService.GetAllAsync() ?? new();
 
         var query = new CompanyQueryDto
         {
@@ -482,7 +491,7 @@
             {
                 Persons = new(),
                 Presentations = new(),
-                IsExperimental = false, 
+                IsExperimental = false,
                 ExperimentalStartDate = null,
                 ExperimentalEndDate = null
             };
@@ -492,7 +501,12 @@
             var response = await WorkService.GetByIdAsync(Id.Value);
 
             if (response?.Result == ResponseStatus.Success)
+            {
                 _formModel = response.Value!;
+                // ⭐ Inicializar UEBs filtradas según la empresa ya guardada
+                if (_formModel.CompanyId != 0)
+                    FilteredUebs = await UebService.GetByCompanyIdAsync(_formModel.CompanyId) ?? new();
+            }
             else
             {
                 await AlertService.ShowError("Error", "No se pudo cargar el trabajo.");
@@ -504,11 +518,11 @@
         IsInitializingPage = false;
     }
 
-    private void HandleImageChanged(FileResponse? file)
+    private Task HandleImageChanged(FileResponse? file)
     {
-        _formModel.ImageId = file?.Id;
-        _formModel.ImageUrl = file?.Url;
+        return Task.CompletedTask;
     }
+
 
     private void HandlePdfChanged(FileResponse? file)
     {
@@ -522,11 +536,44 @@
         _formModel.PdfUrl = null;
     }
 
+    private async Task OnCompanyChanged(int companyId)
+    {
+        _formModel.CompanyId = companyId;
+
+        // Traer UEBs filtradas desde el backend
+        FilteredUebs = await UebService.GetByCompanyIdAsync(companyId) ?? new();
+
+        // Resetear selección si no corresponde
+        if (!FilteredUebs.Any(u => u.Id == _formModel.UebId))
+            _formModel.UebId = 0;
+
+        StateHasChanged();
+    }
+
     private async Task Save()
     {
         if (IsViewMode)
             return;
 
+        // ⭐ 1. Subir imagen si hay una pendiente
+        var pendingImage = PhotoUploaderRef?.GetPendingFile();
+        if (pendingImage is not null)
+        {
+            var uploaded = await FileService.UploadAsync(pendingImage);
+            _formModel.ImageId = uploaded.Id;
+            _formModel.ImageUrl = uploaded.Url;
+        }
+
+        // ⭐ 2. Subir PDF si hay uno pendiente
+        // var pendingPdf = PdfUploaderRef?.GetPendingFile();
+        // if (pendingPdf is not null)
+        // {
+        //     var uploaded = await FileService.UploadAsync(pendingPdf);
+        //     _formModel.PdfId = uploaded.Id;
+        //     _formModel.PdfUrl = uploaded.Url;
+        // }
+
+        // ⭐ 3. Guardar la entidad
         ProcessResponse<AnirWorkDto>? response =
             Id is null
             ? await WorkService.CreateAsync(_formModel)
@@ -543,5 +590,7 @@
         }
     }
 
+
     private void Back() => Nav.NavigateTo("/anirworks");
 }
+
