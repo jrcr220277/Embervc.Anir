@@ -187,7 +187,35 @@
                                         }
                                     </MudItem>
                                                                        
+                                        <!-- DNI -->
+                                        <MudItem xs="12" sm="5">
+                                            @if (IsViewMode)
+                                            {
+                                                <MudStack>
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                        @ModelMetadataHelper.GetDisplayName(() => _formModel.Affiliation)
+                                                    </MudText>
+                                                    <MudText Typo="Typo.body1">@_formModel.Affiliation</MudText>
+                                                </MudStack>
+                                            }
+                                            else
+                                            {
+                                                <MudSelect T="PersonAffiliation"
+                                                           Label="Afiliación"
+                                                           @bind-Value="_formModel.Affiliation"
+                                                           Variant="Variant.Outlined"
+                                                           Margin="Margin.Dense"
+                                                           Dense="true"
+                                                           FullWidth="true">
+                                                    @foreach (var value in Enum.GetValues<PersonAffiliation>())
+                                                    {
+                                                        <MudSelectItem Value="@value">@value.ToString()</MudSelectItem>
+                                                    }
+                                                </MudSelect>
 
+                                                
+                                            }
+                                        </MudItem>
                                 </MudGrid>
                             </MudPaper>
                         </MudItem>
@@ -361,6 +389,7 @@
                 FullName = Person.FullName,
                 CellPhone = Person.CellPhone,
                 Email = Person.Email,
+                Affiliation = Person.Affiliation,
                 Description = Person.Description,
                 Active = Person.Active
             };

@@ -163,6 +163,7 @@
             <MudTh><MudTableSortLabel T="PersonDto" SortLabel="Name">Nombre</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="PersonDto" SortLabel="CellPhone">Teléfono</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="PersonDto" SortLabel="Email">Correo</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="PersonDto" SortLabel="Affiliation">Afiliación</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="PersonDto" SortLabel="Active">Estado</MudTableSortLabel></MudTh>
             <MudTh Style="width: 120px; text-align:end">Acciones</MudTh>
         </HeaderContent>
@@ -186,6 +187,11 @@
             <MudTd>@entity.FullName</MudTd>
             <MudTd>@entity.CellPhone</MudTd>
             <MudTd>@entity.Email</MudTd>
+            <MudTd>
+                <MudChip T="string" Color="Color.Info" Variant="Variant.Text" Size="Size.Small">
+                    @entity.Affiliation.ToString()
+                </MudChip>
+            </MudTd>
             <MudTd>
                 <MudChip T="string" Color="@(entity.Active? Color.Success: Color.Error)" Variant="Variant.Text" Size="Size.Small">
                     @(entity.Active ? "Activa" : "Inactiva")

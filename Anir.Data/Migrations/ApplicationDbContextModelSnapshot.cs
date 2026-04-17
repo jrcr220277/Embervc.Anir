@@ -300,6 +300,9 @@ namespace Anir.Data.Migrations
                     b.Property<bool>("Active")
                         .HasColumnType("boolean");
 
+                    b.Property<int>("Affiliation")
+                        .HasColumnType("integer");
+
                     b.Property<string>("CellPhone")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");

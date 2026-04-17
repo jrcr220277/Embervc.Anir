@@ -2,12 +2,13 @@
 using Anir.Data.Entities;
 using Anir.Infrastructure.Extensions;
 using Anir.Infrastructure.Reports.Template.Excel;
+using Anir.Infrastructure.Storage;
 using Anir.Shared.Contracts.Common;
 using Anir.Shared.Contracts.Persons;
+using Anir.Shared.Enums;
 using Anir.Shared.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Anir.Infrastructure.Storage;
 
 namespace Anir.Api.Controllers;
 
@@ -42,6 +43,7 @@ public class PersonController : ControllerBase
         entity.FullName = dto.FullName;
         entity.CellPhone = dto.CellPhone;
         entity.Email = dto.Email;
+        entity.Affiliation = dto.Affiliation;
         entity.Description = dto.Description;
         entity.Active = dto.Active;
     }
@@ -55,6 +57,7 @@ public class PersonController : ControllerBase
         FullName = entity.FullName,
         CellPhone = entity.CellPhone,
         Email = entity.Email,
+        Affiliation = entity.Affiliation,
         Description = entity.Description,
         Active = entity.Active
     };
@@ -77,16 +80,27 @@ public class PersonController : ControllerBase
         // ============================================================
         if (!string.IsNullOrWhiteSpace(queryDto.Search))
         {
-            var s = queryDto.Search.Trim();
+            var searchTerm = queryDto.Search.Trim();
 
-            query = query.Where(x =>
-                x.Dni.Contains(s) ||
-                x.FullName.Contains(s) ||
-                x.CellPhone.Contains(s) ||
-                x.Email.Contains(s) ||
-                x.ImagenId.Contains(s)
-            );
+            if (Enum.TryParse<PersonAffiliation>(searchTerm, true, out var affiliation))
+            {
+                // Si el texto coincide con un valor del enum (ANIR, BTJ, Otros)
+                query = query.Where(x => x.Affiliation == affiliation);
+            }
+            else
+            {
+                // Si no coincide, buscar en los demás campos
+                query = query.Where(x =>
+                    x.Dni.Contains(searchTerm) ||
+                    x.FullName.Contains(searchTerm) ||
+                    x.CellPhone.Contains(searchTerm) ||
+                    x.Email.Contains(searchTerm) ||
+                    x.ImagenId.Contains(searchTerm)
+                );
+            }
         }
+
+
 
         // ============================================================
         // FILTER ACTIVE
@@ -113,6 +127,7 @@ public class PersonController : ControllerBase
             FullName = x.FullName,
             CellPhone = x.CellPhone,
             Email = x.Email,
+            Affiliation = x.Affiliation,
             Description = x.Description,
             Active = x.Active
         });
