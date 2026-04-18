@@ -17,14 +17,12 @@ public class AnirWorkDto
     [Display(Name = "Empresa")]
     public int CompanyId { get; set; }
 
-    [Display(Name = "Empresa")]
     public string? CompanyName { get; set; }
 
     [Required(ErrorMessage = "Debe seleccionar una UEB.")]
     [Display(Name = "UEB")]
     public int UebId { get; set; }
 
-    [Display(Name = "UEB")]
     public string? UebName { get; set; }
 
     // ============================================================
@@ -36,16 +34,16 @@ public class AnirWorkDto
     public DateOnly Date { get; set; } = DateOnly.FromDateTime(DateTime.Now);
 
     [Required(ErrorMessage = "El número registro es obligatorio.")]
-    [StringLength(50, ErrorMessage = "El número registro no puede exceder {1} caracteres.")]
+    [StringLength(50)]
     [Display(Name = "Número Registro")]
     public string AnirNumber { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "El título es obligatorio.")]
-    [StringLength(200, ErrorMessage = "El título no puede exceder {1} caracteres.")]
+    [StringLength(200)]
     [Display(Name = "Título")]
     public string Title { get; set; } = string.Empty;
 
-    [StringLength(2000, ErrorMessage = "La descripción no puede exceder {1} caracteres.")]
+    [StringLength(2000)]
     [Display(Name = "Descripción")]
     public string? Description { get; set; }
 
@@ -53,44 +51,29 @@ public class AnirWorkDto
     // EFECTOS
     // ============================================================
 
-    [Display(Name = "Efecto Social")]
     public bool HasSocialEffect { get; set; }
-
-    [Display(Name = "Efecto Económico")]
     public bool HasEconomicEffect { get; set; }
 
-    [Display(Name = "Categoría")]
     public JobCategory Category { get; set; } = JobCategory.Innovacion;
-
-    [Display(Name = "Generalización")]
     public GeneralizationStatus Generalization { get; set; } = GeneralizationStatus.No;
 
-    [Display(Name = "Es Experimental")]
-    public bool IsExperimental { get; set; } = false;
-
-    [Display(Name = "Fecha Inicio Experimental")]
+    public bool IsExperimental { get; set; }
     public DateTime? ExperimentalStartDate { get; set; }
-
-    [Display(Name = "Fecha Fin Experimental")]
     public DateTime? ExperimentalEndDate { get; set; }
 
     // ============================================================
     // ECONOMÍA
     // ============================================================
 
-    [Range(0, double.MaxValue, ErrorMessage = "El impacto económico debe ser mayor o igual a 0.")]
-    [Display(Name = "Impacto Económico")]
+    [Range(0, double.MaxValue)]
     public decimal EconomicImpact { get; set; }
 
-    [StringLength(2000, ErrorMessage = "Las recomendaciones no pueden exceder {1} caracteres.")]
-    [Display(Name = "Recomendaciones")]
+    [StringLength(2000)]
     public string? Recommendations { get; set; }
 
-    [Display(Name = "Estado")]
     public JobState State { get; set; } = JobState.Aprobado;
 
-    [StringLength(50, ErrorMessage = "El número de resolución no puede exceder {1} caracteres.")]
-    [Display(Name = "Número de Resolución")]
+    [StringLength(50)]
     public string? ResolutionNumber { get; set; }
 
     // ============================================================
@@ -107,9 +90,6 @@ public class AnirWorkDto
     // RELACIONES
     // ============================================================
 
-    [Display(Name = "Personas")]
     public List<AnirWorkPersonDto> Persons { get; set; } = new();
-
-    [Display(Name = "Presentaciones")]
     public List<AnirWorkPresentationDto> Presentations { get; set; } = new();
 }

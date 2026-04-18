@@ -26,7 +26,7 @@ public class AnirWorkController : ControllerBase
         ApplicationDbContext db,
         ILogger<AnirWorkController> logger,
         IPdfService pdfService,
-         IFileStorage storage)
+        IFileStorage storage)
     {
         _db = db;
         _logger = logger;
@@ -58,6 +58,7 @@ public class AnirWorkController : ControllerBase
         entity.State = dto.State;
         entity.ResolutionNumber = dto.ResolutionNumber;
 
+        // IDs temporales (commit se hace en CREATE/UPDATE)
         entity.ImageId = dto.ImageId;
         entity.PdfId = dto.PdfId;
     }
@@ -96,16 +97,16 @@ public class AnirWorkController : ControllerBase
             State = entity.State,
             ResolutionNumber = entity.ResolutionNumber,
 
-            // ⭐ ARCHIVOS (IGUAL QUE PERSONCONTROLLER)
+            // ⭐ ARCHIVOS (URLs CORREGIDAS)
             ImageId = entity.ImageId,
             ImageUrl = string.IsNullOrWhiteSpace(entity.ImageId)
                 ? null
-                : $"{Request.Scheme}://{Request.Host}/images/{entity.ImageId}",
+                : $"{Request.Scheme}://{Request.Host}/api/files/images/{entity.ImageId}",
 
             PdfId = entity.PdfId,
             PdfUrl = string.IsNullOrWhiteSpace(entity.PdfId)
                 ? null
-                : $"{Request.Scheme}://{Request.Host}/docs/{entity.PdfId}",
+                : $"{Request.Scheme}://{Request.Host}/api/files/docs/{entity.PdfId}",
 
             // Relaciones
             Persons = entity.AnirWorkPersons.Select(p => new AnirWorkPersonDto
@@ -126,8 +127,6 @@ public class AnirWorkController : ControllerBase
     }
 
 
-
-
     // ============================================================
     // GET PAGED
     // ============================================================
@@ -144,9 +143,7 @@ public class AnirWorkController : ControllerBase
                 .ThenInclude(u => u.Company)
             .AsNoTracking();
 
-        // ============================================================
         // SEARCH
-        // ============================================================
         if (!string.IsNullOrWhiteSpace(queryDto.Search))
         {
             var s = queryDto.Search.Trim().ToLower();
@@ -159,9 +156,7 @@ public class AnirWorkController : ControllerBase
             );
         }
 
-        // ============================================================
         // FILTERS
-        // ============================================================
         if (queryDto.CompanyId.HasValue)
             query = query.Where(w => w.Ueb.CompanyId == queryDto.CompanyId.Value);
 
@@ -180,9 +175,7 @@ public class AnirWorkController : ControllerBase
         if (queryDto.ToDate.HasValue)
             query = query.Where(w => w.Date <= queryDto.ToDate.Value);
 
-        // ============================================================
         // SORT
-        // ============================================================
         queryDto.Sort = queryDto.Sort switch
         {
             "CompanyName" => "Ueb.Company.Name",
@@ -192,9 +185,7 @@ public class AnirWorkController : ControllerBase
 
         var orderedQuery = query.ApplySorting(queryDto);
 
-        // ============================================================
         // PROJECTION
-        // ============================================================
         var projectedQuery = orderedQuery.Select(w => new AnirWorkDto
         {
             Id = w.Id,
@@ -209,14 +200,11 @@ public class AnirWorkController : ControllerBase
             HasEconomicEffect = w.HasEconomicEffect
         });
 
-        // ============================================================
         // PAGING
-        // ============================================================
         var paged = await projectedQuery.ToPagedResultAsync(queryDto, ct);
 
         return Ok(ProcessResponse<PagedResponse<AnirWorkDto>>.Success(paged));
     }
-
 
 
     // ============================================================
@@ -235,13 +223,13 @@ public class AnirWorkController : ControllerBase
                 .AsNoTracking()
                 .FirstOrDefaultAsync(w => w.Id == id, ct);
 
-
         if (entity == null)
-                return NotFound(ProcessResponse<AnirWorkDto>.Fail($"{ENTITY} no encontrado."));
+            return NotFound(ProcessResponse<AnirWorkDto>.Fail($"{ENTITY} no encontrado."));
 
-            var dto = MapEntityToDto(entity);
-            return Ok(ProcessResponse<AnirWorkDto>.Success(dto));  
+        var dto = MapEntityToDto(entity);
+        return Ok(ProcessResponse<AnirWorkDto>.Success(dto));
     }
+
 
     // ============================================================
     // CREATE
@@ -258,6 +246,13 @@ public class AnirWorkController : ControllerBase
 
         var entity = new AnirWork();
         MapDtoToEntity(dto, entity);
+
+        // ⭐ COMMIT DE ARCHIVOS
+        if (!string.IsNullOrEmpty(dto.ImageId))
+            entity.ImageId = await _storage.CommitAsync(dto.ImageId, "images");
+
+        if (!string.IsNullOrEmpty(dto.PdfId))
+            entity.PdfId = await _storage.CommitAsync(dto.PdfId, "docs");
 
         _db.AnirWorks.Add(entity);
         await _db.SaveChangesAsync(ct);
@@ -319,6 +314,13 @@ public class AnirWorkController : ControllerBase
         // Mapear cambios principales
         MapDtoToEntity(dto, entity);
 
+        // ⭐ COMMIT DE ARCHIVOS (si vienen nuevos)
+        if (!string.IsNullOrEmpty(dto.ImageId) && dto.ImageId != entity.ImageId)
+            entity.ImageId = await _storage.CommitAsync(dto.ImageId, "images");
+
+        if (!string.IsNullOrEmpty(dto.PdfId) && dto.PdfId != entity.PdfId)
+            entity.PdfId = await _storage.CommitAsync(dto.PdfId, "docs");
+
         // Reemplazar personas
         _db.AnirWorkPersons.RemoveRange(entity.AnirWorkPersons);
         foreach (var p in dto.Persons)
@@ -366,13 +368,12 @@ public class AnirWorkController : ControllerBase
         if (entity == null)
             return NotFound(ProcessResponse<bool>.Fail($"{ENTITY} no encontrado."));
 
-        // ⭐ BORRAR ARCHIVOS ANTES DE BORRAR EL REGISTRO
+        // ⭐ BORRAR ARCHIVOS
         if (!string.IsNullOrEmpty(entity.ImageId))
             await _storage.DeleteAsync(entity.ImageId, "images");
 
         if (!string.IsNullOrEmpty(entity.PdfId))
             await _storage.DeleteAsync(entity.PdfId, "docs");
-
 
         _db.AnirWorkPersons.RemoveRange(entity.AnirWorkPersons);
         _db.AnirWorkPresentations.RemoveRange(entity.AnirWorkPresentations);
@@ -383,7 +384,6 @@ public class AnirWorkController : ControllerBase
 
         return Ok(ProcessResponse<bool>.Success(true, $"{ENTITY} eliminado correctamente."));
     }
-
 
 
     // ============================================================
@@ -446,7 +446,6 @@ public class AnirWorkController : ControllerBase
     }
 
 
-
     // ============================================================
     // EXPORT PDF LIST
     // ============================================================
@@ -456,7 +455,6 @@ public class AnirWorkController : ControllerBase
         CancellationToken ct = default)
     {
         IQueryable<AnirWork> query = _db.AnirWorks.Include(w => w.Ueb).ThenInclude(u => u.Company);
-
 
         if (request.Ids is { Count: > 0 })
             query = query.Where(w => request.Ids.Contains(w.Id));

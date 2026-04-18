@@ -82,7 +82,9 @@
                         @if (!IsViewMode)
                         {
                             <PdfUploader Value="@_formModel.PdfUrl"
-                                       OnChanged="HandlePdfChanged" />
+                                         OnChanged="HandlePdfChanged"
+                                         IsViewMode="IsViewMode" />
+
                         }
 
                         @if (!string.IsNullOrEmpty(_formModel.PdfUrl))
@@ -438,6 +440,9 @@
 </MudContainer>
 
 @code {
+    // ============================================================
+    // INYECCIONES
+    // ============================================================
     [Inject] private ICompanyService CompanyService { get; set; } = default!;
     [Inject] private IUebService UebService { get; set; } = default!;
     [Inject] private IAnirWorkService WorkService { get; set; } = default!;
@@ -445,30 +450,44 @@
     [Inject] private NavigationManager Nav { get; set; } = default!;
     [Inject] private FileService FileService { get; set; } = default!;
 
-
+    // ============================================================
+    // PARÁMETROS
+    // ============================================================
     [Parameter] public int? Id { get; set; }
-    
-    private bool IsInitializingPage = true;
-    private bool IsViewMode => Nav.Uri.Split('?')[0].EndsWith("/view");
-    private PhotoUploader? PhotoUploaderRef;
 
     // ============================================================
-    // UBICACIÓN
+    // ESTADO DE LA PÁGINA
+    // ============================================================
+    private bool IsInitializingPage = true;
+    private bool IsViewMode => Nav.Uri.Split('?')[0].EndsWith("/view");
+
+    private PhotoUploader? PhotoUploaderRef;
+    private PdfUploader? PdfUploaderRef;
+
+    // ============================================================
+    // DATOS
     // ============================================================
     private List<CompanyDto> AllCompanies = new();
     private List<UebDto> FilteredUebs = new();
-
-    private AnirWorkDto _formModel = new();
     private List<CompanyDto> Companies = new();
 
+    private AnirWorkDto _formModel = new();
+
+    // ============================================================
+    // EVENTOS DE UI
+    // ============================================================
     void OnExperimentalChanged(bool value)
     {
         _formModel.IsExperimental = value;
-        StateHasChanged(); // 🔥 fuerza el re-render
+        StateHasChanged();
     }
 
+    // ============================================================
+    // INICIALIZACIÓN
+    // ============================================================
     protected override async Task OnInitializedAsync()
     {
+        // Cargar empresas
         AllCompanies = await CompanyService.GetAllAsync() ?? new();
 
         var query = new CompanyQueryDto
@@ -485,6 +504,7 @@
         else
             await AlertService.ShowError("Error", "No se pudieron cargar las empresas.");
 
+        // Crear o editar
         if (Id is null)
         {
             _formModel = new AnirWorkDto
@@ -503,7 +523,8 @@
             if (response?.Result == ResponseStatus.Success)
             {
                 _formModel = response.Value!;
-                // ⭐ Inicializar UEBs filtradas según la empresa ya guardada
+
+                // Cargar UEBs según empresa
                 if (_formModel.CompanyId != 0)
                     FilteredUebs = await UebService.GetByCompanyIdAsync(_formModel.CompanyId) ?? new();
             }
@@ -514,20 +535,48 @@
                 return;
             }
         }
-       
+
         IsInitializingPage = false;
     }
 
-    private Task HandleImageChanged(FileResponse? file)
+    // ============================================================
+    // MANEJO DE IMAGEN
+    // ============================================================
+    private async Task HandleImageChanged(IBrowserFile? file)
     {
-        return Task.CompletedTask;
+        if (file is null)
+        {
+            _formModel.ImageId = null;
+            return;
+        }
+
+        var uploaded = await FileService.UploadTempAsync(file);
+
+        if (uploaded != null)
+        {
+            _formModel.ImageId = uploaded.Id;   // tempId
+            _formModel.ImageUrl = null;         // la URL final la pone el backend
+        }
     }
 
-
-    private void HandlePdfChanged(FileResponse? file)
+    // ============================================================
+    // MANEJO DE PDF
+    // ============================================================
+    private async Task HandlePdfChanged(IBrowserFile? file)
     {
-        _formModel.PdfId = file?.Id;
-        _formModel.PdfUrl = file?.Url;
+        if (file is null)
+        {
+            _formModel.PdfId = null;
+            return;
+        }
+
+        var uploaded = await FileService.UploadTempAsync(file);
+
+        if (uploaded != null)
+        {
+            _formModel.PdfId = uploaded.Id;   // tempId
+            _formModel.PdfUrl = null;         // la URL final la pone el backend
+        }
     }
 
     private void DeletePdf()
@@ -536,44 +585,32 @@
         _formModel.PdfUrl = null;
     }
 
+    // ============================================================
+    // CAMBIO DE EMPRESA
+    // ============================================================
     private async Task OnCompanyChanged(int companyId)
     {
         _formModel.CompanyId = companyId;
 
-        // Traer UEBs filtradas desde el backend
         FilteredUebs = await UebService.GetByCompanyIdAsync(companyId) ?? new();
 
-        // Resetear selección si no corresponde
         if (!FilteredUebs.Any(u => u.Id == _formModel.UebId))
             _formModel.UebId = 0;
 
         StateHasChanged();
     }
 
+    // ============================================================
+    // GUARDAR
+    // ============================================================
     private async Task Save()
     {
         if (IsViewMode)
             return;
 
-        // ⭐ 1. Subir imagen si hay una pendiente
-        var pendingImage = PhotoUploaderRef?.GetPendingFile();
-        if (pendingImage is not null)
-        {
-            var uploaded = await FileService.UploadAsync(pendingImage);
-            _formModel.ImageId = uploaded.Id;
-            _formModel.ImageUrl = uploaded.Url;
-        }
+        // ⭐ Ya NO subimos archivos aquí.
+        // Todo se maneja en HandleImageChanged y HandlePdfChanged.
 
-        // ⭐ 2. Subir PDF si hay uno pendiente
-        // var pendingPdf = PdfUploaderRef?.GetPendingFile();
-        // if (pendingPdf is not null)
-        // {
-        //     var uploaded = await FileService.UploadAsync(pendingPdf);
-        //     _formModel.PdfId = uploaded.Id;
-        //     _formModel.PdfUrl = uploaded.Url;
-        // }
-
-        // ⭐ 3. Guardar la entidad
         ProcessResponse<AnirWorkDto>? response =
             Id is null
             ? await WorkService.CreateAsync(_formModel)
@@ -590,7 +627,11 @@
         }
     }
 
-
+    // ============================================================
+    // VOLVER
+    // ============================================================
     private void Back() => Nav.NavigateTo("/anirworks");
 }
+
+
 

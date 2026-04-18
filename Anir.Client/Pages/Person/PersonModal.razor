@@ -340,6 +340,8 @@
     // ============================================================
     [Inject] private PersonService PersonService { get; set; } = default!;
     [Inject] private IAlertService AlertService { get; set; } = default!;
+    [Inject] private FileService FileService { get; set; } = default!;
+
     [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
 
     // ============================================================
@@ -400,11 +402,24 @@
         StateHasChanged();
     }
 
-    private void OnPhotoChanged(FileResponse? file)
+    private async Task OnPhotoChanged(IBrowserFile? file)
     {
-        _formModel.ImagenId = file?.Id;
-        _formModel.ImagenUrl = file?.Url;
+        if (file is null)
+        {
+            _formModel.ImagenId = null;
+            _formModel.ImagenUrl = null;
+            return;
+        }
+
+        var uploaded = await FileService.UploadTempAsync(file);
+
+        if (uploaded != null)
+        {
+            _formModel.ImagenId = uploaded.Id;   // tempId
+            _formModel.ImagenUrl = null;         // la URL final la pone el backend
+        }
     }
+
 
     // ============================================================
     // GUARDAR

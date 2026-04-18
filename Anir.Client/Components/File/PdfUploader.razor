@@ -1,6 +1,4 @@
-﻿
-@using Anir.Shared
-@inject FileService FileService
+﻿@using Anir.Shared
 @inject IJSRuntime JS
 
 <MudStack Spacing="2">
@@ -14,31 +12,32 @@
         </MudButton>
     }
 
-    <MudFileUpload T="IBrowserFile"
-                   FilesChanged="HandleSelected"
-                   ShowList="false"
-                   ShowSize="false"
-                   ShowProgress="false" />
+    @if (!IsViewMode)
+    {
+        <MudFileUpload T="IBrowserFile"
+                       FilesChanged="HandleSelected"
+                       ShowList="false"
+                       ShowSize="false"
+                       ShowProgress="false" />
+    }
 
 </MudStack>
 
 @code {
-    [Parameter] public string? Value { get; set; }
-    [Parameter] public EventCallback<FileResponse?> OnChanged { get; set; }
+    [Parameter] public string? Value { get; set; }   // URL final del backend
+    [Parameter] public bool IsViewMode { get; set; } = false;
+
+    // El padre recibirá null (borrado) o un archivo pendiente
+    [Parameter] public EventCallback<IBrowserFile?> OnChanged { get; set; }
+
+    private IBrowserFile? _pendingFile;
 
     private async Task HandleSelected(IBrowserFile? file)
     {
-        if (file == null)
-        {
-            await OnChanged.InvokeAsync(null);
-            return;
-        }
+        _pendingFile = file;
 
-        // ⭐ Subimos el archivo
-        var result = await FileService.UploadAsync(file);
-
-        // ⭐ Notificamos al padre
-        await OnChanged.InvokeAsync(result);
+        // Notificar al padre
+        await OnChanged.InvokeAsync(file);
     }
 
     private async Task OpenPdf()
@@ -46,4 +45,6 @@
         if (!string.IsNullOrEmpty(Value))
             await JS.InvokeVoidAsync("open", Value, "_blank");
     }
+
+    public IBrowserFile? GetPendingFile() => _pendingFile;
 }

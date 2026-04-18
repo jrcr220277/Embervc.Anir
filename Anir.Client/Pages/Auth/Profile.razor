@@ -160,10 +160,22 @@
     }
 
 
-    private void OnPhotoChanged(FileResponse? file)
+    private async Task OnPhotoChanged(IBrowserFile? file)
     {
-        _formModel.ImagenId = file?.Id;
-        _formModel.ImagenUrl = file?.Url;
+        if (file is null)
+        {
+            _formModel.ImagenId = null;
+            _formModel.ImagenUrl = null;
+            return;
+        }
+
+        var uploaded = await Files.UploadTempAsync(file);
+
+        if (uploaded != null)
+        {
+            _formModel.ImagenId = uploaded.Id;   // tempId
+            _formModel.ImagenUrl = null;         // la URL final la pone el backend
+        }
     }
 
 

@@ -85,7 +85,6 @@
                         <MudSelectItem Value=@("No")>No</MudSelectItem>
                     </MudSelect>
 
-                    
                     <!-- FILTRO GENERALIZACIÓN -->
                     <MudSelect T="string"
                                Value="@GeneralizationFilterValue"
@@ -165,8 +164,9 @@
             <MudTh><MudTableSortLabel T="AnirWorkDto" SortLabel="Company.Name">Empresa</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="AnirWorkDto" SortLabel="Date">Fecha</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="AnirWorkDto" SortLabel="EconomicImpact">Impacto Económico</MudTableSortLabel></MudTh>
-            <MudTh>Pagado</MudTh>
-            <MudTh>Generalizado</MudTh>
+            <MudTh>Social</MudTh>
+            <MudTh>Económico</MudTh>
+            <MudTh>Generalización</MudTh>
             <MudTh Style="width: 140px; text-align:end">Acciones</MudTh>
         </HeaderContent>
 
@@ -178,13 +178,13 @@
             <MudTd>@work.EconomicImpact.ToString("C")</MudTd>
 
             <MudTd>
-                <MudChip T="string" Color="@(work.HasSocialEffect? Color.Success: Color.Error)" Variant="Variant.Text" Size="Size.Small">
+                <MudChip T="string" Color="@(work.HasSocialEffect ? Color.Success : Color.Error)" Variant="Variant.Text" Size="Size.Small">
                     @(work.HasSocialEffect ? "Sí" : "No")
                 </MudChip>
             </MudTd>
 
             <MudTd>
-                <MudChip T="string" Color="@(work.HasEconomicEffect? Color.Info: Color.Default)" Variant="Variant.Text" Size="Size.Small">
+                <MudChip T="string" Color="@(work.HasEconomicEffect ? Color.Info : Color.Default)" Variant="Variant.Text" Size="Size.Small">
                     @(work.HasEconomicEffect ? "Sí" : "No")
                 </MudChip>
             </MudTd>
@@ -228,7 +228,6 @@
 </MudContainer>
 
 @code {
-
     // ============================================================
     // INYECCIONES
     // ============================================================
@@ -351,7 +350,6 @@
             }
         };
     }
-
 
     // ============================================================
     // BÚSQUEDA CON DEBOUNCE
@@ -506,6 +504,7 @@
         }
     }
 
+    
     // ============================================================
     // LIMPIEZA
     // ============================================================

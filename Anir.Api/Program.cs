@@ -102,14 +102,6 @@ builder.Services.Configure<EmailSettings>(
 );
 builder.Services.AddScoped<IEmailService, EmailService>();
 
-// ============================================================
-// FILE STORAGE
-// ============================================================
-builder.Services.AddSingleton<IFileStorage>(sp =>
-{
-    var env = sp.GetRequiredService<IWebHostEnvironment>();
-    return new FileStorageService(env.WebRootPath);
-});
 
 // ============================================================
 // REPORTS
