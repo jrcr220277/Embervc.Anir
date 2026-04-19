@@ -1,13 +1,19 @@
-﻿@using MudBlazor
+﻿@using Anir.Shared.Contracts.Common
 @using Microsoft.AspNetCore.Components.Forms
+@inject FileService FileService
+@inject IAlertService AlertService
 
 <MudStack AlignItems="AlignItems.Center" Spacing="2">
 
     <div style="@($"position:relative; width:{Size}px; height:{Size}px;")">
-
-        @if (PreviewUrl != null || !string.IsNullOrEmpty(Value))
+        @if (PreviewUrl != null)
         {
-            <img src="@(PreviewUrl ?? Value)"
+            <img src="@PreviewUrl"
+                 style="width:100%; height:100%; object-fit:cover; border-radius:@(IsProfile ? "50%" : "6px");" />
+        }
+        else if (!string.IsNullOrEmpty(Value))
+        {
+            <img src="@Value"
                  style="width:100%; height:100%; object-fit:cover; border-radius:@(IsProfile ? "50%" : "6px");" />
         }
         else
@@ -17,14 +23,13 @@
                 <MudIcon Icon="@DefaultIcon" Style="font-size:3rem;" />
             </MudAvatar>
         }
-
     </div>
 
     @if (!IsViewMode)
     {
         <MudStack Row="true" Spacing="1">
             <MudFileUpload T="IBrowserFile"
-                           FilesChanged="HandleSelected"
+                           FilesChanged="OnFilesChanged"
                            ShowList="false"
                            ShowSize="false"
                            ShowProgress="false"
@@ -32,72 +37,152 @@
                            SelectedTemplate="@(file => null)">
                 <CustomContent>
                     <MudIconButton OnClick="@context.OpenFilePickerAsync"
-                                   Icon="@Icons.Material.Filled.Upload" />
+                                   Icon="@Icons.Material.Filled.Upload"
+                                   Disabled="@isUploading" />
                 </CustomContent>
             </MudFileUpload>
 
-            @if (ShowDelete && (PreviewUrl != null || !string.IsNullOrEmpty(Value)))
+            @if (ShowDelete && (PreviewUrl != null || !string.IsNullOrEmpty(Value) || UploadedResponse != null))
             {
                 <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                Color="Color.Error"
-                               OnClick="HandleDelete" />
+                               OnClick="HandleDelete"
+                               Disabled="@isUploading" />
             }
         </MudStack>
+    }
+
+    @if (isUploading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-1" />
     }
 
 </MudStack>
 
 @code {
-    [Parameter] public string? Value { get; set; }
+    [Parameter] public string? Value { get; set; }            // URL existente (desde servidor)
     [Parameter] public int Size { get; set; } = 150;
     [Parameter] public bool ShowDelete { get; set; } = true;
-
-    // ⭐ CORREGIDO: ahora IBrowserFile?
-    [Parameter] public EventCallback<IBrowserFile?> OnChanged { get; set; }
-
+    [Parameter] public EventCallback<FileResponse?> OnUploaded { get; set; } // devuelve FileResponse al padre
     [Parameter] public bool IsProfile { get; set; } = true;
     [Parameter] public bool IsViewMode { get; set; } = false;
 
-    private const long MaxFileSize = 10 * 1024 * 1024;
+    private const long MaxFileSize = 10 * 1024 * 1024; // coherente con servidor images
     private string? PreviewUrl;
-
     private IBrowserFile? _pendingFile;
+    private FileResponse? UploadedResponse;
+    private bool isUploading = false;
 
     private string DefaultIcon => IsProfile ? Icons.Material.Filled.Person : Icons.Material.Filled.Image;
+
+    // Maneja tanto IBrowserFile como IReadOnlyList<IBrowserFile>
+    private async Task OnFilesChanged(object files)
+    {
+        IBrowserFile? file = null;
+
+        if (files is IBrowserFile single)
+            file = single;
+        else if (files is IReadOnlyList<IBrowserFile> list && list.Count > 0)
+            file = list[0];
+
+        await HandleSelected(file);
+    }
 
     private async Task HandleSelected(IBrowserFile? file)
     {
         if (file == null)
         {
-            PreviewUrl = Value;
-            _pendingFile = null;
-            await OnChanged.InvokeAsync(null);
+            // limpieza local y notificar padre
+            await CleanupLocalAndNotify(null);
             return;
         }
 
         if (file.Size > MaxFileSize)
         {
-            // Aquí puedes usar tu AlertService si quieres
+            await AlertService.ShowError("Archivo demasiado grande", $"La imagen no puede superar los {MaxFileSize / 1024 / 1024} MB.");
             return;
         }
 
         _pendingFile = file;
 
-        using var stream = file.OpenReadStream(MaxFileSize);
-        using var ms = new MemoryStream();
-        await stream.CopyToAsync(ms);
+        // Generar preview local inmediato (base64)
+        try
+        {
+            using var stream = file.OpenReadStream(MaxFileSize);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            PreviewUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+        }
+        catch
+        {
+            PreviewUrl = null;
+        }
 
-        PreviewUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+        // Subir automáticamente
+        isUploading = true;
+        StateHasChanged();
 
-        await OnChanged.InvokeAsync(file);
+        try
+        {
+            var response = await FileService.UploadAsync(file, "images");
+            if (response != null)
+            {
+                // Guardamos la respuesta y notificamos al padre
+                UploadedResponse = response;
+                // Mostrar la URL final si la devuelve el servidor
+                PreviewUrl = response.Url ?? PreviewUrl;
+                await OnUploaded.InvokeAsync(response);
+            }
+            else
+            {
+                // Si el servidor devolvió null, limpiar y avisar
+                await AlertService.ShowError("Error", "No se pudo subir la imagen.");
+                await CleanupLocalAndNotify(null);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Si falla la subida, limpiar preview y notificar
+            await AlertService.ShowError("Error subiendo imagen", ex.Message);
+            await CleanupLocalAndNotify(null);
+        }
+        finally
+        {
+            isUploading = false;
+            StateHasChanged();
+        }
     }
 
     private async Task HandleDelete()
     {
-        PreviewUrl = null;
-        _pendingFile = null;
-        await OnChanged.InvokeAsync(null);
+        // Si hay un archivo subido en el servidor, eliminarlo
+        if (UploadedResponse != null && !string.IsNullOrWhiteSpace(UploadedResponse.Id))
+        {
+            try
+            {
+                var ok = await FileService.DeleteAsync("images", UploadedResponse.Id);
+                if (!ok)
+                    await AlertService.ShowError("Error", "No se pudo eliminar la imagen en el servidor.");
+            }
+            catch (Exception ex)
+            {
+                await AlertService.ShowError("Error", $"Error eliminando imagen: {ex.Message}");
+            }
+        }
+
+        // Limpiar estado local y notificar padre con null
+        await CleanupLocalAndNotify(null);
     }
 
-    public IBrowserFile? GetPendingFile() => _pendingFile;
+    private async Task CleanupLocalAndNotify(FileResponse? response)
+    {
+        PreviewUrl = null;
+        _pendingFile = null;
+        UploadedResponse = response;
+        await OnUploaded.InvokeAsync(response);
+        StateHasChanged();
+    }
+
+    // Método público opcional para que el padre pida el FileResponse si lo necesita
+    public FileResponse? GetUploadedResponse() => UploadedResponse;
 }

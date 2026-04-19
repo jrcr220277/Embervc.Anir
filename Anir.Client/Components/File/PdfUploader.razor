@@ -1,9 +1,16 @@
-﻿@using Anir.Shared
-@inject IJSRuntime JS
+﻿@using Anir.Shared.Contracts.Common
+@using Microsoft.AspNetCore.Components.Forms
+@inject FileService FileService
+@inject IAlertService AlertService
+@using Microsoft.JSInterop
 
 <MudStack Spacing="2">
 
-    @if (!string.IsNullOrEmpty(Value))
+    @if (PreviewUrl != null)
+    {
+        <iframe src="@PreviewUrl" style="width:100%;height:300px;border:0"></iframe>
+    }
+    else if (!string.IsNullOrEmpty(Value))
     {
         <MudButton Variant="Variant.Outlined"
                    StartIcon="@Icons.Material.Filled.PictureAsPdf"
@@ -11,33 +18,162 @@
             Ver PDF
         </MudButton>
     }
+    else
+    {
+        <div class="mud-typography-body2" style="min-height:120px;display:flex;align-items:center;justify-content:center;color:var(--mud-palette-text-secondary);">
+            No hay PDF
+        </div>
+    }
 
     @if (!IsViewMode)
     {
-        <MudFileUpload T="IBrowserFile"
-                       FilesChanged="HandleSelected"
-                       ShowList="false"
-                       ShowSize="false"
-                       ShowProgress="false" />
+        <MudStack Row="true" Spacing="1" Class="mt-1">
+            <MudFileUpload T="IBrowserFile"
+                           FilesChanged="OnFilesChanged"
+                           ShowList="false"
+                           ShowSize="false"
+                           ShowProgress="false"
+                           SuppressOnChangeWhenInvalid="true"
+                           SelectedTemplate="@(file => null)">
+                <CustomContent>
+                    <MudIconButton OnClick="@context.OpenFilePickerAsync"
+                                   Icon="@Icons.Material.Filled.Upload"
+                                   Disabled="@isUploading" />
+                </CustomContent>
+            </MudFileUpload>
+
+            @if (ShowDelete && (PreviewUrl != null || !string.IsNullOrEmpty(Value) || UploadedResponse != null))
+            {
+                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                               Color="Color.Error"
+                               OnClick="HandleDelete"
+                               Disabled="@isUploading" />
+            }
+        </MudStack>
+    }
+
+    @if (isUploading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-1" />
     }
 
 </MudStack>
 
 @code {
-    [Parameter] public string? Value { get; set; }   // URL final del backend
+
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+
+    [Parameter] public string? Value { get; set; }            // URL existente (desde servidor)
+    [Parameter] public bool ShowDelete { get; set; } = true;
+    [Parameter] public EventCallback<FileResponse?> OnUploaded { get; set; } // devuelve FileResponse al padre
     [Parameter] public bool IsViewMode { get; set; } = false;
 
-    // El padre recibirá null (borrado) o un archivo pendiente
-    [Parameter] public EventCallback<IBrowserFile?> OnChanged { get; set; }
-
+    private const long MaxFileSize = 20 * 1024 * 1024; // 20 MB para PDFs
+    private string? PreviewUrl;
     private IBrowserFile? _pendingFile;
+    private FileResponse? UploadedResponse;
+    private bool isUploading = false;
+
+    // Maneja tanto IBrowserFile como IReadOnlyList<IBrowserFile>
+    private async Task OnFilesChanged(object files)
+    {
+        IBrowserFile? file = null;
+
+        if (files is IBrowserFile single)
+            file = single;
+        else if (files is IReadOnlyList<IBrowserFile> list && list.Count > 0)
+            file = list[0];
+
+        await HandleSelected(file);
+    }
 
     private async Task HandleSelected(IBrowserFile? file)
     {
+        if (file == null)
+        {
+            await CleanupLocalAndNotify(null);
+            return;
+        }
+
+        if (file.Size > MaxFileSize)
+        {
+            await AlertService.ShowError("Archivo demasiado grande", $"El PDF no puede superar los {MaxFileSize / 1024 / 1024} MB.");
+            return;
+        }
+
         _pendingFile = file;
 
-        // Notificar al padre
-        await OnChanged.InvokeAsync(file);
+        // Opcional: generar preview local (no siempre necesario para PDF)
+        try
+        {
+            using var stream = file.OpenReadStream(MaxFileSize);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            // Crear blob URL no trivial en WASM; preferimos mostrar la URL del servidor cuando esté disponible.
+            PreviewUrl = null;
+        }
+        catch
+        {
+            PreviewUrl = null;
+        }
+
+        // Subir automáticamente
+        isUploading = true;
+        StateHasChanged();
+
+        try
+        {
+            var response = await FileService.UploadAsync(file, "docs");
+            if (response != null)
+            {
+                UploadedResponse = response;
+                PreviewUrl = response.Url ?? PreviewUrl;
+                await OnUploaded.InvokeAsync(response);
+            }
+            else
+            {
+                await AlertService.ShowError("Error", "No se pudo subir el PDF.");
+                await CleanupLocalAndNotify(null);
+            }
+        }
+        catch (Exception ex)
+        {
+            await AlertService.ShowError("Error subiendo PDF", ex.Message);
+            await CleanupLocalAndNotify(null);
+        }
+        finally
+        {
+            isUploading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleDelete()
+    {
+        if (UploadedResponse != null && !string.IsNullOrWhiteSpace(UploadedResponse.Id))
+        {
+            try
+            {
+                var ok = await FileService.DeleteAsync("docs", UploadedResponse.Id);
+                if (!ok)
+                    await AlertService.ShowError("Error", "No se pudo eliminar el PDF en el servidor.");
+            }
+            catch (Exception ex)
+            {
+                await AlertService.ShowError("Error", $"Error eliminando PDF: {ex.Message}");
+            }
+        }
+
+        await CleanupLocalAndNotify(null);
+    }
+
+    private async Task CleanupLocalAndNotify(FileResponse? response)
+    {
+        PreviewUrl = null;
+        _pendingFile = null;
+        UploadedResponse = response;
+        await OnUploaded.InvokeAsync(response);
+        StateHasChanged();
     }
 
     private async Task OpenPdf()
@@ -46,5 +182,6 @@
             await JS.InvokeVoidAsync("open", Value, "_blank");
     }
 
-    public IBrowserFile? GetPendingFile() => _pendingFile;
+    // Método público opcional para que el padre pida el FileResponse si lo necesita
+    public FileResponse? GetUploadedResponse() => UploadedResponse;
 }

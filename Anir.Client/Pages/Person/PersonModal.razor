@@ -411,14 +411,25 @@
             return;
         }
 
-        var uploaded = await FileService.UploadTempAsync(file);
-
-        if (uploaded != null)
+        try
         {
-            _formModel.ImagenId = uploaded.Id;   // tempId
-            _formModel.ImagenUrl = null;         // la URL final la pone el backend
+            var uploaded = await FileService.UploadAsync(file, "images");
+            if (uploaded != null)
+            {
+                _formModel.ImagenId = uploaded.Id;
+                _formModel.ImagenUrl = uploaded.Url;
+            }
+            else
+            {
+                await AlertService.ShowError("Error", "No se pudo subir la imagen.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await AlertService.ShowError("Error", $"Error subiendo imagen: {ex.Message}");
         }
     }
+
 
 
     // ============================================================

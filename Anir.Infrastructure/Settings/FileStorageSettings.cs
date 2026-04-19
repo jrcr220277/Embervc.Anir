@@ -12,7 +12,6 @@ namespace Anir.Infrastructure.Settings
     public class FileStorageSettings
     {
         public string RootPath { get; set; } = null!;
-        public string TempFolder { get; set; } = "temp";
         public string ImagesFolder { get; set; } = "images";
         public string DocsFolder { get; set; } = "docs";
     }

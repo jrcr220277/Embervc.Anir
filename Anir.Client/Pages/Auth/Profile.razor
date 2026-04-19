@@ -169,14 +169,26 @@
             return;
         }
 
-        var uploaded = await Files.UploadTempAsync(file);
-
-        if (uploaded != null)
+        try
         {
-            _formModel.ImagenId = uploaded.Id;   // tempId
-            _formModel.ImagenUrl = null;         // la URL final la pone el backend
+            // Subir directamente a images (flujo directo)
+            var uploaded = await Files.UploadAsync(file, "images");
+            if (uploaded != null)
+            {
+                _formModel.ImagenId = uploaded.Id;   // Id definitivo
+                _formModel.ImagenUrl = uploaded.Url; // mostrar inmediatamente si quieres
+            }
+            else
+            {
+                await Alerts.ShowError("Error", "No se pudo subir la imagen.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alerts.ShowError("Error", $"Error subiendo imagen: {ex.Message}");
         }
     }
+
 
 
     private async Task HandleSaveAsync()
@@ -186,32 +198,42 @@
 
         isSaving = true;
 
-        // ⭐ 2. Guardar perfil
-        var result = await AuthService.UpdateProfileAsync(_formModel);
-
-        if (result.Result == ResponseStatus.Failed)
+        try
         {
-            var msg = result.PrettyMessage
-                      ?? result.ErrorMessage
-                      ?? "No se pudo actualizar el perfil.";
+            var result = await AuthService.UpdateProfileAsync(_formModel);
 
-            await Alerts.ShowError("Error", msg);
-            isSaving = false;
-            return;
+            if (result.Result == ResponseStatus.Failed)
+            {
+                var msg = result.PrettyMessage ?? result.ErrorMessage ?? "No se pudo actualizar el perfil.";
+                await Alerts.ShowError("Error", msg);
+                return;
+            }
+
+            await Alerts.ShowSuccess("Perfil actualizado", result.PrettyMessage ?? "Los cambios se guardaron correctamente.");
+
+            // Refrescar datos del usuario
+            var me = await AuthService.MeAsync();
+            if (me.Result == ResponseStatus.Success && me.Value != null)
+            {
+                UserState.Set(me.Value);
+                // Actualizar formulario con datos frescos (opcional)
+                _formModel.ImagenId = me.Value.ImagenId;
+                _formModel.ImagenUrl = me.Value.ImagenUrl;
+                _formModel.FullName = me.Value.FullName ?? _formModel.FullName;
+                _formModel.ThemeMode = me.Value.ThemeMode;
+                _editContext.NotifyValidationStateChanged();
+            }
         }
-
-        await Alerts.ShowSuccess(
-            "Perfil actualizado",
-            result.PrettyMessage ?? "Los cambios se guardaron correctamente."
-        );
-
-        // ⭐ 3. Refrescar datos del usuario
-        var me = await AuthService.MeAsync();
-        if (me.Result == ResponseStatus.Success && me.Value != null)
-            UserState.Set(me.Value);
-
-        isSaving = false;
+        catch (Exception ex)
+        {
+            await Alerts.ShowError("Error", $"Error guardando perfil: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
     }
+
 
 
 }

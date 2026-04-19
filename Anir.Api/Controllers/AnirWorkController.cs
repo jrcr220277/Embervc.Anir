@@ -1,6 +1,7 @@
 ﻿using Anir.Data;
 using Anir.Data.Entities;
 using Anir.Infrastructure.Extensions;
+using Anir.Infrastructure.Reports.Template.Excel;
 using Anir.Infrastructure.Storage;
 using Anir.Shared.Contracts.AnirWorks;
 using Anir.Shared.Contracts.AnirWorks.Persons;
@@ -20,17 +21,20 @@ public class AnirWorkController : ControllerBase
     private readonly ApplicationDbContext _db;
     private readonly ILogger<AnirWorkController> _logger;
     private readonly IPdfService _pdfService;
+    private readonly AnirWorkReportExce _excelService;
     private readonly IFileStorage _storage;
 
     public AnirWorkController(
         ApplicationDbContext db,
         ILogger<AnirWorkController> logger,
         IPdfService pdfService,
+        AnirWorkReportExce excelService,
         IFileStorage storage)
     {
         _db = db;
         _logger = logger;
         _pdfService = pdfService;
+        _excelService = excelService;
         _storage = storage;
     }
 
@@ -58,11 +62,10 @@ public class AnirWorkController : ControllerBase
         entity.State = dto.State;
         entity.ResolutionNumber = dto.ResolutionNumber;
 
-        // IDs temporales (commit se hace en CREATE/UPDATE)
+        // Guardamos los IDs tal cual vienen del frontend (ya subidos)
         entity.ImageId = dto.ImageId;
         entity.PdfId = dto.PdfId;
     }
-
 
     private AnirWorkDto MapEntityToDto(AnirWork entity)
     {
@@ -97,7 +100,7 @@ public class AnirWorkController : ControllerBase
             State = entity.State,
             ResolutionNumber = entity.ResolutionNumber,
 
-            // ⭐ ARCHIVOS (URLs CORREGIDAS)
+            // Archivos (URL construida desde el controller)
             ImageId = entity.ImageId,
             ImageUrl = string.IsNullOrWhiteSpace(entity.ImageId)
                 ? null
@@ -126,14 +129,13 @@ public class AnirWorkController : ControllerBase
         };
     }
 
-
     // ============================================================
     // GET PAGED
     // ============================================================
     [HttpPost("getpaged")]
     public async Task<ActionResult<ProcessResponse<PagedResponse<AnirWorkDto>>>> GetPaged(
-     [FromBody] AnirWorkQueryDto queryDto,
-     CancellationToken ct = default)
+        [FromBody] AnirWorkQueryDto queryDto,
+        CancellationToken ct = default)
     {
         if (!ModelState.IsValid)
             return BadRequest(ProcessResponse<PagedResponse<AnirWorkDto>>.Fail("Datos inválidos."));
@@ -143,49 +145,37 @@ public class AnirWorkController : ControllerBase
                 .ThenInclude(u => u.Company)
             .AsNoTracking();
 
-        // SEARCH
         if (!string.IsNullOrWhiteSpace(queryDto.Search))
         {
             var s = queryDto.Search.Trim().ToLower();
-
             query = query.Where(w =>
                 w.Title.ToLower().Contains(s) ||
                 w.AnirNumber.ToLower().Contains(s) ||
                 w.Ueb.Name.ToLower().Contains(s) ||
-                w.Ueb.Company.Name.ToLower().Contains(s)
-            );
+                w.Ueb.Company.Name.ToLower().Contains(s));
         }
 
-        // FILTERS
         if (queryDto.CompanyId.HasValue)
             query = query.Where(w => w.Ueb.CompanyId == queryDto.CompanyId.Value);
-
         if (queryDto.UebId.HasValue)
             query = query.Where(w => w.UebId == queryDto.UebId.Value);
-
         if (queryDto.HasSocialEffect.HasValue)
             query = query.Where(w => w.HasSocialEffect == queryDto.HasSocialEffect.Value);
-
         if (queryDto.HasEconomicEffect.HasValue)
             query = query.Where(w => w.HasEconomicEffect == queryDto.HasEconomicEffect.Value);
-
         if (queryDto.FromDate.HasValue)
             query = query.Where(w => w.Date >= queryDto.FromDate.Value);
-
         if (queryDto.ToDate.HasValue)
             query = query.Where(w => w.Date <= queryDto.ToDate.Value);
 
-        // SORT
         queryDto.Sort = queryDto.Sort switch
         {
             "CompanyName" => "Ueb.Company.Name",
             "UebName" => "Ueb.Name",
             _ => queryDto.Sort
         };
-
         var orderedQuery = query.ApplySorting(queryDto);
 
-        // PROJECTION
         var projectedQuery = orderedQuery.Select(w => new AnirWorkDto
         {
             Id = w.Id,
@@ -200,12 +190,9 @@ public class AnirWorkController : ControllerBase
             HasEconomicEffect = w.HasEconomicEffect
         });
 
-        // PAGING
         var paged = await projectedQuery.ToPagedResultAsync(queryDto, ct);
-
         return Ok(ProcessResponse<PagedResponse<AnirWorkDto>>.Success(paged));
     }
-
 
     // ============================================================
     // GET BY ID
@@ -216,12 +203,11 @@ public class AnirWorkController : ControllerBase
         CancellationToken ct = default)
     {
         var entity = await _db.AnirWorks
-                .Include(w => w.Ueb)
-                .ThenInclude(u => u.Company)
-                .Include(w => w.AnirWorkPersons).ThenInclude(p => p.Person)
-                .Include(w => w.AnirWorkPresentations)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(w => w.Id == id, ct);
+            .Include(w => w.Ueb).ThenInclude(u => u.Company)
+            .Include(w => w.AnirWorkPersons).ThenInclude(p => p.Person)
+            .Include(w => w.AnirWorkPresentations)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(w => w.Id == id, ct);
 
         if (entity == null)
             return NotFound(ProcessResponse<AnirWorkDto>.Fail($"{ENTITY} no encontrado."));
@@ -229,7 +215,6 @@ public class AnirWorkController : ControllerBase
         var dto = MapEntityToDto(entity);
         return Ok(ProcessResponse<AnirWorkDto>.Success(dto));
     }
-
 
     // ============================================================
     // CREATE
@@ -247,17 +232,10 @@ public class AnirWorkController : ControllerBase
         var entity = new AnirWork();
         MapDtoToEntity(dto, entity);
 
-        // ⭐ COMMIT DE ARCHIVOS
-        if (!string.IsNullOrEmpty(dto.ImageId))
-            entity.ImageId = await _storage.CommitAsync(dto.ImageId, "images");
-
-        if (!string.IsNullOrEmpty(dto.PdfId))
-            entity.PdfId = await _storage.CommitAsync(dto.PdfId, "docs");
-
         _db.AnirWorks.Add(entity);
         await _db.SaveChangesAsync(ct);
 
-        // Personas
+        // Agregar personas y presentaciones
         foreach (var p in dto.Persons)
         {
             _db.AnirWorkPersons.Add(new AnirWorkPerson
@@ -267,8 +245,6 @@ public class AnirWorkController : ControllerBase
                 ParticipationPercentage = p.ParticipationPercentage
             });
         }
-
-        // Presentaciones
         foreach (var pr in dto.Presentations)
         {
             _db.AnirWorkPresentations.Add(new AnirWorkPresentation
@@ -282,11 +258,13 @@ public class AnirWorkController : ControllerBase
         await _db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
 
+        // Actualizar DTO de salida
         dto.Id = entity.Id;
+        dto.ImageId = entity.ImageId;
+        dto.PdfId = entity.PdfId;
 
         return Ok(ProcessResponse<AnirWorkDto>.Success(dto, $"{ENTITY} creado correctamente."));
     }
-
 
     // ============================================================
     // UPDATE
@@ -298,8 +276,7 @@ public class AnirWorkController : ControllerBase
         CancellationToken ct = default)
     {
         if (id != dto.Id)
-            return BadRequest(ProcessResponse<AnirWorkDto>.Fail(
-                "El ID de la ruta no coincide con el del cuerpo."));
+            return BadRequest(ProcessResponse<AnirWorkDto>.Fail("El ID de la ruta no coincide con el del cuerpo."));
 
         await using var tx = await _db.Database.BeginTransactionAsync(ct);
 
@@ -311,17 +288,42 @@ public class AnirWorkController : ControllerBase
         if (entity == null)
             return NotFound(ProcessResponse<AnirWorkDto>.Fail($"{ENTITY} no encontrado."));
 
-        // Mapear cambios principales
+        // Guardar IDs viejos para posible eliminación posterior
+        string? oldImageId = entity.ImageId;
+        string? oldPdfId = entity.PdfId;
+
+        // Aplicar cambios del DTO (los IDs vienen ya subidos por el frontend)
         MapDtoToEntity(dto, entity);
 
-        // ⭐ COMMIT DE ARCHIVOS (si vienen nuevos)
-        if (!string.IsNullOrEmpty(dto.ImageId) && dto.ImageId != entity.ImageId)
-            entity.ImageId = await _storage.CommitAsync(dto.ImageId, "images");
+        // Guardar cambios en la entidad
+        await _db.SaveChangesAsync(ct);
 
-        if (!string.IsNullOrEmpty(dto.PdfId) && dto.PdfId != entity.PdfId)
-            entity.PdfId = await _storage.CommitAsync(dto.PdfId, "docs");
+        // Si el frontend reemplazó el archivo (nuevo Id distinto), eliminar el antiguo
+        if (!string.IsNullOrEmpty(oldImageId) && !string.IsNullOrEmpty(entity.ImageId) && oldImageId != entity.ImageId)
+        {
+            try
+            {
+                await _storage.DeleteAsync(oldImageId, "images");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "No se pudo eliminar la imagen antigua {OldImageId}", oldImageId);
+            }
+        }
 
-        // Reemplazar personas
+        if (!string.IsNullOrEmpty(oldPdfId) && !string.IsNullOrEmpty(entity.PdfId) && oldPdfId != entity.PdfId)
+        {
+            try
+            {
+                await _storage.DeleteAsync(oldPdfId, "docs");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "No se pudo eliminar el PDF antiguo {OldPdfId}", oldPdfId);
+            }
+        }
+
+        // Reemplazar personas y presentaciones
         _db.AnirWorkPersons.RemoveRange(entity.AnirWorkPersons);
         foreach (var p in dto.Persons)
         {
@@ -333,7 +335,6 @@ public class AnirWorkController : ControllerBase
             });
         }
 
-        // Reemplazar presentaciones
         _db.AnirWorkPresentations.RemoveRange(entity.AnirWorkPresentations);
         foreach (var pr in dto.Presentations)
         {
@@ -348,12 +349,15 @@ public class AnirWorkController : ControllerBase
         await _db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
 
+        // Actualizar DTO de salida
+        dto.ImageId = entity.ImageId;
+        dto.PdfId = entity.PdfId;
+
         return Ok(ProcessResponse<AnirWorkDto>.Success(dto, $"{ENTITY} actualizado correctamente."));
     }
 
-
     // ============================================================
-    // DELETE
+    // DELETE (individual)
     // ============================================================
     [HttpDelete("{id:int}")]
     public async Task<ActionResult<ProcessResponse<bool>>> Delete(int id, CancellationToken ct = default)
@@ -368,36 +372,43 @@ public class AnirWorkController : ControllerBase
         if (entity == null)
             return NotFound(ProcessResponse<bool>.Fail($"{ENTITY} no encontrado."));
 
-        // ⭐ BORRAR ARCHIVOS
-        if (!string.IsNullOrEmpty(entity.ImageId))
-            await _storage.DeleteAsync(entity.ImageId, "images");
+        // Guardar IDs de archivos para borrar después
+        string? imageId = entity.ImageId;
+        string? pdfId = entity.PdfId;
 
-        if (!string.IsNullOrEmpty(entity.PdfId))
-            await _storage.DeleteAsync(entity.PdfId, "docs");
-
+        // Eliminar relaciones y la entidad
         _db.AnirWorkPersons.RemoveRange(entity.AnirWorkPersons);
         _db.AnirWorkPresentations.RemoveRange(entity.AnirWorkPresentations);
         _db.AnirWorks.Remove(entity);
-
         await _db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
 
+        // Eliminar archivos físicos (fuera de la transacción)
+        if (!string.IsNullOrEmpty(imageId))
+        {
+            try { await _storage.DeleteAsync(imageId, "images"); }
+            catch (Exception ex) { _logger.LogWarning(ex, "No se pudo eliminar la imagen {ImageId} del trabajo {Id}", imageId, id); }
+        }
+        if (!string.IsNullOrEmpty(pdfId))
+        {
+            try { await _storage.DeleteAsync(pdfId, "docs"); }
+            catch (Exception ex) { _logger.LogWarning(ex, "No se pudo eliminar el PDF {PdfId} del trabajo {Id}", pdfId, id); }
+        }
+
         return Ok(ProcessResponse<bool>.Success(true, $"{ENTITY} eliminado correctamente."));
     }
-
 
     // ============================================================
     // BATCH DELETE
     // ============================================================
     [HttpPost("batch-delete")]
     public async Task<ActionResult<ProcessResponse<int>>> DeleteBatch(
-     [FromBody] BulkSelectionRequest request,
-     CancellationToken ct = default)
+        [FromBody] BulkSelectionRequest request,
+        CancellationToken ct = default)
     {
         await using var tx = await _db.Database.BeginTransactionAsync(ct);
 
         List<AnirWork> items;
-
         if (request.SelectAll)
         {
             items = await _db.AnirWorks
@@ -420,75 +431,52 @@ public class AnirWorkController : ControllerBase
         if (!items.Any())
             return NotFound(ProcessResponse<int>.Fail($"No se encontraron {ENTITY.ToLower()} para eliminar."));
 
+        var filesToDelete = new List<(string Folder, string Id)>();
         foreach (var w in items)
         {
-            // ⭐ BORRAR ARCHIVOS
             if (!string.IsNullOrEmpty(w.ImageId))
-                await _storage.DeleteAsync(w.ImageId, "images");
-
+                filesToDelete.Add(("images", w.ImageId));
             if (!string.IsNullOrEmpty(w.PdfId))
-                await _storage.DeleteAsync(w.PdfId, "docs");
+                filesToDelete.Add(("docs", w.PdfId));
 
-            // ⭐ BORRAR RELACIONES
             _db.AnirWorkPersons.RemoveRange(w.AnirWorkPersons);
             _db.AnirWorkPresentations.RemoveRange(w.AnirWorkPresentations);
         }
 
         _db.AnirWorks.RemoveRange(items);
-
-        var affected = await _db.SaveChangesAsync(ct);
+        int affected = await _db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
 
-        return Ok(ProcessResponse<int>.Success(
-            affected,
-            $"Se eliminaron {items.Count} {ENTITY.ToLower()}."
-        ));
+        foreach (var (folder, id) in filesToDelete)
+        {
+            try { await _storage.DeleteAsync(id, folder); }
+            catch (Exception ex) { _logger.LogWarning(ex, "No se pudo eliminar el archivo {Id} en {Folder}", id, folder); }
+        }
+
+        return Ok(ProcessResponse<int>.Success(affected, $"Se eliminaron {items.Count} {ENTITY.ToLower()}."));
     }
 
+    
 
-    // ============================================================
-    // EXPORT PDF LIST
-    // ============================================================
-    [HttpPost("export-pdf")]
-    public async Task<IActionResult> ExportPdfList(
-        [FromBody] BulkSelectionRequest request,
-        CancellationToken ct = default)
-    {
-        IQueryable<AnirWork> query = _db.AnirWorks.Include(w => w.Ueb).ThenInclude(u => u.Company);
+    
 
-        if (request.Ids is { Count: > 0 })
-            query = query.Where(w => request.Ids.Contains(w.Id));
+    //[HttpPost("export-excel")]
+    //public async Task<IActionResult> ExportExcelList(
+    //    [FromBody] BulkSelectionRequest request,
+    //    CancellationToken ct = default)
+    //{
+    //    IQueryable<AnirWork> query = _db.AnirWorks
+    //        .Include(w => w.Ueb).ThenInclude(u => u.Company)
+    //        .Include(w => w.AnirWorkPersons).ThenInclude(p => p.Person)
+    //        .Include(w => w.AnirWorkPresentations);
 
-        var items = await query
-            .Select(w => MapEntityToDto(w))
-            .ToListAsync(ct);
+    //    if (request.Ids != null && request.Ids.Count > 0)
+    //        query = query.Where(w => request.Ids.Contains(w.Id));
 
-        var doc = new AnirWorkListPdf(items);
-        var pdfBytes = await _pdfService.GenerateAsync(doc, ct);
+    //    var items = await query.ToListAsync(ct);
+    //    var dtos = items.Select(MapEntityToDto).ToList();
 
-        return File(pdfBytes, "application/pdf");
-    }
-
-    // ============================================================
-    // EXPORT PDF DETAIL
-    // ============================================================
-    [HttpGet("export-pdf/{id:int}")]
-    public async Task<IActionResult> ExportPdfDetail(
-        [FromBody] BulkSelectionRequest request,
-        CancellationToken ct = default)
-    {
-        IQueryable<AnirWork> query = _db.AnirWorks.Include(w => w.Ueb).ThenInclude(u => u.Company);
-
-        if (request.Ids is { Count: > 0 })
-            query = query.Where(w => request.Ids.Contains(w.Id));
-
-        var items = await query
-            .Select(w => MapEntityToDto(w))
-            .ToListAsync(ct);
-
-        var doc = new AnirWorkListPdf(items);
-        var pdfBytes = await _pdfService.GenerateAsync(doc, ct);
-
-        return File(pdfBytes, "application/pdf");
-    }
+    //    var excelBytes = await _excelService.GenerateCompaniesExcel(dtos, ct);
+    //    return File(excelBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"AnirWorks_{DateTime.Now:yyyyMMdd}.xlsx");
+    //}
 }

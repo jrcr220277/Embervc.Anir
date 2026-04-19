@@ -1,68 +1,79 @@
 ﻿using Anir.Infrastructure.Storage;
 using Anir.Shared.Contracts.Common;
-using Anir.Shared.Contracts.Files;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-/// <summary>
-/// Controlador responsable de manejar la subida, confirmación,
-/// obtención y eliminación de archivos.
-/// Implementa un flujo temporal → commit final.
-/// </summary>
 [ApiController]
 [Route("api/files")]
+[Authorize]
 public class FilesController : ControllerBase
 {
     private readonly IFileStorage _storage;
+    private const long MaxImageSize = 10 * 1024 * 1024;
+    private const long MaxDocumentSize = 20 * 1024 * 1024;
+    private static readonly HashSet<string> AllowedImageExtensions = new(StringComparer.OrdinalIgnoreCase)
+    { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" };
+    private static readonly HashSet<string> AllowedDocumentExtensions = new(StringComparer.OrdinalIgnoreCase)
+    { ".pdf", ".doc", ".docx", ".xls", ".xlsx" };
 
     public FilesController(IFileStorage storage)
     {
         _storage = storage;
     }
 
-    /// <summary>
-    /// Sube un archivo a la carpeta temporal.
-    /// Se usa para previsualización antes de guardar el formulario.
-    /// </summary>
-    [HttpPost("upload-temp")]
-    public async Task<ActionResult<FileResponse>> UploadTemp([FromForm] IFormFile file)
+    [HttpPost("upload")]
+    public async Task<ActionResult<ProcessResponse<FileResponse>>> Upload([FromForm] IFormFile file, [FromQuery] string folder)
     {
-        string extension = Path.GetExtension(file.FileName);
+        if (file == null || file.Length == 0)
+            return BadRequest(ProcessResponse<FileResponse>.Fail("No se ha seleccionado ningún archivo."));
 
-        // .NET 10 — forma moderna, eficiente y recomendada
-        await using var uploadStream = new MemoryStream();
-        await file.CopyToAsync(uploadStream);
-        uploadStream.Position = 0;
+        if (string.IsNullOrWhiteSpace(folder))
+            return BadRequest(ProcessResponse<FileResponse>.Fail("La carpeta es obligatoria."));
 
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
 
-        string tempId = await _storage.SaveTempAsync(uploadStream, extension);
+        if (folder != "images" && folder != "docs")
+            return BadRequest(ProcessResponse<FileResponse>.Fail("La carpeta debe ser 'images' o 'docs'."));
 
-        return Ok(new FileResponse
+        if (folder == "images")
         {
-            Id = tempId,
+            if (!AllowedImageExtensions.Contains(extension))
+                return BadRequest(ProcessResponse<FileResponse>.Fail("Tipo de archivo no permitido para images."));
+            if (file.Length > MaxImageSize)
+                return BadRequest(ProcessResponse<FileResponse>.Fail($"La imagen no puede superar los {MaxImageSize / 1024 / 1024} MB."));
+        }
+        else
+        {
+            if (!AllowedDocumentExtensions.Contains(extension))
+                return BadRequest(ProcessResponse<FileResponse>.Fail("Tipo de archivo no permitido para docs."));
+            if (file.Length > MaxDocumentSize)
+                return BadRequest(ProcessResponse<FileResponse>.Fail($"El documento no puede superar los {MaxDocumentSize / 1024 / 1024} MB."));
+        }
+
+        await using var stream = file.OpenReadStream();
+        string fileId = await _storage.SaveAsync(stream, extension, folder);
+
+        var url = Url.Action(nameof(Get), "Files", new { folder = folder, fileName = fileId }, Request.Scheme, Request.Host.Value);
+
+        return Ok(ProcessResponse<FileResponse>.Success(new FileResponse
+        {
+            Id = fileId,
             Name = file.FileName,
             Size = file.Length,
-            Type = file.ContentType
-            // Url se llena solo cuando el archivo está en carpeta final
-        });
+            Type = file.ContentType,
+            Url = url
+        }, "Archivo subido correctamente."));
     }
 
-    /// <summary>
-    /// Confirma un archivo temporal y lo mueve a su carpeta final.
-    /// </summary>
-    [HttpPost("commit")]
-    public async Task<ActionResult<string>> Commit([FromBody] FileFinalizeRequest request)
-    {
-        string finalId = await _storage.CommitAsync(request.TempId, request.Folder);
-        return Ok(finalId);
-    }
-
-    /// <summary>
-    /// Devuelve un archivo como stream.
-    /// No expone rutas físicas ni usa wwwroot.
-    /// </summary>
     [HttpGet("{folder}/{fileName}")]
     public async Task<IActionResult> Get(string folder, string fileName)
     {
+        if (!IsSafePathComponent(folder) || !IsSafePathComponent(fileName))
+            return BadRequest("Ruta no válida.");
+
+        if (folder != "images" && folder != "docs")
+            return BadRequest("La carpeta debe ser 'images' o 'docs'.");
+
         var file = await _storage.GetAsync(fileName, folder);
         if (file == null)
             return NotFound();
@@ -70,13 +81,28 @@ public class FilesController : ControllerBase
         return File(file.Value.Stream, file.Value.ContentType, file.Value.FileName);
     }
 
-    /// <summary>
-    /// Elimina un archivo de cualquier carpeta.
-    /// </summary>
     [HttpDelete("{folder}/{fileName}")]
-    public async Task<IActionResult> Delete(string folder, string fileName)
+    public async Task<ActionResult<ProcessResponse<bool>>> Delete(string folder, string fileName)
     {
-        bool ok = await _storage.DeleteAsync(fileName, folder);
-        return ok ? Ok() : NotFound();
+        if (!IsSafePathComponent(folder) || !IsSafePathComponent(fileName))
+            return BadRequest(ProcessResponse<bool>.Fail("Ruta no válida."));
+
+        if (folder != "images" && folder != "docs")
+            return BadRequest(ProcessResponse<bool>.Fail("La carpeta debe ser 'images' o 'docs'."));
+
+        bool deleted = await _storage.DeleteAsync(fileName, folder);
+        if (!deleted)
+            return NotFound(ProcessResponse<bool>.Fail("Archivo no encontrado."));
+
+        return Ok(ProcessResponse<bool>.Success(true, "Archivo eliminado."));
+    }
+
+    private static bool IsSafePathComponent(string input)
+    {
+        return !string.IsNullOrEmpty(input) &&
+               input.IndexOfAny(Path.GetInvalidFileNameChars()) == -1 &&
+               !input.Contains("..") &&
+               !input.Contains('/') &&
+               !input.Contains('\\');
     }
 }

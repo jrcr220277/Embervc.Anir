@@ -1,125 +1,133 @@
-﻿using Anir.Infrastructure.Settings;
-using Anir.Infrastructure.Storage;
+﻿using System;
+using System.IO;
+using System.Threading.Tasks;
+using Anir.Infrastructure.Settings;
 using Microsoft.Extensions.Options;
 
-/// <summary>
-/// Implementación del sistema de almacenamiento de archivos.
-/// Usa carpetas privadas fuera de wwwroot, siguiendo buenas prácticas de seguridad.
-/// Maneja carpetas temporales y finales.
-/// </summary>
-public class FileStorageService : IFileStorage
+namespace Anir.Infrastructure.Storage
 {
-    private readonly string _root;
-    private readonly string _temp;
-    private readonly string _images;
-    private readonly string _docs;
-
-    /// <summary>
-    /// Inicializa rutas y garantiza que las carpetas existan.
-    /// </summary>
-    public FileStorageService(IOptions<FileStorageSettings> options)
+    public class FileStorageService : IFileStorage
     {
-        _root = options.Value.RootPath;
-        _temp = Path.Combine(_root, options.Value.TempFolder);
-        _images = Path.Combine(_root, options.Value.ImagesFolder);
-        _docs = Path.Combine(_root, options.Value.DocsFolder);
+        private readonly string _root;
+        private readonly string _images;
+        private readonly string _docs;
 
-        Directory.CreateDirectory(_root);
-        Directory.CreateDirectory(_temp);
-        Directory.CreateDirectory(_images);
-        Directory.CreateDirectory(_docs);
-    }
-
-    /// <inheritdoc />
-    public async Task<string> SaveTempAsync(Stream stream, string extension)
-    {
-        string fileName = $"{Guid.NewGuid()}{extension}";
-        string path = Path.Combine(_temp, fileName);
-
-        await using var fs = new FileStream(path, FileMode.Create);
-        await stream.CopyToAsync(fs);
-
-        return fileName;
-    }
-
-    /// <inheritdoc />
-    public async Task<string> CommitAsync(string tempFileName, string finalFolder)
-    {
-        string source = Path.Combine(_temp, tempFileName);
-        if (!File.Exists(source))
-            throw new FileNotFoundException("Archivo temporal no encontrado.");
-
-        string targetFolder = finalFolder.ToLower() switch
+        public FileStorageService(IOptions<FileStorageSettings> options)
         {
-            "images" => _images,
-            "docs" => _docs,
-            _ => throw new ArgumentException("Carpeta final inválida.")
-        };
+            if (options?.Value == null || string.IsNullOrWhiteSpace(options.Value.RootPath))
+                throw new ArgumentException("FileStorageSettings.RootPath no puede ser nulo o vacío.");
 
-        string target = Path.Combine(targetFolder, tempFileName);
+            _root = Path.GetFullPath(options.Value.RootPath);
+            _images = Path.Combine(_root, options.Value.ImagesFolder);
+            _docs = Path.Combine(_root, options.Value.DocsFolder);
 
-        File.Move(source, target);
-
-        return tempFileName;
-    }
-
-    /// <inheritdoc />
-    public Task<bool> DeleteAsync(string fileName, string folder)
-    {
-        string folderPath = folder.ToLower() switch
-        {
-            "images" => _images,
-            "docs" => _docs,
-            "temp" => _temp,
-            _ => throw new ArgumentException("Carpeta inválida.")
-        };
-
-        string path = Path.Combine(folderPath, fileName);
-
-        if (File.Exists(path))
-        {
-            File.Delete(path);
-            return Task.FromResult(true);
+            Directory.CreateDirectory(_root);
+            Directory.CreateDirectory(_images);
+            Directory.CreateDirectory(_docs);
         }
 
-        return Task.FromResult(false);
-    }
-
-    /// <inheritdoc />
-    public async Task<(Stream Stream, string ContentType, string FileName)?> GetAsync(string fileName, string folder)
-    {
-        string folderPath = folder.ToLower() switch
+        public async Task<string> SaveAsync(Stream stream, string extension, string folder)
         {
-            "images" => _images,
-            "docs" => _docs,
-            _ => throw new ArgumentException("Carpeta inválida.")
-        };
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (string.IsNullOrWhiteSpace(extension)) throw new ArgumentException("Extension inválida.", nameof(extension));
 
-        string path = Path.Combine(folderPath, fileName);
+            if (!extension.StartsWith('.')) extension = "." + extension;
 
-        if (!File.Exists(path))
-            return null;
+            string fileName = $"{Guid.NewGuid()}{extension}";
+            string targetFolder = folder.ToLowerInvariant() switch
+            {
+                "images" => _images,
+                "docs" => _docs,
+                _ => throw new ArgumentException("Carpeta inválida.")
+            };
 
-        string contentType = GetMimeType(path);
+            string path = Path.Combine(targetFolder, fileName);
+            string full = Path.GetFullPath(path);
 
-        var stream = new FileStream(path, FileMode.Open, FileAccess.Read);
+            if (!full.StartsWith(_root, StringComparison.OrdinalIgnoreCase))
+                throw new UnauthorizedAccessException("Ruta fuera del storage.");
 
-        return (stream, contentType, fileName);
-    }
+            await using var fs = new FileStream(full, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true);
+            await stream.CopyToAsync(fs);
+            return fileName;
+        }
 
-    /// <summary>
-    /// Determina el MIME type según la extensión del archivo.
-    /// </summary>
-    private static string GetMimeType(string path)
-    {
-        return Path.GetExtension(path).ToLower() switch
+        public Task<bool> DeleteAsync(string fileName, string folder)
         {
-            ".jpg" or ".jpeg" => "image/jpeg",
-            ".png" => "image/png",
-            ".gif" => "image/gif",
-            ".pdf" => "application/pdf",
-            _ => "application/octet-stream"
-        };
+            if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentException("fileName inválido.", nameof(fileName));
+
+            string folderPath = folder.ToLowerInvariant() switch
+            {
+                "images" => _images,
+                "docs" => _docs,
+                _ => throw new ArgumentException("Carpeta inválida.")
+            };
+
+            string full = Path.GetFullPath(Path.Combine(folderPath, fileName));
+            if (!full.StartsWith(_root, StringComparison.OrdinalIgnoreCase))
+                throw new UnauthorizedAccessException("Ruta fuera del storage.");
+
+            if (File.Exists(full))
+            {
+                File.Delete(full);
+                return Task.FromResult(true);
+            }
+
+            return Task.FromResult(false);
+        }
+
+        public Task<(Stream Stream, string ContentType, string FileName)?> GetAsync(string fileName, string folder)
+        {
+            if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentException("fileName inválido.", nameof(fileName));
+
+            string folderPath = folder.ToLowerInvariant() switch
+            {
+                "images" => _images,
+                "docs" => _docs,
+                _ => throw new ArgumentException("Carpeta inválida.")
+            };
+
+            string full = Path.GetFullPath(Path.Combine(folderPath, fileName));
+            if (!full.StartsWith(_root, StringComparison.OrdinalIgnoreCase))
+                throw new UnauthorizedAccessException("Ruta fuera del storage.");
+
+            if (!File.Exists(full))
+                return Task.FromResult<(Stream, string, string)?>(null);
+
+            string contentType = GetMimeTypeByExtension(Path.GetExtension(full));
+            var stream = new FileStream(full, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, FileOptions.Asynchronous);
+
+            return Task.FromResult<(Stream, string, string)?>((stream, contentType, fileName));
+        }
+
+        // Simple, self-contained MIME mapping to avoid extra package references.
+        // Extend this map if you need more types.
+        private static string GetMimeTypeByExtension(string? extension)
+        {
+            if (string.IsNullOrWhiteSpace(extension))
+                return "application/octet-stream";
+
+            extension = extension.ToLowerInvariant();
+
+            return extension switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                ".bmp" => "image/bmp",
+                ".webp" => "image/webp",
+                ".svg" => "image/svg+xml",
+                ".pdf" => "application/pdf",
+                ".doc" => "application/msword",
+                ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                ".xls" => "application/vnd.ms-excel",
+                ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                ".txt" => "text/plain",
+                ".csv" => "text/csv",
+                ".json" => "application/json",
+                ".xml" => "application/xml",
+                _ => "application/octet-stream"
+            };
+        }
     }
 }
-

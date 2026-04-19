@@ -16,6 +16,7 @@ using QuestPDF.Infrastructure;
 using Serilog;
 using System.Text;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 // ============================================================
@@ -93,6 +94,13 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddAuthorization();
+
+// Registrar configuración FileStorage (lee la sección FileStorage de appsettings.json)
+builder.Services.Configure<FileStorageSettings>(builder.Configuration.GetSection("FileStorage"));
+
+// Registrar implementación concreta de IFileStorage
+builder.Services.AddScoped<IFileStorage, FileStorageService>();
+
 
 // ============================================================
 // EMAIL
@@ -174,10 +182,26 @@ builder.Services.AddCors(options =>
 // ============================================================
 var app = builder.Build();
 
+// Routing (explícito)
+app.UseRouting();
+
+// Middleware global de excepciones lo más arriba posible
+app.UseMiddleware<GlobalExceptionMiddleware>();
+
 // ============================================================
 // STATIC FILES 
 // ============================================================
 app.UseStaticFiles();
+
+// ============================================================
+// MIDDLEWARE
+// ============================================================
+app.UseHttpsRedirection();
+app.UseCors("AllowFrontend");
+
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 // ============================================================
 // SWAGGER
@@ -191,18 +215,6 @@ if (app.Environment.IsDevelopment())
         c.RoutePrefix = string.Empty; // Swagger en raíz: https://localhost:7253/
     });
 }
-
-// ============================================================
-// MIDDLEWARE
-// ============================================================
-app.UseHttpsRedirection();
-app.UseCors("AllowFrontend");
-
-app.UseAuthentication();
-app.UseAuthorization();
-
-// Middleware global para manejo de errores de BD
-app.UseMiddleware<DatabaseExceptionMiddleware>();
 
 // ============================================================
 // SEEDERS

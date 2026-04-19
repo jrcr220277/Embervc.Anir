@@ -1,22 +1,20 @@
-﻿using Anir.Shared.Helpers;
+﻿using System;
+using System.IO;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System.Threading.Tasks;
+using Anir.Shared.Contracts.Common; // ProcessResponse<T>
+using Anir.Shared.Helpers; // DatabaseErrorHelper
 
 namespace Anir.Api.Middlewares
 {
-    /// <summary>
-    /// Middleware global para capturar excepciones de base de datos.
-    /// Usa DatabaseErrorHelper para clasificar el error y devolver
-    /// respuestas uniformes sin ensuciar los controladores.
-    /// </summary>
-    public class DatabaseExceptionMiddleware
+    public class GlobalExceptionMiddleware
     {
         private readonly RequestDelegate _next;
-        private readonly ILogger<DatabaseExceptionMiddleware> _logger;
+        private readonly ILogger<GlobalExceptionMiddleware> _logger;
 
-        public DatabaseExceptionMiddleware(RequestDelegate next, ILogger<DatabaseExceptionMiddleware> logger)
+        public GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExceptionMiddleware> logger)
         {
             _next = next;
             _logger = logger;
@@ -30,141 +28,107 @@ namespace Anir.Api.Middlewares
             }
             catch (Exception ex)
             {
-                var classification = DatabaseErrorHelper.Classify(ex);
-
-                _logger.LogError(ex,
-                    "Error inesperado. Clasificación: {Classification}, Ruta: {Path}",
-                    classification,
-                    context.Request.Path);
+                // Logueo centralizado (Serilog configurado en Program.cs recogerá esto)
+                _logger.LogError(ex, "Error inesperado. Ruta: {Path}", context.Request.Path);
 
                 context.Response.ContentType = "application/json";
 
-                // Caso especial: concurrencia EF Core
+                // Si es excepción de BD, mantenemos tu clasificación actual
+                var classification = DatabaseErrorHelper.Classify(ex);
                 if (ex is DbUpdateConcurrencyException)
                     classification = "Concurrency";
 
+                // Manejo específico para errores de archivos / IO
+                if (ex is FileNotFoundException)
+                {
+                    context.Response.StatusCode = StatusCodes.Status404NotFound;
+                    await context.Response.WriteAsJsonAsync(ProcessResponse<string>.Fail("Archivo no encontrado."));
+                    return;
+                }
+
+                if (ex is UnauthorizedAccessException)
+                {
+                    context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                    await context.Response.WriteAsJsonAsync(ProcessResponse<string>.Fail("Ruta inválida o acceso denegado."));
+                    return;
+                }
+
+                if (ex is IOException)
+                {
+                    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                    await context.Response.WriteAsJsonAsync(ProcessResponse<string>.Fail("Error de entrada/salida en el servidor."));
+                    return;
+                }
+
+                // Si la clasificación indica error de BD, aplicamos tu switch original
                 switch (classification)
                 {
-                    // -------------------------
-                    // Conflictos de unicidad
-                    // -------------------------
                     case "UniqueViolation":
                     case "DuplicateEntry":
                         context.Response.StatusCode = StatusCodes.Status409Conflict;
-                        await context.Response.WriteAsJsonAsync(
-                            ProcessResponse<string>.Fail("Ya existe un registro con esos datos.")
-                        );
-                        break;
+                        await context.Response.WriteAsJsonAsync(ProcessResponse<string>.Fail("Ya existe un registro con esos datos."));
+                        return;
 
-                    // -------------------------
-                    // Restricciones FK
-                    // -------------------------
                     case "ForeignKeyViolation":
                         context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                        await context.Response.WriteAsJsonAsync(
-                            ProcessResponse<string>.Fail("El registro está relacionado y no puede eliminarse.")
-                        );
-                        break;
+                        await context.Response.WriteAsJsonAsync(ProcessResponse<string>.Fail("El registro está relacionado y no puede eliminarse."));
+                        return;
 
-                    // -------------------------
-                    // Campos obligatorios
-                    // -------------------------
                     case "NotNullViolation":
                         context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                        await context.Response.WriteAsJsonAsync(
-                            ProcessResponse<string>.Fail("Faltan datos obligatorios.")
-                        );
-                        break;
+                        await context.Response.WriteAsJsonAsync(ProcessResponse<string>.Fail("Faltan datos obligatorios."));
+                        return;
 
-                    // -------------------------
-                    // Deadlocks
-                    // -------------------------
                     case "Deadlock":
                         context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-                        await context.Response.WriteAsJsonAsync(
-                            ProcessResponse<string>.Fail("La operación no pudo completarse por un bloqueo.")
-                        );
-                        break;
+                        await context.Response.WriteAsJsonAsync(ProcessResponse<string>.Fail("La operación no pudo completarse por un bloqueo."));
+                        return;
 
-                    // -------------------------
-                    // Timeout
-                    // -------------------------
                     case "Timeout":
                         context.Response.StatusCode = StatusCodes.Status408RequestTimeout;
-                        await context.Response.WriteAsJsonAsync(
-                            ProcessResponse<string>.Fail("La operación excedió el tiempo de espera.")
-                        );
-                        break;
+                        await context.Response.WriteAsJsonAsync(ProcessResponse<string>.Fail("La operación excedió el tiempo de espera."));
+                        return;
 
-                    // -------------------------
-                    // Concurrencia EF Core
-                    // -------------------------
                     case "Concurrency":
                         context.Response.StatusCode = StatusCodes.Status409Conflict;
-                        await context.Response.WriteAsJsonAsync(
-                            ProcessResponse<string>.Fail("Otro usuario modificó este registro.")
-                        );
-                        break;
+                        await context.Response.WriteAsJsonAsync(ProcessResponse<string>.Fail("Otro usuario modificó este registro."));
+                        return;
 
-                    // -------------------------
-                    // Longitudes y rangos
-                    // -------------------------
                     case "StringTooLong":
                     case "DataTooLong":
                         context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                        await context.Response.WriteAsJsonAsync(
-                            ProcessResponse<string>.Fail("El valor es demasiado largo para la columna.")
-                        );
-                        break;
+                        await context.Response.WriteAsJsonAsync(ProcessResponse<string>.Fail("El valor es demasiado largo para la columna."));
+                        return;
 
                     case "NumericOutOfRange":
                     case "OutOfRangeValue":
                         context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                        await context.Response.WriteAsJsonAsync(
-                            ProcessResponse<string>.Fail("El valor numérico está fuera de rango.")
-                        );
-                        break;
+                        await context.Response.WriteAsJsonAsync(ProcessResponse<string>.Fail("El valor numérico está fuera de rango."));
+                        return;
 
-                    // -------------------------
-                    // Conversiones
-                    // -------------------------
                     case "ArithmeticOverflow":
                     case "ConversionError":
                         context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                        await context.Response.WriteAsJsonAsync(
-                            ProcessResponse<string>.Fail("Error de conversión o desbordamiento numérico.")
-                        );
-                        break;
+                        await context.Response.WriteAsJsonAsync(ProcessResponse<string>.Fail("Error de conversión o desbordamiento numérico."));
+                        return;
 
                     case "InvalidDateTime":
                         context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                        await context.Response.WriteAsJsonAsync(
-                            ProcessResponse<string>.Fail("Formato de fecha/hora inválido.")
-                        );
-                        break;
+                        await context.Response.WriteAsJsonAsync(ProcessResponse<string>.Fail("Formato de fecha/hora inválido."));
+                        return;
 
-                    // -------------------------
-                    // Errores internos PostgreSQL
-                    // -------------------------
                     case "UndefinedFunction":
                     case "DatatypeMismatch":
                     case "InvalidEncoding":
                     case "InternalDatabaseError":
                         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-                        await context.Response.WriteAsJsonAsync(
-                            ProcessResponse<string>.Fail("Error interno en la base de datos.")
-                        );
-                        break;
+                        await context.Response.WriteAsJsonAsync(ProcessResponse<string>.Fail("Error interno en la base de datos."));
+                        return;
 
-                    // -------------------------
-                    // Desconocido
-                    // -------------------------
                     default:
                         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-                        await context.Response.WriteAsJsonAsync(
-                            ProcessResponse<string>.Fail("Error inesperado en el servidor.")
-                        );
-                        break;
+                        await context.Response.WriteAsJsonAsync(ProcessResponse<string>.Fail("Error inesperado en el servidor."));
+                        return;
                 }
             }
         }
