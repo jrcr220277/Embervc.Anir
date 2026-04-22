@@ -64,14 +64,14 @@ namespace Anir.Data.Migrations
                     b.Property<bool>("HasSocialEffect")
                         .HasColumnType("boolean");
 
-                    b.Property<string>("ImageId")
-                        .HasColumnType("text");
+                    b.Property<int?>("ImageFileId")
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsExperimental")
                         .HasColumnType("boolean");
 
-                    b.Property<string>("PdfId")
-                        .HasColumnType("text");
+                    b.Property<int?>("PdfFileId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Recommendations")
                         .HasMaxLength(2000)
@@ -93,6 +93,10 @@ namespace Anir.Data.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ImageFileId");
+
+                    b.HasIndex("PdfFileId");
 
                     b.HasIndex("UebId", "AnirNumber")
                         .IsUnique();
@@ -324,14 +328,15 @@ namespace Anir.Data.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
-                    b.Property<string>("ImagenId")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                    b.Property<int?>("ImageFileId")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
                     b.HasIndex("Dni")
                         .IsUnique();
+
+                    b.HasIndex("ImageFileId");
 
                     b.ToTable("Persons", (string)null);
                 });
@@ -368,6 +373,47 @@ namespace Anir.Data.Migrations
                     b.ToTable("Provinces", (string)null);
                 });
 
+            modelBuilder.Entity("Anir.Data.Entities.StoredFile", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("character varying(260)");
+
+                    b.Property<string>("Folder")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("MimeType")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("OriginalName")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Folder");
+
+                    b.ToTable("StoredFiles", (string)null);
+                });
+
             modelBuilder.Entity("Anir.Data.Entities.SystemSetting", b =>
                 {
                     b.Property<int>("Id")
@@ -384,9 +430,8 @@ namespace Anir.Data.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
-                    b.Property<string>("LogoId")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                    b.Property<int?>("ImageFileId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -402,6 +447,8 @@ namespace Anir.Data.Migrations
                         .HasColumnType("character varying(150)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ImageFileId");
 
                     b.ToTable("SystemSettings", (string)null);
                 });
@@ -490,9 +537,8 @@ namespace Anir.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
-                    b.Property<string>("ImagenId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                    b.Property<int?>("ImageFileId")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("LastLoginAt")
                         .HasColumnType("timestamp with time zone");
@@ -550,6 +596,8 @@ namespace Anir.Data.Migrations
                         .HasColumnType("character varying(256)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ImageFileId");
 
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("IX_Users_NormalizedEmail");
@@ -695,11 +743,25 @@ namespace Anir.Data.Migrations
 
             modelBuilder.Entity("Anir.Data.Entities.AnirWork", b =>
                 {
+                    b.HasOne("Anir.Data.Entities.StoredFile", "ImageFile")
+                        .WithMany()
+                        .HasForeignKey("ImageFileId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Anir.Data.Entities.StoredFile", "PdfFile")
+                        .WithMany()
+                        .HasForeignKey("PdfFileId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Anir.Data.Entities.Ueb", "Ueb")
                         .WithMany("AnirWorks")
                         .HasForeignKey("UebId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("ImageFile");
+
+                    b.Navigation("PdfFile");
 
                     b.Navigation("Ueb");
                 });
@@ -767,6 +829,26 @@ namespace Anir.Data.Migrations
                     b.Navigation("Province");
                 });
 
+            modelBuilder.Entity("Anir.Data.Entities.Person", b =>
+                {
+                    b.HasOne("Anir.Data.Entities.StoredFile", "ImageFile")
+                        .WithMany()
+                        .HasForeignKey("ImageFileId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ImageFile");
+                });
+
+            modelBuilder.Entity("Anir.Data.Entities.SystemSetting", b =>
+                {
+                    b.HasOne("Anir.Data.Entities.StoredFile", "ImageFile")
+                        .WithMany()
+                        .HasForeignKey("ImageFileId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ImageFile");
+                });
+
             modelBuilder.Entity("Anir.Data.Entities.Ueb", b =>
                 {
                     b.HasOne("Anir.Data.Entities.Company", "Company")
@@ -783,6 +865,16 @@ namespace Anir.Data.Migrations
                     b.Navigation("Company");
 
                     b.Navigation("Municipality");
+                });
+
+            modelBuilder.Entity("Anir.Data.Identity.ApplicationUser", b =>
+                {
+                    b.HasOne("Anir.Data.Entities.StoredFile", "ImageFile")
+                        .WithMany()
+                        .HasForeignKey("ImageFileId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ImageFile");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

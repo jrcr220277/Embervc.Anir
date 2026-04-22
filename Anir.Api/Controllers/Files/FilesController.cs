@@ -1,108 +1,84 @@
-﻿using Anir.Infrastructure.Storage;
+﻿using Anir.Application.Common.Interfaces;
 using Anir.Shared.Contracts.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+namespace Anir.Api.Controllers;
+
 [ApiController]
 [Route("api/files")]
-[Authorize]
 public class FilesController : ControllerBase
 {
-    private readonly IFileStorage _storage;
-    private const long MaxImageSize = 10 * 1024 * 1024;
-    private const long MaxDocumentSize = 20 * 1024 * 1024;
-    private static readonly HashSet<string> AllowedImageExtensions = new(StringComparer.OrdinalIgnoreCase)
-    { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" };
-    private static readonly HashSet<string> AllowedDocumentExtensions = new(StringComparer.OrdinalIgnoreCase)
-    { ".pdf", ".doc", ".docx", ".xls", ".xlsx" };
+    private readonly IFileStorageService _fileStorage;
 
-    public FilesController(IFileStorage storage)
+    public FilesController(IFileStorageService fileStorage)
     {
-        _storage = storage;
+        _fileStorage = fileStorage;
     }
 
+    /// <summary>
+    /// Sube un archivo al servidor.
+    /// </summary>
     [HttpPost("upload")]
-    public async Task<ActionResult<ProcessResponse<FileResponse>>> Upload([FromForm] IFormFile file, [FromQuery] string folder)
+    [RequestSizeLimit(20 * 1024 * 1024)] // 20 MB máximo
+    public async Task<IActionResult> Upload(
+        IFormFile file,
+        [FromQuery] string folder = "general",
+        CancellationToken ct = default)
     {
-        if (file == null || file.Length == 0)
-            return BadRequest(ProcessResponse<FileResponse>.Fail("No se ha seleccionado ningún archivo."));
+        if (file is null || file.Length == 0)
+            return BadRequest("No se recibió ningún archivo.");
 
-        if (string.IsNullOrWhiteSpace(folder))
-            return BadRequest(ProcessResponse<FileResponse>.Fail("La carpeta es obligatoria."));
+        var storedFile = await _fileStorage.SaveAsync(file.OpenReadStream(), file.FileName, folder, ct);
 
-        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-
-        if (folder != "images" && folder != "docs")
-            return BadRequest(ProcessResponse<FileResponse>.Fail("La carpeta debe ser 'images' o 'docs'."));
-
-        if (folder == "images")
+        var response = new FileResponse
         {
-            if (!AllowedImageExtensions.Contains(extension))
-                return BadRequest(ProcessResponse<FileResponse>.Fail("Tipo de archivo no permitido para images."));
-            if (file.Length > MaxImageSize)
-                return BadRequest(ProcessResponse<FileResponse>.Fail($"La imagen no puede superar los {MaxImageSize / 1024 / 1024} MB."));
+            Id = storedFile.Id,
+            // ANTES: Url = $"/api/files/{storedFile.Id}",
+            // AHORA: Url Absoluta para que Blazor WASM pueda verla
+            Url = $"{Request.Scheme}://{Request.Host}/api/files/{storedFile.Id}",
+            Name = storedFile.OriginalName,
+            Size = storedFile.SizeBytes,
+            Type = storedFile.MimeType
+        };
+
+        return Ok(response);
+    }
+
+    /// <summary>
+    /// Obiene o descarga un archivo por su ID.
+    /// Las imágenes se muestran inline, los PDFs se descargan.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> Get(int id, CancellationToken ct = default)
+    {
+        var result = await _fileStorage.ReadAsync(id, ct);
+        if (result is null)
+            return NotFound("Archivo no encontrado.");
+
+        var (stream, mimeType, originalName) = result.Value;
+
+        // Si es imagen o PDF, forzamos que se abra en el navegador (inline)
+        if (mimeType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ||
+            mimeType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase))
+        {
+            Response.Headers.Append("Content-Disposition", "inline");
+            return File(stream, mimeType);
         }
-        else
-        {
-            if (!AllowedDocumentExtensions.Contains(extension))
-                return BadRequest(ProcessResponse<FileResponse>.Fail("Tipo de archivo no permitido para docs."));
-            if (file.Length > MaxDocumentSize)
-                return BadRequest(ProcessResponse<FileResponse>.Fail($"El documento no puede superar los {MaxDocumentSize / 1024 / 1024} MB."));
-        }
 
-        await using var stream = file.OpenReadStream();
-        string fileId = await _storage.SaveAsync(stream, extension, folder);
-
-        var url = Url.Action(nameof(Get), "Files", new { folder = folder, fileName = fileId }, Request.Scheme, Request.Host.Value);
-
-        return Ok(ProcessResponse<FileResponse>.Success(new FileResponse
-        {
-            Id = fileId,
-            Name = file.FileName,
-            Size = file.Length,
-            Type = file.ContentType,
-            Url = url
-        }, "Archivo subido correctamente."));
+        // El resto (Word, Excel, etc) se descargan con su nombre original
+        return File(stream, mimeType, originalName);
     }
 
-    [HttpGet("{folder}/{fileName}")]
-    public async Task<IActionResult> Get(string folder, string fileName)
+    /// <summary>
+    /// Elimina un archivo del servidor y la base de datos.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct = default)
     {
-        if (!IsSafePathComponent(folder) || !IsSafePathComponent(fileName))
-            return BadRequest("Ruta no válida.");
-
-        if (folder != "images" && folder != "docs")
-            return BadRequest("La carpeta debe ser 'images' o 'docs'.");
-
-        var file = await _storage.GetAsync(fileName, folder);
-        if (file == null)
-            return NotFound();
-
-        return File(file.Value.Stream, file.Value.ContentType, file.Value.FileName);
-    }
-
-    [HttpDelete("{folder}/{fileName}")]
-    public async Task<ActionResult<ProcessResponse<bool>>> Delete(string folder, string fileName)
-    {
-        if (!IsSafePathComponent(folder) || !IsSafePathComponent(fileName))
-            return BadRequest(ProcessResponse<bool>.Fail("Ruta no válida."));
-
-        if (folder != "images" && folder != "docs")
-            return BadRequest(ProcessResponse<bool>.Fail("La carpeta debe ser 'images' o 'docs'."));
-
-        bool deleted = await _storage.DeleteAsync(fileName, folder);
-        if (!deleted)
-            return NotFound(ProcessResponse<bool>.Fail("Archivo no encontrado."));
-
-        return Ok(ProcessResponse<bool>.Success(true, "Archivo eliminado."));
-    }
-
-    private static bool IsSafePathComponent(string input)
-    {
-        return !string.IsNullOrEmpty(input) &&
-               input.IndexOfAny(Path.GetInvalidFileNameChars()) == -1 &&
-               !input.Contains("..") &&
-               !input.Contains('/') &&
-               !input.Contains('\\');
+        await _fileStorage.DeleteAsync(id, ct);
+        return NoContent();
     }
 }

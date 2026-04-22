@@ -152,21 +152,24 @@ public class AnirWorkService : IAnirWorkService
     // ============================================================
     // EXPORT PDF LIST
     // ============================================================
-    public async Task<HttpResponseMessage> ExportPdfListAsync(
-        BulkSelectionRequest request,
-        CancellationToken ct = default)
+    public async Task<byte[]> ExportPdfListAsync(BulkSelectionRequest request, CancellationToken ct = default)
     {
         using var content = ToJsonContent(request);
-        return await _httpClient.PostAsync("/api/anirwork/export-pdf", content, ct);
+        using var response = await _httpClient.PostAsync("/api/anirwork/export-pdf", content, ct);
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsByteArrayAsync(ct);
     }
 
     // ============================================================
-    // EXPORT PDF DETAIL
+    // EXPORT EXCEL LIST
     // ============================================================
-    public async Task<HttpResponseMessage> ExportPdfDetailAsync(
-        int id,
-        CancellationToken ct = default)
+    public async Task<byte[]> ExportExcelListAsync(BulkSelectionRequest request, CancellationToken ct = default)
     {
-        return await _httpClient.GetAsync($"/api/anirwork/export-pdf/{id}", ct);
+        using var content = ToJsonContent(request);
+        using var response = await _httpClient.PostAsync("/api/anirwork/export-excel", content, ct);
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsByteArrayAsync(ct);
     }
 }

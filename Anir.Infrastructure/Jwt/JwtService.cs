@@ -22,16 +22,20 @@ public class JwtService : IJwtService
         var key = Encoding.UTF8.GetBytes(jwt["Key"]!);
 
         var claims = new List<Claim>
-    {
-        new Claim(JwtRegisteredClaimNames.Sub, user.Id),
-        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-        new Claim(ClaimTypes.Email, user.Email ?? ""),
-        new Claim(ClaimTypes.Name, user.FullName ?? ""),
-        new Claim("fullName", user.FullName ?? ""),
-        new Claim("active", user.Active ? "1" : "0"),
-        new Claim("themeMode", user.ThemeMode.ToString()),
-        new Claim("imagenId", user.ImagenId ?? "")
-    };
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, user.Id),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(ClaimTypes.Email, user.Email ?? ""),
+            new Claim(ClaimTypes.Name, user.FullName ?? ""),
+            new Claim("fullName", user.FullName ?? ""),
+            new Claim("active", user.Active ? "1" : "0"),
+            new Claim("themeMode", user.ThemeMode.ToString())
+            
+            // ⚠️ ELIMINADO: new Claim("imagenId", user.ImagenId ?? "")
+            // Razón: El JWT vive 60 minutos. Si el usuario cambia su foto de perfil, 
+            // el token quedaría con el ID viejo hasta que haga logout.
+            // La imagen se obtiene dinámicamente desde el endpoint /api/auth/me (UserResponse.ImageFile).
+        };
 
         foreach (var role in roles)
             claims.Add(new Claim(ClaimTypes.Role, role));
@@ -49,5 +53,4 @@ public class JwtService : IJwtService
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
-
 }

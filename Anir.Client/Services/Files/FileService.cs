@@ -2,44 +2,52 @@
 using Microsoft.AspNetCore.Components.Forms;
 using System.Net.Http.Json;
 
+namespace Anir.Web.Client.Services;
+
 public class FileService
 {
     private readonly HttpClient _http;
-    private const long DefaultMaxStream = 30 * 1024 * 1024; // 30 MB por seguridad
+    private const long MaxFileSize = 30 * 1024 * 1024; // 30 MB
 
     public FileService(HttpClient http) => _http = http;
 
+    /// <summary>
+    /// Sube un archivo al servidor y retorna sus datos.
+    /// </summary>
+    /// <param name="file">Archivo desde MudFileUpload o InputFile</param>
+    /// <param name="folder">Carpeta destino (ej: "images/persons", "docs/works")</param>
     public async Task<FileResponse?> UploadAsync(IBrowserFile file, string folder, CancellationToken ct = default)
     {
         if (file == null) throw new ArgumentNullException(nameof(file));
-        if (string.IsNullOrWhiteSpace(folder)) throw new ArgumentException("folder required", nameof(folder));
-        folder = folder.ToLowerInvariant();
-        if (folder != "images" && folder != "docs") throw new ArgumentException("folder must be 'images' or 'docs'");
+        if (string.IsNullOrWhiteSpace(folder)) throw new ArgumentException("La carpeta es obligatoria.", nameof(folder));
 
-        var content = new MultipartFormDataContent();
+        using var content = new MultipartFormDataContent();
 
-        long maxStream = folder == "images" ? 10 * 1024 * 1024 : 20 * 1024 * 1024;
-        maxStream = Math.Max(maxStream, DefaultMaxStream);
-
-        var streamContent = new StreamContent(file.OpenReadStream(maxStream, ct));
+        await using var stream = file.OpenReadStream(MaxFileSize, ct);
+        var streamContent = new StreamContent(stream);
         streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+
         content.Add(streamContent, "file", file.Name);
 
         using var response = await _http.PostAsync($"api/files/upload?folder={folder}", content, ct);
 
         if (!response.IsSuccessStatusCode)
         {
-            var text = await response.Content.ReadAsStringAsync(ct);
-            throw new HttpRequestException($"Upload failed: {response.StatusCode} - {text}");
+            throw new HttpRequestException($"Error al subir el archivo: {response.StatusCode}");
         }
 
+        // CORREGIDO: Leemos directamente FileResponse, porque el controlador devuelve Ok(FileResponse)
         return await response.Content.ReadFromJsonAsync<FileResponse>(cancellationToken: ct);
     }
 
-    public async Task<bool> DeleteAsync(string folder, string fileName, CancellationToken ct = default)
+    /// <summary>
+    /// Elimina un archivo del servidor usando su ID.
+    /// </summary>
+    public async Task<bool> DeleteAsync(int fileId, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(folder) || string.IsNullOrWhiteSpace(fileName)) return false;
-        using var response = await _http.DeleteAsync($"api/files/{folder}/{fileName}", ct);
+        if (fileId <= 0) return false;
+
+        using var response = await _http.DeleteAsync($"api/files/{fileId}", ct);
         return response.IsSuccessStatusCode;
     }
 }

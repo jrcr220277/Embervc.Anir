@@ -5,6 +5,7 @@ namespace Anir.Client.Services.Person
 {
     public interface IPersonService
     {
+        Task<List<PersonDto>> SearchAsync(string query, CancellationToken ct = default);
         Task<ProcessResponse<PagedResponse<PersonDto>>> GetPagedAsync(PersonQueryDto query, CancellationToken ct = default);
         Task<ProcessResponse<PersonDto>> GetByIdAsync(int id, CancellationToken ct = default);
         Task<ProcessResponse<PersonDto>> CreateAsync(PersonDto dto, CancellationToken ct = default);

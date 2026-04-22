@@ -19,6 +19,7 @@ namespace Anir.Data
 
         // DbSets del dominio
         public DbSet<SystemSetting> SystemSettings { get; set; }
+        public DbSet<StoredFile> StoredFiles { get; set; }
         public DbSet<Organism> Organisms { get; set; }
         public DbSet<Company> Companies { get; set; }
         public DbSet<Ueb> Uebs { get; set; }

@@ -1,4 +1,5 @@
 using Anir.Api.Middlewares;
+using Anir.Application.Common.Interfaces;
 using Anir.Data;
 using Anir.Data.Identity;
 using Anir.Data.Seeders;
@@ -9,7 +10,6 @@ using Anir.Infrastructure.Storage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using QuestPDF.Infrastructure;
@@ -95,11 +95,11 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddAuthorization();
 
-// Registrar configuración FileStorage (lee la sección FileStorage de appsettings.json)
-builder.Services.Configure<FileStorageSettings>(builder.Configuration.GetSection("FileStorage"));
 
 // Registrar implementación concreta de IFileStorage
-builder.Services.AddScoped<IFileStorage, FileStorageService>();
+builder.Services.Configure<FileStorageSettings>(builder.Configuration.GetSection("FileStorage"));
+
+builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 
 
 // ============================================================
@@ -120,6 +120,7 @@ builder.Services.AddScoped<OrganismReportExcel>();
 builder.Services.AddScoped<CompanyReportExcel>();
 builder.Services.AddScoped<UebReportExcel>();
 builder.Services.AddScoped<PersonReportExcel>();
+builder.Services.AddScoped<AnirWorkReportExce>();
 
 // ============================================================
 // CONTROLLERS + SWAGGER
@@ -187,6 +188,23 @@ app.UseRouting();
 
 // Middleware global de excepciones lo más arriba posible
 app.UseMiddleware<GlobalExceptionMiddleware>();
+
+// ============================================================
+// PERMITE QUE BLAZOR WASM MUESTRE LAS IMÁGENES DE LA API
+// ============================================================
+app.Use(async (context, next) =>
+{
+    context.Response.OnStarting(() =>
+    {
+        var path = context.Request.Path.Value;
+        if (path != null && path.StartsWith("/api/files/"))
+        {
+            context.Response.Headers.Append("Cross-Origin-Resource-Policy", "cross-origin");
+        }
+        return Task.CompletedTask;
+    });
+    await next();
+});
 
 // ============================================================
 // STATIC FILES 

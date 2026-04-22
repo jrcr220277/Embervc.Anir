@@ -1,150 +1,143 @@
 ﻿@using Anir.Shared.Contracts.Common
+@using Anir.Web.Client.Services
 @using Microsoft.AspNetCore.Components.Forms
 @inject FileService FileService
 @inject IAlertService AlertService
 
 <MudStack AlignItems="AlignItems.Center" Spacing="2">
+    
+    <!-- Componente siempre montado y oculto -->
+    <div style="display: none;">
+        <MudFileUpload T="IBrowserFile"
+                       @ref="FileUploadRef"
+                       Accept="image/*"
+                       FilesChanged="OnFileChanged" />
+    </div>
 
-    <div style="@($"position:relative; width:{Size}px; height:{Size}px;")">
+    <div style="@($"position:relative; width:{PixelSize}px; height:{PixelSize}px;")">
         @if (PreviewUrl != null)
         {
-            <img src="@PreviewUrl"
-                 style="width:100%; height:100%; object-fit:cover; border-radius:@(IsProfile ? "50%" : "6px");" />
+            <img src="@PreviewUrl" alt="Vista previa"
+                 style="width:100%; height:100%; object-fit:cover; border-radius:@(IsProfile ? "50%" : "8px"); transition: opacity 0.3s;" />
         }
         else if (!string.IsNullOrEmpty(Value))
         {
-            <img src="@Value"
-                 style="width:100%; height:100%; object-fit:cover; border-radius:@(IsProfile ? "50%" : "6px");" />
+            <img src="@Value" alt="Imagen actual"
+                 style="width:100%; height:100%; object-fit:cover; border-radius:@(IsProfile ? "50%" : "8px"); transition: opacity 0.3s;" />
         }
         else
         {
             <MudAvatar Rounded="@(!IsProfile)"
-                       Style="@($"width:{Size}px; height:{Size}px; overflow:hidden;")">
-                <MudIcon Icon="@DefaultIcon" Style="font-size:3rem;" />
+                       Color="Color.Surface"
+                       Style="@($"width:{PixelSize}px; height:{PixelSize}px; border: 2px dashed var(--mud-palette-divider);")">
+                <MudIcon Icon="@DefaultIcon" Style="font-size: 3rem; color: var(--mud-palette-text-secondary);" />
             </MudAvatar>
         }
     </div>
 
+    <!-- NUEVO: Si hay imagen cargada, mostramos el nombre original debajo -->
+    @if (!string.IsNullOrEmpty(UploadedResponse?.Name))
+    {
+        <MudText Typo="Typo.caption" Class="text-center mt-1" Style="@($"max-width: {PixelSize}px;")">
+            <MudTooltip Text="@UploadedResponse.Name">
+                <span style="display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    @UploadedResponse.Name
+                </span>
+            </MudTooltip>
+        </MudText>
+    }
+
     @if (!IsViewMode)
     {
-        <MudStack Row="true" Spacing="1">
-            <MudFileUpload T="IBrowserFile"
-                           FilesChanged="OnFilesChanged"
-                           ShowList="false"
-                           ShowSize="false"
-                           ShowProgress="false"
-                           SuppressOnChangeWhenInvalid="true"
-                           SelectedTemplate="@(file => null)">
-                <CustomContent>
-                    <MudIconButton OnClick="@context.OpenFilePickerAsync"
-                                   Icon="@Icons.Material.Filled.Upload"
-                                   Disabled="@isUploading" />
-                </CustomContent>
-            </MudFileUpload>
+        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+            
+            <MudTooltip Text="Subir imagen">
+                <MudIconButton Icon="@Icons.Material.Filled.CloudUpload"
+                               Color="Color.Primary"
+                               Disabled="@isUploading"
+                               OnClick="TriggerUpload" />
+            </MudTooltip>
 
-            @if (ShowDelete && (PreviewUrl != null || !string.IsNullOrEmpty(Value) || UploadedResponse != null))
+            @if (ShowDelete && HasImage)
             {
-                <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                               Color="Color.Error"
-                               OnClick="HandleDelete"
-                               Disabled="@isUploading" />
+                <MudTooltip Text="Eliminar imagen">
+                    <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
+                                   Color="Color.Error"
+                                   Size="Size.Small"
+                                   OnClick="HandleDelete"
+                                   Disabled="@isUploading" />
+                </MudTooltip>
             }
         </MudStack>
     }
 
     @if (isUploading)
     {
-        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-1" />
+        <div style="width: @($"{PixelSize}px");">
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-1" />
+        </div>
     }
-
 </MudStack>
 
 @code {
-    [Parameter] public string? Value { get; set; }            // URL existente (desde servidor)
-    [Parameter] public int Size { get; set; } = 150;
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public int PixelSize { get; set; } = 150;
     [Parameter] public bool ShowDelete { get; set; } = true;
-    [Parameter] public EventCallback<FileResponse?> OnUploaded { get; set; } // devuelve FileResponse al padre
+    [Parameter] public EventCallback<FileResponse?> OnUploaded { get; set; }
     [Parameter] public bool IsProfile { get; set; } = true;
     [Parameter] public bool IsViewMode { get; set; } = false;
-
-    private const long MaxFileSize = 10 * 1024 * 1024; // coherente con servidor images
+    [Parameter] public string Folder { get; set; } = "images";
+    
+    private const long MaxFileSize = 10 * 1024 * 1024;
     private string? PreviewUrl;
-    private IBrowserFile? _pendingFile;
     private FileResponse? UploadedResponse;
     private bool isUploading = false;
+    
+    private MudFileUpload<IBrowserFile>? FileUploadRef;
 
     private string DefaultIcon => IsProfile ? Icons.Material.Filled.Person : Icons.Material.Filled.Image;
+    private bool HasImage => PreviewUrl != null || !string.IsNullOrEmpty(Value) || UploadedResponse != null;
 
-    // Maneja tanto IBrowserFile como IReadOnlyList<IBrowserFile>
-    private async Task OnFilesChanged(object files)
+    private async Task TriggerUpload()
     {
-        IBrowserFile? file = null;
-
-        if (files is IBrowserFile single)
-            file = single;
-        else if (files is IReadOnlyList<IBrowserFile> list && list.Count > 0)
-            file = list[0];
-
-        await HandleSelected(file);
+        if (FileUploadRef != null)
+        {
+            await FileUploadRef.OpenFilePickerAsync();
+        }
     }
 
-    private async Task HandleSelected(IBrowserFile? file)
+    private async Task OnFileChanged(IBrowserFile file)
     {
-        if (file == null)
-        {
-            // limpieza local y notificar padre
-            await CleanupLocalAndNotify(null);
-            return;
-        }
+        if (file == null) return;
 
         if (file.Size > MaxFileSize)
         {
-            await AlertService.ShowError("Archivo demasiado grande", $"La imagen no puede superar los {MaxFileSize / 1024 / 1024} MB.");
+            await AlertService.ShowError("Tamaño excedido", $"La imagen no puede superar {MaxFileSize / 1024 / 1024} MB.");
             return;
         }
 
-        _pendingFile = file;
-
-        // Generar preview local inmediato (base64)
-        try
-        {
-            using var stream = file.OpenReadStream(MaxFileSize);
-            using var ms = new MemoryStream();
-            await stream.CopyToAsync(ms);
-            PreviewUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
-        }
-        catch
-        {
-            PreviewUrl = null;
-        }
-
-        // Subir automáticamente
         isUploading = true;
         StateHasChanged();
 
         try
         {
-            var response = await FileService.UploadAsync(file, "images");
+            var response = await FileService.UploadAsync(file, Folder);
             if (response != null)
             {
-                // Guardamos la respuesta y notificamos al padre
                 UploadedResponse = response;
-                // Mostrar la URL final si la devuelve el servidor
-                PreviewUrl = response.Url ?? PreviewUrl;
+                PreviewUrl = response.Url;
                 await OnUploaded.InvokeAsync(response);
             }
             else
             {
-                // Si el servidor devolvió null, limpiar y avisar
-                await AlertService.ShowError("Error", "No se pudo subir la imagen.");
-                await CleanupLocalAndNotify(null);
+                await CleanupAndNotify(null);
+                await AlertService.ShowError("Error", "No se recibió respuesta del servidor.");
             }
         }
         catch (Exception ex)
         {
-            // Si falla la subida, limpiar preview y notificar
-            await AlertService.ShowError("Error subiendo imagen", ex.Message);
-            await CleanupLocalAndNotify(null);
+            await CleanupAndNotify(null);
+            await AlertService.ShowError("Error al subir", ex.Message);
         }
         finally
         {
@@ -155,34 +148,18 @@
 
     private async Task HandleDelete()
     {
-        // Si hay un archivo subido en el servidor, eliminarlo
-        if (UploadedResponse != null && !string.IsNullOrWhiteSpace(UploadedResponse.Id))
+        if (UploadedResponse != null && UploadedResponse.Id > 0)
         {
-            try
-            {
-                var ok = await FileService.DeleteAsync("images", UploadedResponse.Id);
-                if (!ok)
-                    await AlertService.ShowError("Error", "No se pudo eliminar la imagen en el servidor.");
-            }
-            catch (Exception ex)
-            {
-                await AlertService.ShowError("Error", $"Error eliminando imagen: {ex.Message}");
-            }
+            try { await FileService.DeleteAsync(UploadedResponse.Id); }
+            catch (Exception ex) { await AlertService.ShowError("Error", $"No se pudo eliminar del servidor: {ex.Message}"); }
         }
-
-        // Limpiar estado local y notificar padre con null
-        await CleanupLocalAndNotify(null);
+        await CleanupAndNotify(null);
     }
 
-    private async Task CleanupLocalAndNotify(FileResponse? response)
+    private async Task CleanupAndNotify(FileResponse? response)
     {
         PreviewUrl = null;
-        _pendingFile = null;
         UploadedResponse = response;
         await OnUploaded.InvokeAsync(response);
-        StateHasChanged();
     }
-
-    // Método público opcional para que el padre pida el FileResponse si lo necesita
-    public FileResponse? GetUploadedResponse() => UploadedResponse;
 }

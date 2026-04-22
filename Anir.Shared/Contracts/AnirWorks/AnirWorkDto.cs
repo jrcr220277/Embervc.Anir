@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using Anir.Shared.Contracts.AnirWorks.Persons;
 using Anir.Shared.Contracts.AnirWorks.Presentations;
+using Anir.Shared.Contracts.Common;
 using Anir.Shared.Enums;
 
 namespace Anir.Shared.Contracts.AnirWorks;
@@ -80,11 +81,8 @@ public class AnirWorkDto
     // ARCHIVOS
     // ============================================================
 
-    public string? ImageId { get; set; }
-    public string? ImageUrl { get; set; }
-
-    public string? PdfId { get; set; }
-    public string? PdfUrl { get; set; }
+    public FileResponse? ImageFile { get; set; }
+    public FileResponse? PdfFile { get; set; }
 
     // ============================================================
     // RELACIONES

@@ -11,22 +11,16 @@
                    Style="min-width:0; padding:0;"
                    OnClick="@((e)=>context.ToggleAsync(e))">
 
+            <!-- MudAvatar tiene la propiedad Image nativa, es más limpio que usar MudImage por dentro -->
             <MudAvatar Size="Size.Medium"
+                       Image="@AvatarUrl"
                        Class="pa-0"
-                       Style="overflow:hidden; cursor:pointer;"
+                       Color="Color.Surface"
+                       Style="cursor:pointer;"
                        Alt="@UserState.DisplayName">
-
-                @if (!string.IsNullOrWhiteSpace(AvatarUrl))
-                {
-                    <MudImage Src="@AvatarUrl"
-                              Style="width:100%; height:100%; object-fit:cover;" />
-                }
-                else
-                {
-                    @UserState.Initials
-                }
-
+                @UserState.Initials
             </MudAvatar>
+
         </MudButton>
     </ActivatorContent>
 
@@ -73,14 +67,12 @@
     [Inject] IAlertService AlertService { get; set; } = default!;
     [Inject] IAuthService AuthService { get; set; } = default!;
     [Inject] ILogger<UserMenu> Logger { get; set; } = default!;
-    [Inject] FileService Files { get; set; } = default!;
     [Inject] UserState UserState { get; set; } = default!;
 
     private MudMenu? _menuRef;
 
-    // ⭐ La URL del avatar se construye automáticamente con FileService
-    private string? AvatarUrl => UserState.ImagenUrl;
-
+    // CORREGIDO: Extraer la URL del nuevo objeto FileResponse
+    private string? AvatarUrl => UserState.ImageFile?.Url;
 
     protected override void OnInitialized()
     {

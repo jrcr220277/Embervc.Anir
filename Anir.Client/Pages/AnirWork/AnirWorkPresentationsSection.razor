@@ -3,119 +3,67 @@
 @using MudBlazor
 
 <MudStack Spacing="2">
-
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-        <MudText Typo="Typo.subtitle1" Class="font-weight-semibold">
-            Presentaciones
-        </MudText>
-
+        <MudText Typo="Typo.subtitle1" Class="font-weight-semibold">Presentaciones</MudText>
         @if (!IsViewMode)
         {
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       StartIcon="@Icons.Material.Outlined.Add"
-                       OnClick="OpenAddModal"
-                       Dense="true">
-                Agregar
-            </MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Add" OnClick="OpenAddModal" Dense="true">Agregar</MudButton>
         }
     </MudStack>
 
     @if (Presentations == null || Presentations.Count == 0)
     {
-        <MudAlert Severity="Severity.Info" Dense="true">
-            No hay presentaciones registradas.
-        </MudAlert>
+        <MudAlert Severity="Severity.Info" Dense="true">No hay presentaciones registradas.</MudAlert>
     }
     else
     {
         <MudTable Items="Presentations" Dense="true" Hover="true">
-
             <HeaderContent>
                 <MudTh>Fecha</MudTh>
                 <MudTh>Resultados</MudTh>
                 <MudTh>Notas</MudTh>
                 @if (!IsViewMode)
                 {
-                    <MudTh>Acciones</MudTh>
+                    <MudTh Style="width: 100px">Acciones</MudTh>
                 }
             </HeaderContent>
-
-            <RowTemplate>
-                <MudTd>@context.PresentationDate?.ToString("dd/MM/yyyy")</MudTd>
-                <MudTd>@context.Result</MudTd>
-                <MudTd>@context.Notes</MudTd>
-
+            <RowTemplate Context="ctx">
+                <MudTd>@ctx.PresentationDate?.ToString("dd/MM/yyyy")</MudTd>
+                <MudTd>@ctx.Result</MudTd>
+                <MudTd>@ctx.Notes</MudTd>
                 @if (!IsViewMode)
                 {
                     <MudTd>
-                        <MudIconButton Icon="@Icons.Material.Outlined.Edit"
-                                       Color="Color.Primary"
-                                       OnClick="@(() => OpenEditModal(context))" />
-
-                        <MudIconButton Icon="@Icons.Material.Outlined.Delete"
-                                       Color="Color.Error"
-                                       OnClick="@(() => DeletePresentation(context))" />
+                        <MudIconButton Icon="@Icons.Material.Outlined.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OpenEditModal(ctx))" />
+                        <MudIconButton Icon="@Icons.Material.Outlined.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeletePresentation(ctx))" />
                     </MudTd>
                 }
             </RowTemplate>
-
         </MudTable>
     }
-
 </MudStack>
 
-<!-- MODAL INLINE -->
 <MudDialog Visible="@_modalOpen" MaxWidth="MaxWidth.Small">
-
     <DialogContent>
+        <MudText Typo="Typo.h6" Class="mb-4">@(_isNewPresentation ? "Agregar presentación" : "Editar presentación")</MudText>
 
-        <MudText Typo="Typo.h6" Class="mb-2">
-            @(_editingPresentation?.Id == 0 ? "Agregar presentación" : "Editar presentación")
-        </MudText>
+        <MudDatePicker Label="Fecha" Date="@(_editingPresentation.PresentationDate?.ToDateTime(TimeOnly.MinValue))" DateChanged="@(d => _editingPresentation.PresentationDate = d.HasValue ? DateOnly.FromDateTime(d.Value) : null)" Variant="Variant.Outlined" Dense="true" Class="w-100" Disabled="IsViewMode" />
 
-        <MudDatePicker Label="Fecha"
-                       Date="@(_editingPresentation.PresentationDate?.ToDateTime(TimeOnly.MinValue))"
-                       DateChanged="@(d => _editingPresentation.PresentationDate = d.HasValue
-                                                           ? DateOnly.FromDateTime(d.Value)
-                                                           : null)"
-                       Variant="Variant.Outlined"
-                       Dense="true"
-                       Class="w-100" />
+        <MudText Typo="Typo.subtitle2" Class="mb-1 mt-4">Resultado Obtenido</MudText>
+        <MudRadioGroup T="PresentationResult" @bind-Value="_editingPresentation.Result" Dense="true" Row="true" Disabled="IsViewMode">
+            <MudRadio Value="PresentationResult.AltoImpacto">Alto impacto</MudRadio>
+            <MudRadio Value="PresentationResult.Relevante">Relevante</MudRadio>
+            <MudRadio Value="PresentationResult.Destacado">Destacado</MudRadio>
+            <MudRadio Value="PresentationResult.Mencion">Mención</MudRadio>
+            <MudRadio Value="PresentationResult.Participacion">Participación</MudRadio>
+        </MudRadioGroup>
 
-        <MudItem xs="12" md="6">
-            <MudText Typo="Typo.subtitle2" Class="mb-1">Resultado Obtenido</MudText>
-
-            <MudRadioGroup T="PresentationResult"
-                           @bind-Value="_editingPresentation.Result"
-                           Dense="true"
-                           Inline="true"
-                           Disabled="IsViewMode">
-
-                <MudRadio Value="PresentationResult.AltoImpacto">Alto impacto</MudRadio>
-                <MudRadio Value="PresentationResult.Relevante">Relevante</MudRadio>
-                <MudRadio Value="PresentationResult.Destacado">Destacado</MudRadio>
-                <MudRadio Value="PresentationResult.Mencion">Mención</MudRadio>
-                <MudRadio Value="PresentationResult.Participacion">Participación</MudRadio>
-
-            </MudRadioGroup>
-        </MudItem>
-
-
-        <MudTextField Label="Notas"
-                      @bind-Value="_editingPresentation.Notes"
-                      Variant="Variant.Outlined"
-                      Dense="true"
-                      Lines="3"
-                      Class="w-100 mt-2" />
-
+        <MudTextField Label="Notas" @bind-Value="_editingPresentation.Notes" Variant="Variant.Outlined" Dense="true" Lines="3" Class="w-100 mt-4" Disabled="IsViewMode" />
     </DialogContent>
-
     <DialogActions>
         <MudButton Variant="Variant.Text" OnClick="CloseModal">Cancelar</MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SavePresentation">Guardar</MudButton>
     </DialogActions>
-
 </MudDialog>
 
 @code {
@@ -123,32 +71,26 @@
     [Parameter] public bool IsViewMode { get; set; }
 
     private bool _modalOpen = false;
+    private bool _isNewPresentation = true;
     private AnirWorkPresentationDto _editingPresentation = new();
 
     private void OpenAddModal()
     {
         _editingPresentation = new AnirWorkPresentationDto { Notes = string.Empty };
+        _isNewPresentation = true;
         _modalOpen = true;
     }
 
     private void OpenEditModal(AnirWorkPresentationDto p)
     {
-        _editingPresentation = new AnirWorkPresentationDto
-        {
-            Id = p.Id,
-            PresentationDate = p.PresentationDate,
-            Result = p.Result,
-            Notes = p.Notes
-        };
+        _editingPresentation = new AnirWorkPresentationDto { Id = p.Id, PresentationDate = p.PresentationDate, Result = p.Result, Notes = p.Notes };
+        _isNewPresentation = false;
         _modalOpen = true;
     }
 
     private void SavePresentation()
     {
-        if (_editingPresentation.Id == 0)
-        {
-            Presentations.Add(_editingPresentation);
-        }
+        if (_isNewPresentation) Presentations.Add(_editingPresentation);
         else
         {
             var existing = Presentations.First(x => x.Id == _editingPresentation.Id);
@@ -156,14 +98,9 @@
             existing.Result = _editingPresentation.Result;
             existing.Notes = _editingPresentation.Notes;
         }
-
         _modalOpen = false;
     }
 
-    private void DeletePresentation(AnirWorkPresentationDto p)
-    {
-        Presentations.Remove(p);
-    }
-
+    private void DeletePresentation(AnirWorkPresentationDto p) => Presentations.Remove(p);
     private void CloseModal() => _modalOpen = false;
 }

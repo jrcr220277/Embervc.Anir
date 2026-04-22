@@ -170,10 +170,7 @@ namespace Anir.Data.Seeders
 
             context.Companies.AddRange(companies);
             await context.SaveChangesAsync();
-            await context.Database.ExecuteSqlRawAsync(
-        "SELECT setval('\"Companies_Id_seq\"', (SELECT MAX(\"Id\") FROM \"Companies\"));");
-
-
+           
         }
     }
 

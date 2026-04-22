@@ -30,9 +30,7 @@ namespace Anir.Data.Seeders
 
             context.Uebs.AddRange(uebs);
             await context.SaveChangesAsync();
-
-            await context.Database.ExecuteSqlRawAsync(
-    "SELECT setval('\"Uebs_Id_seq\"', (SELECT MAX(\"Id\") FROM \"Uebs\"));");
+                   
 
         }
     }

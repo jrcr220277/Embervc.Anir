@@ -30,11 +30,101 @@ namespace Anir.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Organisms",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Code = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
+                    ShortName = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Organisms", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Provinces",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ShortName = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Name = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    IsCapital = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Provinces", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StoredFiles",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    FileName = table.Column<string>(type: "character varying(260)", maxLength: 260, nullable: false),
+                    OriginalName = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    MimeType = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    SizeBytes = table.Column<long>(type: "bigint", nullable: false),
+                    Folder = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
+                    UploadedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StoredFiles", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AspNetRoleClaims",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    RoleId = table.Column<string>(type: "text", nullable: false),
+                    ClaimType = table.Column<string>(type: "text", nullable: true),
+                    ClaimValue = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AspNetRoleClaims", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AspNetRoleClaims_AspNetRoles_RoleId",
+                        column: x => x.RoleId,
+                        principalTable: "AspNetRoles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Municipalities",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ProvinceId = table.Column<int>(type: "integer", nullable: false),
+                    Name = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    IsProvinceCapital = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Municipalities", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Municipalities_Provinces_ProvinceId",
+                        column: x => x.ProvinceId,
+                        principalTable: "Provinces",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "AspNetUsers",
                 columns: table => new
                 {
                     Id = table.Column<string>(type: "text", nullable: false),
-                    ImagenId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    ImageFileId = table.Column<int>(type: "integer", nullable: true),
                     FullName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
                     Active = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
                     MustChangePassword = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
@@ -62,21 +152,12 @@ namespace Anir.Data.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AspNetUsers", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Organisms",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Code = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
-                    ShortName = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
-                    Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Organisms", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AspNetUsers_StoredFiles_ImageFileId",
+                        column: x => x.ImageFileId,
+                        principalTable: "StoredFiles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -85,7 +166,7 @@ namespace Anir.Data.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    ImagenId = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    ImageFileId = table.Column<int>(type: "integer", nullable: true),
                     Dni = table.Column<string>(type: "character varying(11)", maxLength: 11, nullable: false),
                     FullName = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
                     CellPhone = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
@@ -97,21 +178,12 @@ namespace Anir.Data.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Persons", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Provinces",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    ShortName = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    Name = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
-                    IsCapital = table.Column<bool>(type: "boolean", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Provinces", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Persons_StoredFiles_ImageFileId",
+                        column: x => x.ImageFileId,
+                        principalTable: "StoredFiles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -121,7 +193,7 @@ namespace Anir.Data.Migrations
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    LogoId = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    ImageFileId = table.Column<int>(type: "integer", nullable: true),
                     Address = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true),
                     Phone = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
                     Email = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true),
@@ -130,27 +202,51 @@ namespace Anir.Data.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_SystemSettings", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SystemSettings_StoredFiles_ImageFileId",
+                        column: x => x.ImageFileId,
+                        principalTable: "StoredFiles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
-                name: "AspNetRoleClaims",
+                name: "Companies",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    RoleId = table.Column<string>(type: "text", nullable: false),
-                    ClaimType = table.Column<string>(type: "text", nullable: true),
-                    ClaimValue = table.Column<string>(type: "text", nullable: true)
+                    Code = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
+                    ShortName = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Name = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    Address = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: true),
+                    Phone = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    Email = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true),
+                    MunicipalityId = table.Column<int>(type: "integer", nullable: true),
+                    OrganismId = table.Column<int>(type: "integer", nullable: false),
+                    Active = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    ProvinceId = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AspNetRoleClaims", x => x.Id);
+                    table.PrimaryKey("PK_Companies", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_AspNetRoleClaims_AspNetRoles_RoleId",
-                        column: x => x.RoleId,
-                        principalTable: "AspNetRoles",
+                        name: "FK_Companies_Municipalities_MunicipalityId",
+                        column: x => x.MunicipalityId,
+                        principalTable: "Municipalities",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_Companies_Organisms_OrganismId",
+                        column: x => x.OrganismId,
+                        principalTable: "Organisms",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Companies_Provinces_ProvinceId",
+                        column: x => x.ProvinceId,
+                        principalTable: "Provinces",
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -239,66 +335,6 @@ namespace Anir.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Municipalities",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    ProvinceId = table.Column<int>(type: "integer", nullable: false),
-                    Name = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
-                    IsProvinceCapital = table.Column<bool>(type: "boolean", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Municipalities", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Municipalities_Provinces_ProvinceId",
-                        column: x => x.ProvinceId,
-                        principalTable: "Provinces",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Companies",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Code = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
-                    ShortName = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    Name = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
-                    Address = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: true),
-                    Phone = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
-                    Email = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true),
-                    MunicipalityId = table.Column<int>(type: "integer", nullable: true),
-                    OrganismId = table.Column<int>(type: "integer", nullable: false),
-                    Active = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
-                    ProvinceId = table.Column<int>(type: "integer", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Companies", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Companies_Municipalities_MunicipalityId",
-                        column: x => x.MunicipalityId,
-                        principalTable: "Municipalities",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
-                    table.ForeignKey(
-                        name: "FK_Companies_Organisms_OrganismId",
-                        column: x => x.OrganismId,
-                        principalTable: "Organisms",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Companies_Provinces_ProvinceId",
-                        column: x => x.ProvinceId,
-                        principalTable: "Provinces",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Uebs",
                 columns: table => new
                 {
@@ -352,12 +388,24 @@ namespace Anir.Data.Migrations
                     Recommendations = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
                     State = table.Column<int>(type: "integer", nullable: false),
                     ResolutionNumber = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
-                    ImageId = table.Column<string>(type: "text", nullable: true),
-                    PdfId = table.Column<string>(type: "text", nullable: true)
+                    ImageFileId = table.Column<int>(type: "integer", nullable: true),
+                    PdfFileId = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AnirWorks", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AnirWorks_StoredFiles_ImageFileId",
+                        column: x => x.ImageFileId,
+                        principalTable: "StoredFiles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_AnirWorks_StoredFiles_PdfFileId",
+                        column: x => x.PdfFileId,
+                        principalTable: "StoredFiles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_AnirWorks_Uebs_UebId",
                         column: x => x.UebId,
@@ -432,6 +480,16 @@ namespace Anir.Data.Migrations
                 column: "AnirWorkId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_AnirWorks_ImageFileId",
+                table: "AnirWorks",
+                column: "ImageFileId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AnirWorks_PdfFileId",
+                table: "AnirWorks",
+                column: "PdfFileId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_AnirWorks_UebId_AnirNumber",
                 table: "AnirWorks",
                 columns: new[] { "UebId", "AnirNumber" },
@@ -468,6 +526,11 @@ namespace Anir.Data.Migrations
                 name: "IX_AspNetUserRoles_RoleId",
                 table: "AspNetUserRoles",
                 column: "RoleId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AspNetUsers_ImageFileId",
+                table: "AspNetUsers",
+                column: "ImageFileId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Users_NormalizedEmail",
@@ -538,6 +601,11 @@ namespace Anir.Data.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Persons_ImageFileId",
+                table: "Persons",
+                column: "ImageFileId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Provinces_Name",
                 table: "Provinces",
                 column: "Name",
@@ -548,6 +616,16 @@ namespace Anir.Data.Migrations
                 table: "Provinces",
                 column: "ShortName",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StoredFiles_Folder",
+                table: "StoredFiles",
+                column: "Folder");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SystemSettings_ImageFileId",
+                table: "SystemSettings",
+                column: "ImageFileId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Uebs_Code",
@@ -607,6 +685,9 @@ namespace Anir.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "Uebs");
+
+            migrationBuilder.DropTable(
+                name: "StoredFiles");
 
             migrationBuilder.DropTable(
                 name: "Companies");

@@ -42,9 +42,6 @@ namespace Anir.Data.Seeders
 
             context.Organisms.AddRange(organisms);
             await context.SaveChangesAsync();
-            await context.Database.ExecuteSqlRawAsync(
-    "SELECT setval('\"Organisms_Id_seq\"', (SELECT MAX(\"Id\") FROM \"Organisms\"));");
-
-        }
+                  }
     }
 }

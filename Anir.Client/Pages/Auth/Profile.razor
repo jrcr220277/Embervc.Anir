@@ -1,20 +1,19 @@
 ﻿@page "/account/profile"
 
-
 @using Anir.Shared.Contracts.User
 @using Anir.Shared.Contracts.Auth
 @using Anir.Shared.Contracts.Common
 @using Anir.Client.Components
 @using Anir.Shared.Enums
+@using Anir.Client.Components.File
 
 @inject NavigationManager Nav
 @inject IAuthService AuthService
 @inject IAlertService Alerts
 @inject UserState UserState
-@inject FileService Files
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="pa-2">
-    <MudGrid Justify="Justify.Center" AlignItems="Center">
+    <MudGrid Justify="Justify.Center" AlignItems="AlignItems.Center">
         <MudItem xs="12" sm="10" md="6" lg="8" Class="d-flex flex-column align-items-center">
 
             <!-- Encabezado -->
@@ -51,9 +50,11 @@
                                             Foto de Perfil
                                         </MudText>
 
-                                        <PhotoUploader Value="@_formModel.ImagenUrl"
-                                                       OnChanged="OnPhotoChanged"
-                                                       Size="150" />
+                                        <!-- CORREGIDO: Usa el nuevo sistema unificado -->
+                                        <PhotoUploader Value="@(_formModel.ImageFile?.Url)"
+                                                       IsProfile="true"
+                                                       PixelSize="150"
+                                                       OnUploaded="HandleImageUploaded" />
 
                                     </MudStack>
                                 </MudItem>
@@ -148,48 +149,22 @@
             UserState.Set(result.Value);
         }
 
-        // Cargar datos al formulario
-        _formModel.ImagenId = UserState.ImagenId;
-        _formModel.ImagenUrl = UserState.ImagenUrl;
+        // CORREGIDO: Mapeo directo al nuevo DTO
         _formModel.FullName = UserState.FullName ?? "";
         _formModel.ThemeMode = UserState.ThemeMode;
+        _formModel.ImageFile = UserState.ImageFile; // Asignamos el objeto FileResponse completo
 
         _editContext = new EditContext(_formModel);
 
         isLoading = false;
     }
 
-
-    private async Task OnPhotoChanged(IBrowserFile? file)
+    // CORREGIDO: Handler limpio gracias al componente PhotoUploader
+    private Task HandleImageUploaded(FileResponse? file)
     {
-        if (file is null)
-        {
-            _formModel.ImagenId = null;
-            _formModel.ImagenUrl = null;
-            return;
-        }
-
-        try
-        {
-            // Subir directamente a images (flujo directo)
-            var uploaded = await Files.UploadAsync(file, "images");
-            if (uploaded != null)
-            {
-                _formModel.ImagenId = uploaded.Id;   // Id definitivo
-                _formModel.ImagenUrl = uploaded.Url; // mostrar inmediatamente si quieres
-            }
-            else
-            {
-                await Alerts.ShowError("Error", "No se pudo subir la imagen.");
-            }
-        }
-        catch (Exception ex)
-        {
-            await Alerts.ShowError("Error", $"Error subiendo imagen: {ex.Message}");
-        }
+        _formModel.ImageFile = file;
+        return Task.CompletedTask;
     }
-
-
 
     private async Task HandleSaveAsync()
     {
@@ -211,16 +186,17 @@
 
             await Alerts.ShowSuccess("Perfil actualizado", result.PrettyMessage ?? "Los cambios se guardaron correctamente.");
 
-            // Refrescar datos del usuario
+            // Refrescar datos del usuario en el estado global
             var me = await AuthService.MeAsync();
             if (me.Result == ResponseStatus.Success && me.Value != null)
             {
                 UserState.Set(me.Value);
-                // Actualizar formulario con datos frescos (opcional)
-                _formModel.ImagenId = me.Value.ImagenId;
-                _formModel.ImagenUrl = me.Value.ImagenUrl;
+                
+                // Actualizar formulario local con datos frescos
                 _formModel.FullName = me.Value.FullName ?? _formModel.FullName;
                 _formModel.ThemeMode = me.Value.ThemeMode;
+                _formModel.ImageFile = me.Value.ImageFile; // Refrescar imagen
+                
                 _editContext.NotifyValidationStateChanged();
             }
         }
@@ -233,7 +209,4 @@
             isSaving = false;
         }
     }
-
-
-
 }

@@ -1,147 +1,155 @@
 ﻿@namespace Anir.Client.Pages.AnirWork
 @using Anir.Shared.Contracts.AnirWorks.Persons
+@using Anir.Shared.Contracts.Persons
+@using Anir.Shared.Contracts.Common
+@using Anir.Client.Services.Person
 @using MudBlazor
 
 <MudStack Spacing="2">
+    <MudAlert Severity="@(TotalPercentage > 100 ? Severity.Error : Severity.Info)" Dense="true" Variant="Variant.Filled">
+        Porcentaje total de participación: <strong>@TotalPercentage.ToString("F1")%</strong>
+    </MudAlert>
 
-    <!-- Título + botón agregar -->
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-        <MudText Typo="Typo.subtitle1" Class="font-weight-semibold">
-            Personas vinculadas
-        </MudText>
-
+        <MudText Typo="Typo.subtitle1" Class="font-weight-semibold">Personas vinculadas</MudText>
         @if (!IsViewMode)
         {
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       StartIcon="@Icons.Material.Outlined.Add"
-                       OnClick="OpenAddModal"
-                       Dense="true">
-                Agregar
-            </MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Add" OnClick="OpenAddModal" Dense="true" Disabled="TotalPercentage >= 100">Agregar</MudButton>
         }
     </MudStack>
 
-    <!-- Tabla -->
     @if (Persons == null || Persons.Count == 0)
     {
-        <MudAlert Severity="Severity.Info" Dense="true">
-            No hay personas registradas.
-        </MudAlert>
+        <MudAlert Severity="Severity.Info" Dense="true">No hay personas registradas.</MudAlert>
     }
     else
     {
         <MudTable Items="Persons" Dense="true" Hover="true">
-
             <HeaderContent>
                 <MudTh>Persona</MudTh>
                 <MudTh>Participación (%)</MudTh>
                 @if (!IsViewMode)
                 {
-                    <MudTh>Acciones</MudTh>
+                    <MudTh Style="width: 100px">Acciones</MudTh>
                 }
             </HeaderContent>
-
-            <RowTemplate>
-                <MudTd>@context.PersonName</MudTd>
-                <MudTd>@context.ParticipationPercentage</MudTd>
-
+            <RowTemplate Context="ctx">
+                <MudTd>@ctx.PersonName</MudTd>
+                <MudTd>@ctx.ParticipationPercentage.ToString("F1")</MudTd>
                 @if (!IsViewMode)
                 {
                     <MudTd>
-                        <MudIconButton Icon="@Icons.Material.Outlined.Edit"
-                                       Color="Color.Primary"
-                                       OnClick="@(() => OpenEditModal(context))" />
-
-                        <MudIconButton Icon="@Icons.Material.Outlined.Delete"
-                                       Color="Color.Error"
-                                       OnClick="@(() => DeletePerson(context))" />
+                        <MudIconButton Icon="@Icons.Material.Outlined.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OpenEditModal(ctx))" />
+                        <MudIconButton Icon="@Icons.Material.Outlined.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeletePerson(ctx))" />
                     </MudTd>
                 }
             </RowTemplate>
-
         </MudTable>
     }
-
 </MudStack>
 
-<!-- MODAL INLINE -->
 <MudDialog Visible="@_modalOpen" MaxWidth="MaxWidth.Small">
-
     <DialogContent>
+        <MudText Typo="Typo.h6" Class="mb-4">@(_isNewPerson ? "Agregar persona" : "Editar persona")</MudText>
+        
+        @if (_isLoadingPersons)
+        {
+            <MudProgressLinear Indeterminate="true" Class="mb-4" />
+        }
 
-        <MudText Typo="Typo.h6" Class="mb-2">
-            @(_editingPerson?.Id == 0 ? "Agregar persona" : "Editar persona")
-        </MudText>
-
-        <MudTextField Label="Nombre"
-                      @bind-Value="_editingPerson.PersonName"
-                      Required="true"
-                      Variant="Variant.Outlined"
-                      Dense="true"
-                      Class="w-100" />
+        <MudAutocomplete T="PersonDto"
+                         Label="Buscar persona (DNI, Nombre, Email...)"
+                         @bind-Value="_selectedPerson"
+                         SearchFunc="SearchPersons"
+                         ToStringFunc="p => p?.FullName"
+                         CoerceValue="true"
+                         Clearable="true"
+                         Variant="Variant.Outlined"
+                         Dense="true"
+                         Class="w-100"
+                         Disabled="@_isLoadingPersons" />
 
         <MudNumericField T="double"
                          Label="Porcentaje de participación"
                          @bind-Value="_editingPerson.ParticipationPercentage"
                          Variant="Variant.Outlined"
                          Dense="true"
-                         Class="w-100 mt-2" />
-
+                         Min="0"
+                         Max="@Math.Round(100 - (TotalPercentage - (_isNewPerson ? 0 : _editingPerson.ParticipationPercentage)), 1)"
+                         Class="w-100 mt-4" />
     </DialogContent>
-
     <DialogActions>
         <MudButton Variant="Variant.Text" OnClick="CloseModal">Cancelar</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SavePerson">Guardar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SavePerson" Disabled="@(_selectedPerson == null)">Guardar</MudButton>
     </DialogActions>
-
 </MudDialog>
 
 @code {
+    [Inject] private IPersonService PersonService { get; set; } = default!;
+    
     [Parameter] public List<AnirWorkPersonDto> Persons { get; set; } = new();
     [Parameter] public bool IsViewMode { get; set; }
 
     private bool _modalOpen = false;
+    private bool _isNewPerson = true;
+    private bool _isLoadingPersons = false;
     private AnirWorkPersonDto _editingPerson = new();
+    private PersonDto? _selectedPerson; // ← Usamos tu DTO grande, tranquilo
+
+    private double TotalPercentage => Persons.Sum(p => p.ParticipationPercentage);
+
+    private async Task<IEnumerable<PersonDto>> SearchPersons(string query, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
+            return new List<PersonDto>();
+        
+        _isLoadingPersons = true;
+        try
+        {
+            return await PersonService.SearchAsync(query, ct);
+        }
+        finally
+        {
+            _isLoadingPersons = false;
+        }
+    }
 
     private void OpenAddModal()
     {
-        _editingPerson = new AnirWorkPersonDto();
+        _editingPerson = new AnirWorkPersonDto { ParticipationPercentage = 0 };
+        _selectedPerson = null;
+        _isNewPerson = true;
         _modalOpen = true;
     }
 
     private void OpenEditModal(AnirWorkPersonDto p)
     {
-        _editingPerson = new AnirWorkPersonDto
-        {
-            Id = p.Id,
-            PersonId = p.PersonId,
-            PersonName = p.PersonName,
-            ParticipationPercentage = p.ParticipationPercentage
-        };
+        _editingPerson = new AnirWorkPersonDto { Id = p.Id, PersonId = p.PersonId, PersonName = p.PersonName, ParticipationPercentage = p.ParticipationPercentage };
+        _selectedPerson = new PersonDto { Id = p.PersonId, FullName = p.PersonName };
+        _isNewPerson = false;
         _modalOpen = true;
     }
 
     private void SavePerson()
     {
-        if (_editingPerson.Id == 0)
-        {
-            Persons.Add(_editingPerson);
-        }
+        if (_selectedPerson == null) return;
+
+        if (Persons.Any(p => p.PersonId == _selectedPerson.Id && p.Id != _editingPerson.Id)) return;
+
+        _editingPerson.PersonId = _selectedPerson.Id;
+        _editingPerson.PersonName = _selectedPerson.FullName;
+
+        if (_isNewPerson) Persons.Add(_editingPerson);
         else
         {
             var existing = Persons.First(x => x.Id == _editingPerson.Id);
+            existing.PersonId = _editingPerson.PersonId;
             existing.PersonName = _editingPerson.PersonName;
             existing.ParticipationPercentage = _editingPerson.ParticipationPercentage;
         }
-
         _modalOpen = false;
     }
 
-    private void DeletePerson(AnirWorkPersonDto p)
-    {
-        Persons.Remove(p);
-    }
-
+    private void DeletePerson(AnirWorkPersonDto p) => Persons.Remove(p);
     private void CloseModal() => _modalOpen = false;
 }

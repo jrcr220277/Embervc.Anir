@@ -44,16 +44,18 @@ namespace Anir.Data.Entities
         public string? ResolutionNumber { get; set; }
 
         // ============================
-        // ARCHIVOS
+        // ARCHIVOS (FK a StoredFile)
         // ============================
-        public string? ImageId { get; set; }
-        public string? PdfId { get; set; }
+        public int? ImageFileId { get; set; }
+        public StoredFile? ImageFile { get; set; }
+
+        public int? PdfFileId { get; set; }
+        public StoredFile? PdfFile { get; set; }
 
         // ============================
         // RELACIONES
         // ============================
         public ICollection<AnirWorkPerson> AnirWorkPersons { get; set; } = new List<AnirWorkPerson>();
         public ICollection<AnirWorkPresentation> AnirWorkPresentations { get; set; } = new List<AnirWorkPresentation>();
-
     }
 }

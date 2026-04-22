@@ -45,6 +45,18 @@ public class PersonService : IPersonService
     }
 
     // ============================================================
+    // GET Search Person
+    // ============================================================
+    public async Task<List<PersonDto>> SearchAsync(string query, CancellationToken ct = default)
+    {
+        var encodedQuery = Uri.EscapeDataString(query);
+        var results = await _httpClient.GetFromJsonAsync<List<PersonDto>>(
+            $"/api/person/search?q={encodedQuery}", ct);
+
+        return results ?? new List<PersonDto>();
+    }
+
+    // ============================================================
     // GET PAGED (POST, profesional, limpio)
     // ============================================================
     public async Task<ProcessResponse<PagedResponse<PersonDto>>> GetPagedAsync(PersonQueryDto query, CancellationToken ct = default)

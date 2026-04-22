@@ -169,20 +169,23 @@
         </HeaderContent>
 
         <RowTemplate Context="entity">
-            <!-- FOTO -->
+            <!-- FOTO CORREGIDA -->
             <MudTd>
-                @if (!string.IsNullOrWhiteSpace(entity.ImagenUrl))
+                @if (entity.ImageFile != null && !string.IsNullOrWhiteSpace(entity.ImageFile.Url))
                 {
-                    <MudAvatar Size="Size.Medium">
-                        <MudImage Src="@entity.ImagenUrl" />
+                    <MudAvatar Size="Size.Medium" Color="Color.Surface">
+                        <MudImage Src="@entity.ImageFile.Url"
+                                  Style="width:100%; height:100%; object-fit:cover;" />
                     </MudAvatar>
-
                 }
                 else
                 {
-                    <MudAvatar Size="Size.Medium"> <MudIcon Icon="@Icons.Material.Filled.Person" /> </MudAvatar>
+                    <MudAvatar Color="Color.Surface" Size="Size.Medium">
+                        <MudIcon Icon="@Icons.Material.Filled.Person" />
+                    </MudAvatar>
                 }
             </MudTd>
+                      
             <MudTd>@entity.Dni</MudTd>
             <MudTd>@entity.FullName</MudTd>
             <MudTd>@entity.CellPhone</MudTd>
@@ -193,7 +196,7 @@
                 </MudChip>
             </MudTd>
             <MudTd>
-                <MudChip T="string" Color="@(entity.Active? Color.Success: Color.Error)" Variant="Variant.Text" Size="Size.Small">
+                <MudChip T="string" Color="@(entity.Active ? Color.Success : Color.Error)" Variant="Variant.Text" Size="Size.Small">
                     @(entity.Active ? "Activa" : "Inactiva")
                 </MudChip>
             </MudTd>
@@ -201,7 +204,6 @@
                 <MudIconButton Icon="@Icons.Material.Rounded.Visibility" OnClick="@(() => ViewModal(entity))" Size="Size.Small" />
                 <MudIconButton Icon="@Icons.Material.Rounded.Edit" OnClick="@(() => Editmodal(entity))" Size="Size.Small" />
                 <MudIconButton Icon="@Icons.Material.Rounded.Delete" Color="Color.Error" OnClick="@(() => DeleteModal(entity))" Size="Size.Small" />
-                
             </MudTd>
         </RowTemplate>
 
@@ -231,7 +233,7 @@
     // ============================================================
     // DEPENDENCIAS
     // ============================================================
-    [Inject] private PersonService PersonService { get; set; } = default!;
+    [Inject] private IPersonService PersonService { get; set; } = default!;
     [Inject] private NavigationManager NavManager { get; set; } = default!;
     [Inject] private IConfiguration Config { get; set; } = default!;
     [Inject] private IDialogService DialogService { get; set; } = default!;

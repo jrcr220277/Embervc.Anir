@@ -1,5 +1,6 @@
-﻿using Anir.Shared.Enums;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
+using Anir.Shared.Contracts.Common;
+using Anir.Shared.Enums;
 
 namespace Anir.Shared.Contracts.Persons;
 
@@ -8,9 +9,7 @@ public class PersonDto
     public int Id { get; set; }
 
     [Display(Name = "Imagen")]
-    public string? ImagenId { get; set; }
-
-    public string? ImagenUrl { get; set; }
+    public FileResponse? ImageFile { get; set; }
 
     [Required(ErrorMessage = "El documento de identidad es obligatorio.")]
     [StringLength(11, ErrorMessage = "El documento no puede exceder {1} caracteres.")]
@@ -34,7 +33,6 @@ public class PersonDto
     [Display(Name = "Afiliacion")]
     public PersonAffiliation Affiliation { get; set; }
 
-
     [StringLength(250, ErrorMessage = "La descripción no puede exceder {1} caracteres.")]
     [Display(Name = "Descripción")]
     public string? Description { get; set; }
@@ -42,7 +40,6 @@ public class PersonDto
     [Display(Name = "Activo")]
     public bool Active { get; set; } = true;
 
-    // Solo para mostrar en grilla/detalle
     [Display(Name = "Trabajos ANIR")]
     public int? AnirWorkCount { get; set; }
 }

@@ -1,4 +1,5 @@
 ﻿using Anir.Shared.Contracts.Auth;
+using Anir.Shared.Contracts.Common;
 using Anir.Shared.Enums;
 using System;
 using System.Collections.Generic;
@@ -15,14 +16,14 @@ public class UserState
     public bool EmailConfirmed { get; private set; }
 
     public string? FullName { get; private set; }
-      
-    public string? ImagenId { get; private set; }
 
-     public string? ImagenUrl { get; private set; }
+    // ANTES: public string? ImagenId / ImagenUrl
+    // AHORA: Unificado
+    public FileResponse? ImageFile { get; private set; }
+
     public List<string> Roles { get; private set; } = new();
     public bool Active { get; private set; }
     public ThemeMode ThemeMode { get; private set; } = ThemeMode.Auto;
-
 
     // ============================
     // EVENTO DE CAMBIO
@@ -42,9 +43,7 @@ public class UserState
         EmailConfirmed = user.EmailConfirmed;
 
         FullName = user.FullName;
-
-        ImagenId = user.ImagenId;      // <-- ID real del archivo
-        ImagenUrl = user.ImagenUrl;    // <-- URL pública para mostrar
+        ImageFile = user.ImageFile; // <-- Unificado
 
         Roles = user.Roles ?? new List<string>();
         Active = user.Active;
@@ -63,13 +62,11 @@ public class UserState
         EmailConfirmed = false;
 
         FullName = null;
-        ImagenId = null;
-        ImagenUrl = null;
+        ImageFile = null; // <-- Unificado
 
         Roles.Clear();
         Active = false;
         ThemeMode = ThemeMode.Auto;
-
 
         Notify();
     }

@@ -11,7 +11,6 @@ namespace Anir.Data.Seeders
                 context.SystemSettings.Add(new SystemSetting
                 {
                     Id = 1,
-                    LogoId = "App-logo.png",
                     Name = "Empresa de Bebidas y Refrescos VC",
                     Address = "Avenida de Rojas No.23 esq. 1ra y central, Rpto, Virginia",
                     Phone = "42 208447",

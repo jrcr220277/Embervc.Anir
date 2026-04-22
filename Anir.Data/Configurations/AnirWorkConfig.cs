@@ -42,17 +42,30 @@ public class AnirWorkConfig : IEntityTypeConfiguration<AnirWork>
                .HasMaxLength(50);
 
         // ============================
-        // ÍNDICES PROFESIONALES
+        // ÍNDICES
         // ============================
         builder.HasIndex(a => new { a.UebId, a.AnirNumber }).IsUnique();
         builder.HasIndex(a => new { a.UebId, a.ResolutionNumber }).IsUnique();
 
         // ============================
-        // RELACIÓN CORRECTA (UEB)
+        // RELACIÓN CON UEB
         // ============================
         builder.HasOne(a => a.Ueb)
                .WithMany(u => u.AnirWorks)
                .HasForeignKey(a => a.UebId)
+               .OnDelete(DeleteBehavior.Restrict);
+
+        // ============================
+        // RELACIÓN CON ARCHIVOS (StoredFile)
+        // ============================
+        builder.HasOne(a => a.ImageFile)
+               .WithMany()
+               .HasForeignKey(a => a.ImageFileId)
+               .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(a => a.PdfFile)
+               .WithMany()
+               .HasForeignKey(a => a.PdfFileId)
                .OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -1,17 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Anir.Client</title>
     <base href="/" />
     <link rel="preload" id="webassembly" />
-    
     <link rel="stylesheet" href="_content/MudBlazor/MudBlazor.min.css" />
     <link rel="stylesheet" href="css/app.css" />
     <link href="css/responsive.css" rel="stylesheet" />
-
     <link rel="icon" type="image/png" href="favicon.png" />
     <link href="Anir.Client.styles.css" rel="stylesheet" />
     <link href="manifest.webmanifest" rel="manifest" />
@@ -19,7 +16,6 @@
     <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
     <script type="importmap"></script>
 </head>
-
 <body>
     <div id="app">
         <svg class="loading-progress">
@@ -34,31 +30,13 @@
         <a href="." class="reload">Reload</a>
         <span class="dismiss">🗙</span>
     </div>
+
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <script src="_framework/blazor.webassembly.js"></script>
+
+    <!-- Aquí llamas tu archivo centralizado -->
+    <script src="js/app.js"></script>
+
     <script>navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });</script>
-
-    <!-- Script para descargar archivos desde Blazor -->
-    <script>
-        window.downloadFile = (fileName, contentType, base64Data) => {
-            const link = document.createElement('a');
-            link.download = fileName;
-            link.href = `data:${contentType};base64,${base64Data}`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        };
-    </script>
-
-    <!-- Script para abrir PDF en nueva pestaña -->
-    <script>
-        window.openPdfBlob = (bytes) => {
-            const blob = new Blob([new Uint8Array(bytes)], { type: "application/pdf" });
-            const url = URL.createObjectURL(blob);
-            window.open(url, "_blank");
-        };
-    </script>
-
-
 </body>
 </html>
