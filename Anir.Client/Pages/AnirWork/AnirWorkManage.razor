@@ -12,7 +12,17 @@
 @using Anir.Client.Services
 @using Anir.Client.Components.File
 
-<MudContainer MaxWidth="MaxWidth.False" Class="px-3">
+<style>
+    .sticky-footer {
+        position: sticky;
+        bottom: 0;
+        z-index: 10;
+        background-color: var(--mud-palette-background);
+        border-top: 1px solid var(--mud-palette-lines-default);
+    }
+</style>
+
+<MudContainer MaxWidth="MaxWidth.False" Class="px-3 pb-6">
 
     <!-- ENCABEZADO -->
     <MudGrid Class="mb-2">
@@ -26,7 +36,7 @@
             </div>
         </MudItem>
     </MudGrid>
-    <MudDivider Class="mb-3" />
+    <MudDivider Class="mb-4" />
    
     @if (IsInitializingPage)
     {
@@ -35,197 +45,190 @@
     }
     else
     {
-        <EditForm Model="_formModel" OnValidSubmit="Save">
+        <EditForm Model="_formModel" OnValidSubmit="Save" id="anir-work-form">
             <DataAnnotationsValidator />
-            <MudGrid Spacing="3">
-
-                <!-- SIDEBAR ARCHIVOS -->
-                <MudItem xs="12" md="3">
-                    <MudPaper Class="pa-4" Elevation="1" Outlined="true">
-                        <MudText Typo="Typo.subtitle2" Class="mb-3 font-weight-semibold">Imagen del Trabajo</MudText>
-                        <div class="d-flex justify-center">
-                            <PhotoUploader Value="@(_formModel.ImageFile?.Url)" IsProfile="false" PixelSize="250" Folder="images/works" OnUploaded="HandleImageUploaded" IsViewMode="IsViewMode" />
-                        </div>
-                        <MudDivider Class="my-4" />
-                        <MudText Typo="Typo.subtitle2" Class="mb-3 font-weight-semibold">Documento PDF</MudText>
-                        <PdfUploader Value="@(_formModel.PdfFile?.Url)" OnUploaded="HandlePdfUploaded" Folder="docs/works" IsViewMode="IsViewMode" />
-                    </MudPaper>
-                </MudItem>
-
-                <!-- CONTENIDO PRINCIPAL -->
-                <MudItem xs="12" md="9">
-                    <MudPaper Class="pa-3" Elevation="1" Outlined="true">
-                        <MudTabs Vertical="true" ApplyEffectsToContainer="true" Border="true" TabPanelsClass="pa-3">
-                            
-                            <!-- ============================================================ -->
-                            <!-- DATOS GENERALES -->
-                            <!-- ============================================================ -->
-                            <MudTabPanel Text="Datos generales" Icon="@Icons.Material.Outlined.Info">
-                                <MudPaper Elevation="1" Class="pa-3" Outlined="true">
-                                    <MudText Typo="Typo.subtitle1" Class="mb-3 font-weight-bold">Datos de Registro</MudText>
-                                    <MudGrid Spacing="2">
-                                        <MudItem xs="12" md="6">
-                                            <MudSelect T="int" Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.CompanyId)" Value="_formModel.CompanyId" ValueChanged="OnCompanyChanged" Variant="Variant.Outlined" Required="true" Strict="true" FullWidth="true" Margin="Margin.Dense" Dense="true" Disabled="IsViewMode">
-                                                <MudSelectItem T="int" Value="0">- Seleccionar -</MudSelectItem>
-                                                @foreach (var item in AllCompanies)
-                                                {
-                                                    <MudSelectItem T="int" Value="@item.Id">@($"{item.ShortName} – {item.Name}")</MudSelectItem>
-                                                }
-                                            </MudSelect>
-                                        </MudItem>
-                                        <MudItem xs="12" md="6">
-                                            <MudSelect T="int" Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.UebId)" @bind-Value="_formModel.UebId" Variant="Variant.Outlined" Required="true" Strict="true" FullWidth="true" Margin="Margin.Dense" Dense="true" Disabled="@(_formModel.CompanyId == 0 || IsViewMode || _isLoadingUebs)" Loader="@(_isLoadingUebs && _formModel.CompanyId != 0)">
-                                                <MudSelectItem T="int" Value="0">@(_isLoadingUebs ? "Cargando..." : "- Seleccionar -")</MudSelectItem>
-                                                @foreach (var item in FilteredUebs)
-                                                {
-                                                    <MudSelectItem T="int" Value="@item.Id">@($"{item.Code} - {item.Name}")</MudSelectItem>
-                                                }
-                                            </MudSelect>
-                                        </MudItem>
-                                        <MudItem xs="12" md="6">
-                                            <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.AnirNumber)" @bind-Value="_formModel.AnirNumber" Variant="Variant.Outlined" Required="true" FullWidth="true" Margin="Margin.Dense" Disabled="IsViewMode" Clearable="true" />
-                                        </MudItem>
-                                        <MudItem xs="12" md="6">
-                                            <MudDatePicker Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Date)" Date="@_formModel.Date.ToDateTime(TimeOnly.MinValue)" DateChanged="@(d => _formModel.Date = DateOnly.FromDateTime(d ?? DateTime.Now))" Disabled="IsViewMode" Variant="Variant.Outlined" Required="true" Margin="Margin.Dense" Clearable="true" />
-                                        </MudItem>
-                                        <MudItem xs="12">
-                                            <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Title)" @bind-Value="_formModel.Title" Variant="Variant.Outlined" Required="true" FullWidth="true" Margin="Margin.Dense" Disabled="IsViewMode" Clearable="true" />
-                                        </MudItem>
-                                        <MudItem xs="12">
-                                            <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Description)" @bind-Value="_formModel.Description" Variant="Variant.Outlined" FullWidth="true" Margin="Margin.Dense" Lines="3" Disabled="IsViewMode" Clearable="true" />
-                                        </MudItem>
-                                    </MudGrid>
-                                </MudPaper>
-                            </MudTabPanel>
-
-                            <!-- ============================================================ -->
-                            <!-- TÉCNICO Y EFECTOS -->
-                            <!-- ============================================================ -->
-                            <MudTabPanel Text="Técnico y Efectos" Icon="@Icons.Material.Outlined.Science">
+            
+            <MudStack Spacing="3">
+                
+                <!-- ============================================================ -->
+                <!-- SECCIÓN 1: DATOS GENERALES Y MULTIMEDIA (Ficha Técnica) -->
+                <!-- ============================================================ -->
+                <MudPaper Elevation="0" Outlined="true" Class="pa-4">
+                    <div class="d-flex align-center mb-3">
+                        <MudIcon Icon="@Icons.Material.Outlined.Info" Class="mr-2" Color="Color.Primary" />
+                        <MudText Typo="Typo.subtitle1" Class="font-weight-bold">Datos Generales</MudText>
+                    </div>
+                    
+                    <MudGrid Spacing="4" AlignItems="AlignItems.Start">
+                        
+                        <!-- COLUMNA IZQUIERDA: ARCHIVOS (Ocupa 1/3) -->
+                        <MudItem xs="12" md="4">
+                            <MudStack Spacing="3">
+                                <div>
+                                    <MudText Typo="Typo.body2" Class="mb-2 font-weight-medium">Imagen del Trabajo</MudText>
+                                    <div class="d-flex justify-center" style="min-height: 240px; border: 1px dashed var(--mud-palette-lines-default); border-radius: 8px; padding: 16px;">
+                                        <PhotoUploader Value="@(_formModel.ImageFile?.Url)" IsProfile="false" PixelSize="220" Folder="images/works" OnUploaded="HandleImageUploaded" IsViewMode="IsViewMode" />
+                                    </div>
+                                </div>
                                 
-                                <MudPaper Elevation="1" Class="pa-3 mb-4" Outlined="true">
-                                    <MudText Typo="Typo.subtitle1" Class="mb-3 font-weight-bold">Efectos del Trabajo</MudText>
-                                    <MudGrid Spacing="2">
-                                        <MudItem xs="12" md="6">
-                                            <MudSwitch Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.HasSocialEffect)" Color="Color.Success" @bind-Value="_formModel.HasSocialEffect" Disabled="IsViewMode" Class="mt-2" />
-                                        </MudItem>
-                                        <MudItem xs="12" md="6">
-                                            <MudSwitch Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.HasEconomicEffect)" Color="Color.Info" @bind-Value="_formModel.HasEconomicEffect" Disabled="IsViewMode" Class="mt-2" />
-                                        </MudItem>
-                                        <MudItem xs="12" md="6">
-                                            <MudSelect T="JobCategory" Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Category)" @bind-Value="_formModel.Category" Variant="Variant.Outlined" Required="true" Strict="true" FullWidth="true" Margin="Margin.Dense" Dense="true" Disabled="IsViewMode">
-                                                @foreach (var value in Enum.GetValues<JobCategory>())
-                                                {
-                                                    <MudSelectItem Value="@value">@value.ToString()</MudSelectItem>
-                                                }
-                                            </MudSelect>
-                                        </MudItem>
-                                        <MudItem xs="12" md="6">
-                                            <MudSelect T="GeneralizationStatus" Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Generalization)" @bind-Value="_formModel.Generalization" Variant="Variant.Outlined" Required="true" Strict="true" FullWidth="true" Margin="Margin.Dense" Dense="true" Disabled="IsViewMode">
-                                                @foreach (var value in Enum.GetValues<GeneralizationStatus>())
-                                                {
-                                                    <MudSelectItem Value="@value">@value.ToString()</MudSelectItem>
-                                                }
-                                            </MudSelect>
-                                        </MudItem>
-                                    </MudGrid>
-                                </MudPaper>
+                                <div>
+                                    <MudText Typo="Typo.body2" Class="mb-2 font-weight-medium">Documento PDF</MudText>
+                                    <div style="border: 1px dashed var(--mud-palette-lines-default); border-radius: 8px; padding: 16px;">
+                                        <PdfUploader Value="@(_formModel.PdfFile?.Url)" OnUploaded="HandlePdfUploaded" Folder="docs/works" IsViewMode="IsViewMode" />
+                                    </div>
+                                </div>
+                            </MudStack>
+                        </MudItem>
 
-                                <MudPaper Elevation="1" Class="pa-3" Outlined="true">
-                                    <MudText Typo="Typo.subtitle1" Class="mb-3 font-weight-bold">Ensayo Experimental</MudText>
-                                    <MudGrid Spacing="2">
-                                        <MudItem xs="12" md="6">
-                                            <MudSwitch Label="¿Es experimental?" Color="Color.Warning" @bind-Value="_formModel.IsExperimental" Disabled="IsViewMode" Class="mt-2" />
-                                        </MudItem>
-                                        <MudItem xs="12" md="3">
-                                            <MudDatePicker Label="Fecha Inicio" Date="@_formModel.ExperimentalStartDate" Disabled="@(!_formModel.IsExperimental || IsViewMode)" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true" />
-                                        </MudItem>
-                                        <MudItem xs="12" md="3">
-                                            <MudDatePicker Label="Fecha Fin" Date="@_formModel.ExperimentalEndDate" Disabled="@(!_formModel.IsExperimental || IsViewMode)" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true" />
-                                        </MudItem>
-                                    </MudGrid>
-                                </MudPaper>
-                            </MudTabPanel>
+                        <!-- COLUMNA DERECHA: CAMPOS DE TEXTO (Ocupa 2/3) -->
+                        <MudItem xs="12" md="8">
+                            <MudGrid Spacing="2">
+                                <MudItem xs="12" md="6">
+                                    <MudSelect T="int" Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.CompanyId)" Value="_formModel.CompanyId" ValueChanged="OnCompanyChanged" Variant="Variant.Outlined" Required="true" Strict="true" FullWidth="true" Margin="Margin.Dense" Disabled="IsViewMode">
+                                        <MudSelectItem T="int" Value="0">- Seleccionar -</MudSelectItem>
+                                        @foreach (var item in AllCompanies)
+                                        {
+                                            <MudSelectItem T="int" Value="@item.Id">@($"{item.ShortName} – {item.Name}")</MudSelectItem>
+                                        }
+                                    </MudSelect>
+                                </MudItem>
+                                <MudItem xs="12" md="6">
+                                    <MudSelect T="int" Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.UebId)" @bind-Value="_formModel.UebId" Variant="Variant.Outlined" Required="true" Strict="true" FullWidth="true" Margin="Margin.Dense" Disabled="@(_formModel.CompanyId == 0 || IsViewMode || _isLoadingUebs)" Loader="@(_isLoadingUebs && _formModel.CompanyId != 0)">
+                                        <MudSelectItem T="int" Value="0">@(_isLoadingUebs ? "Cargando..." : "- Seleccionar -")</MudSelectItem>
+                                        @foreach (var item in FilteredUebs)
+                                        {
+                                            <MudSelectItem T="int" Value="@item.Id">@($"{item.Code} - {item.Name}")</MudSelectItem>
+                                        }
+                                    </MudSelect>
+                                </MudItem>
+                                <MudItem xs="12" md="6">
+                                    <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.AnirNumber)" @bind-Value="_formModel.AnirNumber" Variant="Variant.Outlined" Required="true" FullWidth="true" Margin="Margin.Dense" Disabled="IsViewMode" Clearable="true" />
+                                </MudItem>
+                                <MudItem xs="12" md="6">
+                                    <MudDatePicker Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Date)" Date="@_formModel.Date.ToDateTime(TimeOnly.MinValue)" DateChanged="@(d => _formModel.Date = DateOnly.FromDateTime(d ?? DateTime.Now))" Disabled="IsViewMode" Variant="Variant.Outlined" Required="true" Margin="Margin.Dense" Clearable="true" />
+                                </MudItem>
+                                <MudItem xs="12">
+                                    <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Title)" @bind-Value="_formModel.Title" Variant="Variant.Outlined" Required="true" FullWidth="true" Margin="Margin.Dense" Disabled="IsViewMode" Clearable="true" />
+                                </MudItem>
+                                <MudItem xs="12">
+                                    <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Description)" @bind-Value="_formModel.Description" Variant="Variant.Outlined" FullWidth="true" Margin="Margin.Dense" Lines="5" Disabled="IsViewMode" Clearable="true" />
+                                </MudItem>
+                            </MudGrid>
+                        </MudItem>
 
-                            <!-- ============================================================ -->
-                            <!-- EVALUACIÓN Y ECONOMÍA -->
-                            <!-- ============================================================ -->
-                            <MudTabPanel Text="Evaluación y Economía" Icon="@Icons.Material.Outlined.AttachMoney">
+                    </MudGrid>
+                </MudPaper>
+
+                <!-- ============================================================ -->
+                <!-- SECCIÓN 2: TÉCNICO Y EVALUACIÓN (Split 50/50) -->
+                <!-- ============================================================ -->
+                <MudPaper Elevation="0" Outlined="true" Class="pa-4">
+                    <MudGrid Spacing="4">
+                        
+                        <!-- Columna Izquierda: Técnicas -->
+                        <MudItem xs="12" md="6">
+                            <div class="d-flex align-center mb-3">
+                                <MudIcon Icon="@Icons.Material.Outlined.Science" Class="mr-2" Color="Color.Secondary" />
+                                <MudText Typo="Typo.subtitle1" Class="font-weight-bold">Características Técnicas</MudText>
+                            </div>
+                            <MudStack Spacing="2">
+                                <MudSwitch Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.HasSocialEffect)" Color="Color.Success" @bind-Value="_formModel.HasSocialEffect" Disabled="IsViewMode" />
+                                <MudSwitch Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.HasEconomicEffect)" Color="Color.Info" @bind-Value="_formModel.HasEconomicEffect" Disabled="IsViewMode" />
+                                <MudSelect T="JobCategory" Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Category)" @bind-Value="_formModel.Category" Variant="Variant.Outlined" Required="true" Strict="true" FullWidth="true" Margin="Margin.Dense" Disabled="IsViewMode">
+                                    @foreach (var value in Enum.GetValues<JobCategory>())
+                                    {
+                                        <MudSelectItem Value="@value">@value.ToString()</MudSelectItem>
+                                    }
+                                </MudSelect>
+                                <MudSelect T="GeneralizationStatus" Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Generalization)" @bind-Value="_formModel.Generalization" Variant="Variant.Outlined" Required="true" Strict="true" FullWidth="true" Margin="Margin.Dense" Disabled="IsViewMode">
+                                    @foreach (var value in Enum.GetValues<GeneralizationStatus>())
+                                    {
+                                        <MudSelectItem Value="@value">@value.ToString()</MudSelectItem>
+                                    }
+                                </MudSelect>
                                 
-                                <MudPaper Elevation="1" Class="pa-3 mb-4" Outlined="true">
-                                    <MudText Typo="Typo.subtitle1" Class="mb-3 font-weight-bold">Evaluación</MudText>
-                                    <MudGrid Spacing="2">
-                                        <MudItem xs="12" md="6">
-                                            <MudSelect T="JobState" Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.State)" @bind-Value="_formModel.State" Variant="Variant.Outlined" Required="true" Strict="true" FullWidth="true" Margin="Margin.Dense" Dense="true" Disabled="IsViewMode">
-                                                @foreach (var value in Enum.GetValues<JobState>())
-                                                {
-                                                    <MudSelectItem Value="@value">@value.ToString()</MudSelectItem>
-                                                }
-                                            </MudSelect>
-                                        </MudItem>
-                                        <MudItem xs="12" md="6">
-                                            <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.ResolutionNumber)" @bind-Value="_formModel.ResolutionNumber" Variant="Variant.Outlined" FullWidth="true" Margin="Margin.Dense" Disabled="IsViewMode" Clearable="true" />
-                                        </MudItem>
-                                    </MudGrid>
-                                </MudPaper>
+                                <MudDivider Class="my-2" />
+                                
+                                <MudSwitch Label="¿Es experimental?" Color="Color.Warning" @bind-Value="_formModel.IsExperimental" Disabled="IsViewMode" />
+                                <MudGrid Spacing="2">
+                                    <MudItem xs="6">
+                                        <MudDatePicker Label="Fecha Inicio" Date="@_formModel.ExperimentalStartDate" Disabled="@(!_formModel.IsExperimental || IsViewMode)" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true" />
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudDatePicker Label="Fecha Fin" Date="@_formModel.ExperimentalEndDate" Disabled="@(!_formModel.IsExperimental || IsViewMode)" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true" />
+                                    </MudItem>
+                                </MudGrid>
+                            </MudStack>
+                        </MudItem>
 
-                                <MudPaper Elevation="1" Class="pa-3" Outlined="true">
-                                    <MudText Typo="Typo.subtitle1" Class="mb-3 font-weight-bold">Economía y Recomendaciones</MudText>
-                                    <MudGrid Spacing="2">
-                                        <MudItem xs="12" md="6">
-                                            <MudNumericField T="decimal" Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.EconomicImpact)" @bind-Value="_formModel.EconomicImpact" Variant="Variant.Outlined" FullWidth="true" Margin="Margin.Dense" Disabled="IsViewMode" Min="0" />
-                                        </MudItem>
-                                        <MudItem xs="12">
-                                            <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Recommendations)" @bind-Value="_formModel.Recommendations" Variant="Variant.Outlined" FullWidth="true" Margin="Margin.Dense" Lines="4" Disabled="IsViewMode" Clearable="true" />
-                                        </MudItem>
-                                    </MudGrid>
-                                </MudPaper>
-                            </MudTabPanel>
+                        <!-- Columna Derecha: Evaluación y Economía -->
+                        <MudItem xs="12" md="6">
+                            <div class="d-flex align-center mb-3">
+                                <MudIcon Icon="@Icons.Material.Outlined.AttachMoney" Class="mr-2" Color="Color.Secondary" />
+                                <MudText Typo="Typo.subtitle1" Class="font-weight-bold">Evaluación y Economía</MudText>
+                            </div>
+                            <MudStack Spacing="2">
+                                <MudSelect T="JobState" Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.State)" @bind-Value="_formModel.State" Variant="Variant.Outlined" Required="true" Strict="true" FullWidth="true" Margin="Margin.Dense" Disabled="IsViewMode">
+                                    @foreach (var value in Enum.GetValues<JobState>())
+                                    {
+                                        <MudSelectItem Value="@value">@value.ToString()</MudSelectItem>
+                                    }
+                                </MudSelect>
+                                <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.ResolutionNumber)" @bind-Value="_formModel.ResolutionNumber" Variant="Variant.Outlined" FullWidth="true" Margin="Margin.Dense" Disabled="IsViewMode" Clearable="true" />
+                                <MudNumericField T="decimal" Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.EconomicImpact)" @bind-Value="_formModel.EconomicImpact" Variant="Variant.Outlined" FullWidth="true" Margin="Margin.Dense" Disabled="IsViewMode" Min="0" />
+                                <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Recommendations)" @bind-Value="_formModel.Recommendations" Variant="Variant.Outlined" FullWidth="true" Margin="Margin.Dense" Lines="5" Disabled="IsViewMode" Clearable="true" />
+                            </MudStack>
+                        </MudItem>
 
-                            <!-- ============================================================ -->
-                            <!-- PERSONAS -->
-                            <!-- ============================================================ -->
-                            <MudTabPanel Text="Personas" Icon="@Icons.Material.Outlined.Group">
-                                @if (_formModel.Persons != null)
-                                {
-                                    <AnirWorkPersonsSection Persons="_formModel.Persons" IsViewMode="IsViewMode" />
-                                }
-                            </MudTabPanel>
+                    </MudGrid>
+                </MudPaper>
 
-                            <!-- ============================================================ -->
-                            <!-- PRESENTACIONES -->
-                            <!-- ============================================================ -->
-                            <MudTabPanel Text="Presentaciones" Icon="@Icons.Material.Outlined.PresentToAll">
-                                @if (_formModel.Presentations != null)
-                                {
-                                    <AnirWorkPresentationsSection Presentations="_formModel.Presentations" IsViewMode="IsViewMode" />
-                                }
-                            </MudTabPanel>
+                <!-- ============================================================ -->
+                <!-- SECCIÓN 3: RELACIONES (Tabs limpios) -->
+                <!-- ============================================================ -->
+                <MudPaper Elevation="0" Outlined="true" Class="pa-4">
+                    <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true">
+                        <MudTabPanel Text="Personas" Icon="@Icons.Material.Outlined.Group">
+                            @if (_formModel.Persons != null)
+                            {
+                                <AnirWorkPersonsSection Persons="_formModel.Persons" IsViewMode="IsViewMode" />
+                            }
+                        </MudTabPanel>
+                        <MudTabPanel Text="Presentaciones" Icon="@Icons.Material.Outlined.PresentToAll">
+                            @if (_formModel.Presentations != null)
+                            {
+                                <AnirWorkPresentationsSection Presentations="_formModel.Presentations" IsViewMode="IsViewMode" />
+                            }
+                        </MudTabPanel>
+                    </MudTabs>
+                </MudPaper>
 
-                        </MudTabs>
-                    </MudPaper>
-                </MudItem>
-            </MudGrid>
-
-            <!-- FOOTER -->
-            <MudStack Row="true" Spacing="1" Class="mt-4" Justify="Justify.FlexEnd" AlignItems="AlignItems.Center">
-                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="Back" Disabled="_isSaving">@(IsViewMode ? "Volver" : "Cancelar")</MudButton>
-                @if (!IsViewMode)
-                {
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit" Disabled="_isSaving">
-                        @if (_isSaving)
-                        {
-                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-                            <span>Guardando...</span>
-                        }
-                        else
-                        {
-                            <MudIcon Icon="@Icons.Material.Filled.Save" Class="mr-2" />
-                            <span>Guardar</span>
-                        }
-                    </MudButton>
-                }
             </MudStack>
+
+            <!-- FOOTER PEGAJOSO -->
+            <div class="sticky-footer pa-3 mt-4">
+                <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd" AlignItems="AlignItems.Center">
+                    <MudButton Variant="Variant.Text" OnClick="Back" Disabled="_isSaving">
+                        @(IsViewMode ? "Volver" : "Cancelar")
+                    </MudButton>
+                    @if (!IsViewMode)
+                    {
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit" Disabled="_isSaving" Size="Size.Large">
+                            @if (_isSaving)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                                <span>Guardando...</span>
+                            }
+                            else
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.Save" Class="mr-2" />
+                                <span>Guardar Trabajo</span>
+                            }
+                        </MudButton>
+                    }
+                </MudStack>
+            </div>
+            
         </EditForm>
     }
 </MudContainer>
@@ -287,7 +290,6 @@
         try
         {
             var res = Id is null ? await WorkService.CreateAsync(_formModel) : await WorkService.UpdateAsync(Id.Value, _formModel);
-            
             if (res?.Result == ResponseStatus.Success)
             {
                 await AlertService.ShowSuccess("Éxito", Id is null ? "Trabajo creado correctamente." : "Trabajo actualizado correctamente.");
@@ -303,7 +305,6 @@
         _formModel.CompanyId = companyId;
         _formModel.UebId = 0;
         FilteredUebs = new();
-        
         if (companyId > 0)
         {
             _isLoadingUebs = true;
