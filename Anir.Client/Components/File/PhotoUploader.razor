@@ -4,9 +4,8 @@
 @inject FileService FileService
 @inject IAlertService AlertService
 
-<MudStack AlignItems="AlignItems.Center" Spacing="2">
+<MudStack AlignItems="AlignItems.Center" Spacing="1">
     
-    <!-- Componente siempre montado y oculto -->
     <div style="display: none;">
         <MudFileUpload T="IBrowserFile"
                        @ref="FileUploadRef"
@@ -14,68 +13,76 @@
                        FilesChanged="OnFileChanged" />
     </div>
 
-    <div style="@($"position:relative; width:{PixelSize}px; height:{PixelSize}px;")">
-        @if (PreviewUrl != null)
+    <div style="position: relative; width: @(PixelSize)px; height: @(PixelSize)px;">
+        
+        @if (HasImage)
         {
-            <img src="@PreviewUrl" alt="Vista previa"
-                 style="width:100%; height:100%; object-fit:cover; border-radius:@(IsProfile ? "50%" : "8px"); transition: opacity 0.3s;" />
+            <img src="@(PreviewUrl ?? Value)" alt="Vista previa"
+                 style="width: 100%; height: 100%; object-fit: cover; border-radius: @(IsProfile ? "50%" : "8px");" />
+            
+            @if (!IsViewMode)
+            {
+                <!-- Overlay con botones monocromáticos (blancos) y buen espaciado -->
+                <div class="d-flex align-center gap-2 pa-2"
+                     style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); border-radius: 24px;">
+                    
+                    <MudTooltip Text="Cambiar imagen">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Size="Size.Small"
+                                       Color="Color.Inherit"
+                                       Style="color: white;"
+                                       OnClick="TriggerUpload" />
+                    </MudTooltip>
+
+                    @if (ShowDelete)
+                    {
+                        <MudDivider Vertical="true" FlexItem="true" Light="true" Style="height: 16px;" />
+                        
+                        <MudTooltip Text="Eliminar imagen">
+                            <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
+                                           Size="Size.Small"
+                                           Color="Color.Inherit"
+                                           Style="color: white;"
+                                           OnClick="HandleDelete" />
+                        </MudTooltip>
+                    }
+                </div>
+            }
         }
-        else if (!string.IsNullOrEmpty(Value))
+        else if (IsViewMode)
         {
-            <img src="@Value" alt="Imagen actual"
-                 style="width:100%; height:100%; object-fit:cover; border-radius:@(IsProfile ? "50%" : "8px"); transition: opacity 0.3s;" />
+            <MudAvatar Rounded="@(!IsProfile)" Color="Color.Surface" Size="Size.Large"
+                       Style="@($"width:{PixelSize}px; height:{PixelSize}px; border: 2px dashed var(--mud-palette-divider);")">
+                <MudIcon Icon="@DefaultIcon" Style="font-size: 3rem; color: var(--mud-palette-text-disabled);" />
+            </MudAvatar>
         }
         else
         {
-            <MudAvatar Rounded="@(!IsProfile)"
-                       Color="Color.Surface"
-                       Style="@($"width:{PixelSize}px; height:{PixelSize}px; border: 2px dashed var(--mud-palette-divider);")">
-                <MudIcon Icon="@DefaultIcon" Style="font-size: 3rem; color: var(--mud-palette-text-secondary);" />
-            </MudAvatar>
+            <!-- Dropzone clickeable -->
+            <div @onclick="TriggerUpload" class="cursor-pointer d-flex justify-center align-center"
+                 Style="@($"width:{PixelSize}px; height:{PixelSize}px; border-radius: {(IsProfile ? "50%" : "8px")}; border: 2px dashed var(--mud-palette-primary); background-color: var(--mud-palette-action-disabled-background);")">
+                <MudStack AlignItems="AlignItems.Center" Spacing="1">
+                    <MudIcon Icon="@DefaultIcon" Style="font-size: 3rem; color: var(--mud-palette-primary);" />
+                    <MudText Typo="Typo.overline" Color="Color.Primary" Style="font-size: 0.7rem;">Subir imagen</MudText>
+                </MudStack>
+            </div>
+        }
+
+        @if (isUploading)
+        {
+            <div class="d-flex justify-center align-center"
+                 Style="@($"position: absolute; inset: 0; background: rgba(255,255,255,0.8); border-radius: {(IsProfile ? "50%" : "8px")}; z-index: 5;")">
+                <MudProgressCircular Size="Size.Large" Indeterminate="true" Color="Color.Primary" />
+            </div>
         }
     </div>
 
-    <!-- NUEVO: Si hay imagen cargada, mostramos el nombre original debajo -->
     @if (!string.IsNullOrEmpty(UploadedResponse?.Name))
     {
-        <MudText Typo="Typo.caption" Class="text-center mt-1" Style="@($"max-width: {PixelSize}px;")">
-            <MudTooltip Text="@UploadedResponse.Name">
-                <span style="display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                    @UploadedResponse.Name
-                </span>
-            </MudTooltip>
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="text-truncate text-center mt-1"
+                 Style="@($"max-width: {PixelSize}px;")">
+            @UploadedResponse.Name
         </MudText>
-    }
-
-    @if (!IsViewMode)
-    {
-        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-            
-            <MudTooltip Text="Subir imagen">
-                <MudIconButton Icon="@Icons.Material.Filled.CloudUpload"
-                               Color="Color.Primary"
-                               Disabled="@isUploading"
-                               OnClick="TriggerUpload" />
-            </MudTooltip>
-
-            @if (ShowDelete && HasImage)
-            {
-                <MudTooltip Text="Eliminar imagen">
-                    <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
-                                   Color="Color.Error"
-                                   Size="Size.Small"
-                                   OnClick="HandleDelete"
-                                   Disabled="@isUploading" />
-                </MudTooltip>
-            }
-        </MudStack>
-    }
-
-    @if (isUploading)
-    {
-        <div style="width: @($"{PixelSize}px");">
-            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-1" />
-        </div>
     }
 </MudStack>
 

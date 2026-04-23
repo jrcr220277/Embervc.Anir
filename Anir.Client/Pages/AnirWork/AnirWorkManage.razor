@@ -64,18 +64,12 @@
                         <!-- COLUMNA IZQUIERDA: ARCHIVOS (Ocupa 1/3) -->
                         <MudItem xs="12" md="4">
                             <MudStack Spacing="3">
-                                <div>
-                                    <MudText Typo="Typo.body2" Class="mb-2 font-weight-medium">Imagen del Trabajo</MudText>
-                                    <div class="d-flex justify-center" style="min-height: 240px; border: 1px dashed var(--mud-palette-lines-default); border-radius: 8px; padding: 16px;">
-                                        <PhotoUploader Value="@(_formModel.ImageFile?.Url)" IsProfile="false" PixelSize="220" Folder="images/works" OnUploaded="HandleImageUploaded" IsViewMode="IsViewMode" />
-                                    </div>
+                                <div class="d-flex justify-center">
+                                    <PhotoUploader Value="@(_formModel.ImageFile?.Url)" IsProfile="false" PixelSize="220" Folder="images/works" OnUploaded="HandleImageUploaded" IsViewMode="IsViewMode" />
                                 </div>
                                 
                                 <div>
-                                    <MudText Typo="Typo.body2" Class="mb-2 font-weight-medium">Documento PDF</MudText>
-                                    <div style="border: 1px dashed var(--mud-palette-lines-default); border-radius: 8px; padding: 16px;">
-                                        <PdfUploader Value="@(_formModel.PdfFile?.Url)" OnUploaded="HandlePdfUploaded" Folder="docs/works" IsViewMode="IsViewMode" />
-                                    </div>
+                                    <PdfUploader Label="Documento PDF" Value="@(_formModel.PdfFile?.Url)" OnUploaded="HandlePdfUploaded" Folder="docs/works" IsViewMode="IsViewMode" />
                                 </div>
                             </MudStack>
                         </MudItem>

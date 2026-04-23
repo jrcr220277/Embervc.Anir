@@ -1,241 +1,52 @@
-﻿<!--
-    COMPONENTE: ConfirmDialog (versión profesional ANIR)
-    PROPÓSITO:
-    - Diálogo de confirmación reutilizable en toda la aplicación.
-    - Diseño compacto y consistente con los modales de ANIR.
-    - Avatar semántico a la izquierda con icono según el tipo.
-    - Título principal + subtítulo (mensaje).
-    - Botones Material Design 3 alineados a la derecha.
-    - Tipos simples por string: "delete", "warning", "success", "info", "default".
-    - Se invoca desde cualquier página con ConfirmDialog.Show().
-
-    ============================================================
-    CASOS DE USO (EJEMPLOS)
-    ============================================================
-
-    1) Confirmación normal
-       var confirmed = await ConfirmDialog.Show(
-           DialogService,
-           "Confirmar acción",
-           "¿Deseas continuar?",
-           type: "default",
-           confirmText: "Aceptar"
-       );
-
-    2) Eliminación
-       var confirmed = await ConfirmDialog.Show(
-           DialogService,
-           "Eliminar Empresa",
-           $"¿Eliminar {company.ShortName}?",
-           type: "delete",
-           confirmText: "Eliminar",
-           centerMessage: true
-       );
-
-    3) Eliminación masiva
-       var confirmed = await ConfirmDialog.Show(
-           DialogService,
-           "Eliminar seleccionadas",
-           IsGlobalSelected
-               ? "¿Eliminar TODAS las empresas filtradas?"
-               : $"¿Eliminar {SelectedItems.Count} empresas?",
-           type: "delete",
-           confirmText: "Eliminar",
-           centerMessage: true
-       );
-
-    4) Advertencia
-       var confirmed = await ConfirmDialog.Show(
-           DialogService,
-           "Advertencia",
-           "Esta acción no se puede deshacer.",
-           type: "warning",
-           confirmText: "Entiendo"
-       );
-
-    5) Éxito
-       var confirmed = await ConfirmDialog.Show(
-           DialogService,
-           "Finalizado",
-           "La operación se completó correctamente.",
-           type: "success",
-           confirmText: "Aceptar"
-       );
-
-    6) Información (logout)
-       var confirmed = await ConfirmDialog.Show(
-           DialogService,
-           "Cerrar sesión",
-           "¿Deseas cerrar sesión?",
-           type: "info",
-           confirmText: "Cerrar sesión",
-           centerMessage: true
-       );
-
-    7) Sin botón cancelar
-       var confirmed = await ConfirmDialog.Show(
-           DialogService,
-           "Información",
-           "Debes aceptar para continuar.",
-           type: "info",
-           confirmText: "Entendido",
-           showCancelButton: false
-       );
-
-    ============================================================
-    NOTAS IMPORTANTES
-    ============================================================
-
-    - El parámetro 'type' se normaliza automáticamente (mayúsculas, espacios, etc.).
-    - Colores e iconos se resuelven según el tipo:
-        "delete"  → rojo + icono eliminar
-        "warning" → amarillo + advertencia
-        "success" → verde + check
-        "info"    → azul + info
-        "default" → primario + help
-    - Diseño compacto: avatar pequeño, spacing reducido, botones pequeños.
-    - Este componente NO usa enum para simplificar y permitir agregar nuevos tipos fácilmente.
--->
+﻿@using MudBlazor
 
 <MudDialog>
-
-    <!-- CONTENIDO PRINCIPAL -->
     <DialogContent>
-
-        <MudStack Class="pa-3" Row="true" AlignItems="AlignItems.Center" Spacing="2">
-
-            <!-- AVATAR SEMÁNTICO -->
-            <MudIcon Icon="@ResolvedIcon" Color="@ResolvedColor" Style="font-size: 3rem;" />
-           
-            <!-- TÍTULO + MENSAJE -->
-            <MudStack Spacing="0">
-                <MudText Typo="Typo.subtitle1" Class="font-weight-medium">
-                    @Title
-                </MudText>
-
-                <MudText Typo="Typo.body2"
-                         Color="Color.Secondary"
-                         Align="@((CenterMessage ? Align.Center : Align.Left))">
-                    @Message
-                </MudText>
-
+        <MudStack Spacing="3" Class="mb-2">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudAvatar Color="@ResolvedColor" Variant="Variant.Filled" Size="Size.Medium">
+                    <MudIcon Icon="@ResolvedIcon" Style="font-size: 1.4rem;" />
+                </MudAvatar>
+                <MudText Typo="Typo.subtitle1" Class="font-weight-bold">@Title</MudText>
             </MudStack>
-
+            <MudText Typo="Typo.body1" Color="Color.Secondary" Align="@((CenterMessage ? Align.Center : Align.Left))">@Message</MudText>
         </MudStack>
-
     </DialogContent>
-
-    <!-- ACCIONES -->
     <DialogActions>
-
         @if (ShowCancelButton)
         {
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Default"
-                       OnClick="Cancel">
-                @CancelText
-            </MudButton>
+            <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="Cancel">@CancelText</MudButton>
         }
-
-        <MudButton Variant="Variant.Filled"
-                   Color="@ResolvedColorButton"
-                   StartIcon="@ResolvedActionIcon"
-                   OnClick="Confirm">
-            @ConfirmText
-        </MudButton>
-
+        <MudButton Variant="Variant.Filled" Color="@ResolvedColorButton" StartIcon="@ResolvedActionIcon" OnClick="Confirm">@ConfirmText</MudButton>
     </DialogActions>
-
 </MudDialog>
 
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
-
     [Parameter] public string Title { get; set; } = "Confirmar";
     [Parameter] public string Message { get; set; } = "";
     [Parameter] public string ConfirmText { get; set; } = "Aceptar";
     [Parameter] public string CancelText { get; set; } = "Cancelar";
     [Parameter] public bool CenterMessage { get; set; } = false;
     [Parameter] public bool ShowCancelButton { get; set; } = true;
-
-    // Tipo normalizado (evita errores de mayúsculas, espacios, etc.)
     [Parameter] public string Type { get; set; } = "default";
+
     private string NormalizedType => (Type ?? "default").Trim().ToLower();
 
-    // COLOR DEL AVATAR 
-    private Color ResolvedColor => NormalizedType switch
-    {
-        "delete" => Color.Error,
-        "warning" => Color.Warning,
-        "success" => Color.Success,
-        "info" => Color.Info,
-        _ => Color.Primary
-    };
-
-    // COLOR DEL BOTON
-    private Color ResolvedColorButton => NormalizedType switch
-    {
-        "delete" => Color.Error,
-        "warning" => Color.Default,
-        "success" => Color.Default,
-        "info" => Color.Default,
-        _ => Color.Primary
-    };
-
-    // ICONO DEL AVATAR
-    private string ResolvedIcon => NormalizedType switch
-    {
-        "delete" => Icons.Material.TwoTone.Delete,
-        "warning" => Icons.Material.TwoTone.Warning,
-        "success" => Icons.Material.TwoTone.CheckCircle,
-        "info" => Icons.Material.TwoTone.Info,
-        _ => Icons.Material.TwoTone.HelpOutline
-    };
-
-    // ICONO DEL BOTÓN (solo si aplica)
-    private string? ResolvedActionIcon => NormalizedType switch
-    {
-        "delete" => Icons.Material.Filled.Delete,
-        "success" => Icons.Material.Filled.Check,
-        _ => null
-    };
+    private Color ResolvedColor => NormalizedType switch { "delete" => Color.Error, "warning" => Color.Warning, "success" => Color.Success, "info" => Color.Info, _ => Color.Primary };
+    private Color ResolvedColorButton => NormalizedType switch { "delete" => Color.Error, "warning" => Color.Default, "success" => Color.Default, "info" => Color.Default, _ => Color.Primary };
+    private string ResolvedIcon => NormalizedType switch { "delete" => Icons.Material.Filled.Delete, "warning" => Icons.Material.Filled.Warning, "success" => Icons.Material.Filled.CheckCircle, "info" => Icons.Material.Filled.Info, _ => Icons.Material.Filled.HelpOutline };
+    private string? ResolvedActionIcon => NormalizedType switch { "delete" => Icons.Material.Filled.Delete, "success" => Icons.Material.Filled.Check, _ => null };
 
     void Confirm() => MudDialog.Close(DialogResult.Ok(true));
     void Cancel() => MudDialog.Cancel();
 
-    // MÉTODO ESTÁTICO PARA INVOCAR EL DIÁLOGO
-    public static async Task<bool> Show(
-        IDialogService dialogService,
-        string title,
-        string message,
-        string type = "default",
-        string confirmText = "Aceptar",
-        string cancelText = "Cancelar",
-        bool centerMessage = false,
-        bool showCancelButton = true)
+    public static async Task<bool> Show(IDialogService dialogService, string title, string message, string type = "default", string confirmText = "Aceptar", string cancelText = "Cancelar", bool centerMessage = false, bool showCancelButton = true)
     {
-        var parameters = new DialogParameters
-        {
-            ["Title"] = title,
-            ["Message"] = message,
-            ["Type"] = type,
-            ["ConfirmText"] = confirmText,
-            ["CancelText"] = cancelText,
-            ["CenterMessage"] = centerMessage,
-            ["ShowCancelButton"] = showCancelButton
-        };
-
-        var options = new DialogOptions
-        {
-            CloseButton = false,
-            BackdropClick = false,
-            MaxWidth = MaxWidth.Small,
-            Position = DialogPosition.Center
-        };
-
+        var parameters = new DialogParameters { ["Title"] = title, ["Message"] = message, ["Type"] = type, ["ConfirmText"] = confirmText, ["CancelText"] = cancelText, ["CenterMessage"] = centerMessage, ["ShowCancelButton"] = showCancelButton };
+        var options = new DialogOptions { CloseButton = false, BackdropClick = false, MaxWidth = MaxWidth.Small, Position = DialogPosition.Center };
         var dialog = await dialogService.ShowAsync<ConfirmDialog>("", parameters, options);
         var result = await dialog.Result;
-
         return result.Data is true;
     }
 }

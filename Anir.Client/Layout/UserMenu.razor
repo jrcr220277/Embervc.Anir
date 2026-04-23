@@ -1,22 +1,20 @@
 ﻿@implements IDisposable
 
-<MudMenu @ref="_menuRef"
-         AnchorOrigin="Origin.BottomRight"
+<MudMenu AnchorOrigin="Origin.BottomRight"
          TransformOrigin="Origin.TopRight"
          OffsetY="true">
 
     <ActivatorContent Context="context">
+        @* LIMPIEZA: pa-0 quita el padding, min-width quita el espacio extra del botón *@
         <MudButton Variant="Variant.Text"
-                   Class="p-0"
-                   Style="min-width:0; padding:0;"
-                   OnClick="@((e)=>context.ToggleAsync(e))">
+                   Class="pa-0"
+                   Style="min-width: 0;"
+                   OnClick="@((e) => context.ToggleAsync(e))">
 
-            <!-- MudAvatar tiene la propiedad Image nativa, es más limpio que usar MudImage por dentro -->
             <MudAvatar Size="Size.Medium"
                        Image="@AvatarUrl"
-                       Class="pa-0"
                        Color="Color.Surface"
-                       Style="cursor:pointer;"
+                       Style="cursor: pointer;"
                        Alt="@UserState.DisplayName">
                 @UserState.Initials
             </MudAvatar>
@@ -25,14 +23,14 @@
     </ActivatorContent>
 
     <ChildContent>
-
-        <MudMenuItem>
+        <MudMenuItem Disabled="true">
             <MudStack Spacing="0">
                 <MudText Typo="Typo.subtitle2">@UserState.DisplayName</MudText>
 
                 @if (!string.IsNullOrWhiteSpace(UserState.Email))
                 {
-                    <MudText Typo="Typo.caption" Class="text-secondary">
+                    @* LIMPIEZA: Color secundario nativo de MudBlazor en vez de clase bootstrap *@
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
                         @UserState.Email
                     </MudText>
                 }
@@ -42,12 +40,12 @@
         <MudDivider />
 
         <MudMenuItem Icon="@Icons.Material.Filled.AccountCircle"
-                     OnClick="@(()=>Nav.NavigateTo("/account/profile"))">
+                     OnClick="@(() => Nav.NavigateTo("/account/profile"))">
             Mi perfil
         </MudMenuItem>
 
         <MudMenuItem Icon="@Icons.Material.Filled.LockReset"
-                     OnClick="@(()=>Nav.NavigateTo("/change-password"))">
+                     OnClick="@(() => Nav.NavigateTo("/change-password"))">
             Cambiar contraseña
         </MudMenuItem>
 
@@ -69,9 +67,6 @@
     [Inject] ILogger<UserMenu> Logger { get; set; } = default!;
     [Inject] UserState UserState { get; set; } = default!;
 
-    private MudMenu? _menuRef;
-
-    // CORREGIDO: Extraer la URL del nuevo objeto FileResponse
     private string? AvatarUrl => UserState.ImageFile?.Url;
 
     protected override void OnInitialized()

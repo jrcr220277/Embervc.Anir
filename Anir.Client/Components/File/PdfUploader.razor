@@ -5,83 +5,82 @@
 @inject IAlertService AlertService
 @inject IJSRuntime JS
 
-<MudPaper Outlined="true" Class="pa-4">
-    
-    <!-- EL SECRETO: El componente siempre está montado, pero oculto. Así no pierde el archivo. -->
-    <div style="display: none;">
-        <MudFileUpload T="IBrowserFile"
-                       @ref="FileUploadRef"
-                       Accept=".pdf,application/pdf"
-                       FilesChanged="OnFileChanged" />
-    </div>
+@if (!string.IsNullOrEmpty(Label))
+{
+    <MudText Typo="Typo.subtitle2" Class="mb-1" Color="Color.Secondary">@Label</MudText>
+}
 
-    @if (isUploading)
-    {
-        <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Spacing="2" Style="min-height: 80px;">
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Subiendo PDF...</MudText>
-            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="w-100" />
-        </MudStack>
-    }
-    else if (HasPdf)
-    {
-        <MudStack AlignItems="AlignItems.Center" Spacing="2">
-            <MudIcon Icon="@Icons.Material.Filled.PictureAsPdf" Color="Color.Error" Style="font-size: 3rem;" />
-            
-            <!-- NUEVO: Mostramos el nombre real. Si es muy largo, lo corta con "..." y muestra el nombre completo al pasar el ratón -->
-            <MudText Typo="Typo.body2" Color="Color.Primary" Class="font-weight-medium text-center" Style="max-width: 100%;">
-                <MudTooltip Text="@(UploadedResponse?.Name ?? "Documento sin nombre")">
-                    <span style="display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;">
-                        @(UploadedResponse?.Name ?? "Documento adjunto")
-                    </span>
-                </MudTooltip>
+<div style="display: none;">
+    <MudFileUpload T="IBrowserFile"
+                   @ref="FileUploadRef"
+                   Accept=".pdf,application/pdf"
+                   FilesChanged="OnFileChanged" />
+</div>
+
+@if (isUploading)
+{
+    <MudPaper Outlined="true" Class="d-flex align-center pa-2 gap-2 rounded-lg">
+        <MudIcon Icon="@Icons.Material.Filled.PictureAsPdf" Color="Color.Error" Size="Size.Small" />
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="flex-grow-1" Style="height: 3px;" />
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="flex-shrink-0">Subiendo...</MudText>
+    </MudPaper>
+}
+else if (HasPdf)
+{
+    <MudPaper Outlined="true" Class="d-flex align-center pa-2 gap-2 rounded-lg overflow-hidden">
+        <MudIcon Icon="@Icons.Material.Filled.PictureAsPdf" Color="Color.Error" Size="Size.Small" Class="flex-shrink-0" />
+
+        <MudTooltip Text="@(UploadedResponse?.Name ?? "Documento")" Placement="Placement.Top">
+            <MudText Typo="Typo.body2" Class="text-truncate flex-grow-1" Style="font-weight: 500;">
+                @(UploadedResponse?.Name ?? "Documento adjunto")
             </MudText>
-        </MudStack>
+        </MudTooltip>
 
-        <MudStack Row="true" Spacing="1" Class="mt-2" Justify="Justify.Center" AlignItems="AlignItems.Center">
-            
+        @if (UploadedResponse?.Size > 0)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="flex-shrink-0">
+                @FormatSize(UploadedResponse.Size)
+            </MudText>
+        }
+
+        <div class="d-flex align-center flex-shrink-0 ml-auto">
             <MudTooltip Text="Ver PDF">
-                <MudIconButton Icon="@Icons.Material.Filled.Visibility"
-                               Color="Color.Primary"
-                               OnClick="OpenPdf" />
+                <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small" Color="Color.Primary" OnClick="OpenPdf" />
             </MudTooltip>
 
             @if (!IsViewMode)
             {
-                <MudTooltip Text="Cambiar PDF">
-                    <MudIconButton Icon="@Icons.Material.Filled.SwapHoriz"
-                                   Color="Color.Info"
-                                   OnClick="TriggerUpload" />
+                <MudTooltip Text="Cambiar">
+                    <MudIconButton Icon="@Icons.Material.Filled.SwapHoriz" Size="Size.Small" Color="Color.Info" OnClick="TriggerUpload" />
                 </MudTooltip>
             }
 
             @if (ShowDelete && !IsViewMode)
             {
-                <MudTooltip Text="Eliminar PDF">
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                   Color="Color.Error"
-                                   Size="Size.Small"
-                                   OnClick="HandleDelete" />
+                <MudTooltip Text="Eliminar">
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Error" OnClick="HandleDelete" />
                 </MudTooltip>
             }
-        </MudStack>
-    }
-    else
-    {
-        <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Spacing="2" Style="min-height: 80px;">
-            <MudText Typo="Typo.body2" Color="Color.Secondary">No hay PDF adjunto</MudText>
-
-            @if (!IsViewMode)
-            {
-                <MudTooltip Text="Subir PDF">
-                    <MudIconButton Icon="@Icons.Material.Filled.NoteAdd"
-                                   Color="Color.Primary"
-                                   OnClick="TriggerUpload" />
-                </MudTooltip>
-            }
-        </MudStack>
-    }
-
-</MudPaper>
+        </div>
+    </MudPaper>
+}
+else if (IsViewMode)
+{
+    <MudPaper Outlined="true" Class="d-flex align-center pa-2 gap-2 rounded-lg">
+        <MudIcon Icon="@Icons.Material.Outlined.Description" Size="Size.Small" Color="Color.Default" />
+        <MudText Typo="Typo.body2" Color="Color.Default">Sin documento adjunto</MudText>
+    </MudPaper>
+}
+else
+{
+    @* MudPaper no soporta OnClick, por eso envolvemos en div con @onclick *@
+    <div @onclick="TriggerUpload" class="cursor-pointer">
+        <MudPaper Outlined="true" Class="d-flex align-center justify-center pa-2 gap-2 rounded-lg">
+            <MudIcon Icon="@Icons.Material.Outlined.CloudUpload" Size="Size.Small" Color="Color.Primary" />
+            <MudText Typo="Typo.body2" Color="Color.Primary" Style="font-weight: 500;">Subir PDF</MudText>
+        </MudPaper>
+    </div>
+}
 
 @code {
     [Parameter] public string? Value { get; set; }
@@ -89,17 +88,23 @@
     [Parameter] public EventCallback<FileResponse?> OnUploaded { get; set; }
     [Parameter] public bool IsViewMode { get; set; } = false;
     [Parameter] public string Folder { get; set; } = "docs";
+    [Parameter] public string? Label { get; set; }
 
     private const long MaxFileSize = 20 * 1024 * 1024;
     private FileResponse? UploadedResponse;
     private bool isUploading = false;
-    
-    // Referencia al componente oculto
     private MudFileUpload<IBrowserFile>? FileUploadRef;
 
     private bool HasPdf => UploadedResponse != null || !string.IsNullOrEmpty(Value);
 
-    // Método para abrir el explorador usando la referencia
+    private static string FormatSize(long? bytes)
+    {
+        if (bytes == null || bytes <= 0) return string.Empty;
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:0.0} KB";
+        return $"{bytes / (1024.0 * 1024.0):0.1} MB";
+    }
+
     private async Task TriggerUpload()
     {
         if (FileUploadRef != null)

@@ -4,52 +4,34 @@
 @inject HttpClient Http
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="pa-2">
-    <MudGrid Justify="Justify.Center" AlignItems="Center">
+    <MudGrid Justify="Justify.Center" AlignItems="AlignItems.Center">
         <MudItem xs="12" sm="10" md="6" lg="5" Class="d-flex flex-column align-items-center">
 
             <div class="d-flex flex-column justify-center align-center mt-2">
                 <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Large" Class="mb-2">
                     <MudIcon Icon="@Icons.Material.Filled.MarkEmailRead" Size="Size.Large" />
                 </MudAvatar>
-
-                <MudText Typo="Typo.h5" Class="font-weight-bold">
-                    Confirmación de correo
-                </MudText>
-
-                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-n1">
-                    Validando tu información…
-                </MudText>
+                <MudText Typo="Typo.h5" Class="font-weight-bold">Confirmación de correo</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-n1">Validando tu información…</MudText>
             </div>
 
-            <MudCard Class="pa-6 mt-4" Elevation="2">
+            <MudCard Outlined="true" Class="pa-6 mt-4">
                 <MudCardContent>
 
                     @if (isLoading)
                     {
-                        <div class="d-flex justify-center align-center" style="min-height:200px;">
+                        <div class="d-flex justify-center align-center" style="min-height: 200px;">
                             <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
                         </div>
                     }
                     else
                     {
                         <MudStack Spacing="2">
-
-                            <MudText Typo="Typo.h6" Class="font-weight-bold">
-                                @title
-                            </MudText>
-
-                            <MudText Typo="Typo.body1" Color="Color.Secondary">
-                                @message
-                            </MudText>
-
-                            <MudButton Variant="Variant.Filled"
-                                       Color="Color.Primary"
-                                       OnClick="GoLogin"
-                                       Class="mt-4"
-                                       FullWidth="true">
+                            <MudText Typo="Typo.h6" Class="font-weight-bold">@title</MudText>
+                            <MudText Typo="Typo.body1" Color="Color.Secondary">@message</MudText>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="GoLogin" Class="mt-4" FullWidth="true">
                                 Ir al Login
                             </MudButton>
-
                         </MudStack>
                     }
 
@@ -84,25 +66,12 @@
         try
         {
             var encodedToken = Uri.EscapeDataString(token);
-
             var url = $"api/auth/confirm-email?userId={userId}&token={encodedToken}";
-
             var response = await Http.GetAsync(url);
-
             var content = await response.Content.ReadAsStringAsync();
 
-            if (response.IsSuccessStatusCode)
-            {
-                title = "Correo confirmado";
-                message = content;
-            }
-            else
-            {
-                title = "Error";
-                message = content;
-            }
-
-
+            title = response.IsSuccessStatusCode ? "Correo confirmado" : "Error";
+            message = content;
         }
         catch
         {
@@ -112,7 +81,6 @@
 
         isLoading = false;
     }
-
 
     private void GoLogin() => Nav.NavigateTo("/login");
 }

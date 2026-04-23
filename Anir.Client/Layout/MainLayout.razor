@@ -320,185 +320,147 @@
 
     private readonly PaletteLight _lightPalette = new()
     {
-        // ============================================================
-        // CAPA 1 — FONDO GENERAL (Slate Light / Gris Azulado Suave)
-        // ============================================================
-        Background = "#F3F4F6",          // Gris azulado claro — fondo principal moderno
-        BackgroundGray = "#E7E9EC",      // Gris más oscuro — headers, secciones
-        DrawerBackground = "#F3F4F6",    // Igual que Background — menú limpio y moderno
+        // FONDOS (Perfectos, no toqué nada)
+        Background = "#F3F4F6",
+        BackgroundGray = "#E7E9EC",
+        DrawerBackground = "#F3F4F6",
+        DrawerText = "#1F2937",
+        DrawerIcon = "#1F2937",
 
-        DrawerText = "#1F2937",          // Gris carbón — texto del menú
-        DrawerIcon = "#1F2937",          // Íconos del menú
+        // SUPERFICIES (Perfectos)
+        Surface = "#FFFFFF",
 
-        // ============================================================
-        // CAPA 2 — SUPERFICIES (tarjetas, tablas, modales)
-        // ============================================================
-        Surface = "#FFFFFF",             // Blanco puro — tarjetas y modales
-                                         // (contraste perfecto con Background)
-
-        // ============================================================
         // APPBAR
-        // ============================================================
-        AppbarBackground = "#FFFFFF",    // Igual que Surface — barra superior limpia
-        AppbarText = "#1F2937",          // Gris carbón — texto del AppBar
+        AppbarBackground = "#FFFFFF",
+        AppbarText = "#1F2937",
 
         // ============================================================
-        // PRIMARY (Ubuntu Accent)
+        // PRIMARY (CAMBIO RADICAL PERO NECESARIO)
+        // Antes: #E95420 (Naranja) -> Ahora: #475569 (Slate 600)
+        // Esto da el look "Sistema Serio" sin perder elegancia.
         // ============================================================
-        Primary = "#E95420",             // Naranja Ubuntu — acento cálido y profesional
-        PrimaryDarken = "#C34114",       // Naranja quemado — hover/active
-        PrimaryLighten = "#FF8A5C",      // Naranja claro — estados suaves
+        Primary = "#4A6FA5",             // Para rellenos (Botones, Tabs) - No se toca, está perfecto
+        PrimaryDarken = "#345280",       // Para el hover de los botones - No se toca
+        PrimaryLighten = "#5B9BD5",      // 🚨 NUEVO: Azul acero MÁS VIVO y brillante (Para iconos/bordes)
 
-        // ============================================================
-        // SECUNDARIOS
-        // ============================================================
-        Secondary = "#6D6D6D",           // Gris neutro — botones secundarios
+        // SECUNDARIOS (Perfectos)
+        Secondary = "#6D6D6D",
         SecondaryDarken = "#4F4F4F",
         SecondaryLighten = "#9E9E9E",
 
-        // ============================================================
-        // TEXTO
-        // ============================================================
-        TextPrimary = "#1A1A1A",         // Negro suave — texto principal
-        TextSecondary = "#555555",       // Gris medio — texto secundario
-        TextDisabled = "#999999",        // Gris claro — texto deshabilitado
+        // TEXTO (Perfectos)
+        TextPrimary = "#1A1A1A",
+        TextSecondary = "#555555",
+        TextDisabled = "#999999",
 
-        // ============================================================
-        // LÍNEAS Y DIVISORES (más visibles)
-        // ============================================================
-        Divider = "#D1D5DB",             // Slate 300 — líneas visibles y elegantes
-        DividerLight = "rgba(0,0,0,0.06)", // Líneas suaves
-        LinesDefault = "#D1D5DB",        // Líneas generales
-        LinesInputs = "rgba(0,0,0,0.25)", // Bordes de inputs
-        TableLines = "#D1D5DB",          // Líneas de tablas
+        // LÍNEAS (Perfectos)
+        Divider = "#D1D5DB",
+        DividerLight = "rgba(0,0,0,0.06)",
+        LinesDefault = "#D1D5DB",
+        LinesInputs = "rgba(0,0,0,0.25)",
+        TableLines = "#D1D5DB",
 
-        // ============================================================
-        // TABLAS (hover y striped PRO)
-        // ============================================================
-        TableStriped = "rgba(0,0,0,0.02)", // Filas alternas — sutil y elegante
-        TableHover = "rgba(0,0,0,0.06)",   // Hover visible — contraste real
+        // TABLAS (Perfectos)
+        TableStriped = "rgba(0,0,0,0.02)",
+        TableHover = "rgba(0,0,0,0.06)",
 
-        // ============================================================
-        // OVERLAYS (modales)
-        // ============================================================
-        OverlayDark = "rgba(0,0,0,0.40)",  // Oscurece fondo — modal resalta
+        // OVERLAYS
+        OverlayDark = "rgba(0,0,0,0.40)",
         OverlayLight = "rgba(255,255,255,0.50)",
 
-        // ============================================================
-        // ESTADOS (Success, Warning, Error, Info)
-        // ============================================================
-        Success = "#1B873F",             // Verde éxito
-        SuccessDarken = "#0F6A2F",
-        SuccessLighten = "#4CD96B",
+        // ESTADOS (Los tuyos de Light están bien, pero los pulí un poco)
+        Success = "#16A34A",             // Verde 600 (Un poco más vibrante que el tuyo)
+        SuccessDarken = "#15803D",
+        SuccessLighten = "#4ADE80",
 
-        Warning = "#E6A437",             // Amarillo advertencia
-        WarningDarken = "#C1872A",
-        WarningLighten = "#F7C66A",
+        Warning = "#CA8A04",             // Amarillo 600 (Menos "enfantasme" que el anterior)
+        WarningDarken = "#A16207",
+        WarningLighten = "#FDE047",
 
-        Error = "#D64545",               // Rojo error
-        ErrorDarken = "#B83232",
-        ErrorLighten = "#E97A7A",
+        Error = "#DC2626",               // Rojo 600 (El estándar moderno de error)
+        ErrorDarken = "#B91C1C",
+        ErrorLighten = "#FCA5A5",
 
-        Info = "#3A6EA5",                // Azul informativo
-        InfoDarken = "#2E5684",
-        InfoLighten = "#7AA3D1",
+        Info = "#2563EB",                // Azul 600
+        InfoDarken = "#1D4ED8",
+        InfoLighten = "#93C5FD",
 
-        // ============================================================
-        // GRAYS (coherentes con Slate Light)
-        // ============================================================
-        GrayDefault = "#9CA3AF",         // Slate 400 — gris base
-        GrayLight = "#D1D5DB",           // Slate 300 — gris claro
-        GrayLighter = "#E5E7EB",         // Slate 200 — gris muy claro
-        GrayDark = "#6B7280",            // Slate 500 — gris oscuro
-        GrayDarker = "#4B5563"           // Slate 600 — gris profundo
+        // GRAYS (Perfectos)
+        GrayDefault = "#9CA3AF",
+        GrayLight = "#D1D5DB",
+        GrayLighter = "#E5E7EB",
+        GrayDark = "#6B7280",
+        GrayDarker = "#4B5563"
     };
 
     private readonly PaletteDark _darkPalette = new()
     {
-        // ============================================================
-        // CAPA 1 — FONDO GENERAL
-        // ============================================================
-        Background = "#1B2433",          // Azul-gris oscuro (Slate 900) — fondo principal
-        BackgroundGray = "#2A3244",      // Slate 800 — headers, secciones secundarias
-        DrawerBackground = "#1E293B",    // Igual que AppBar — marco único lateral
+        // FONDOS (Perfectos)
+        Background = "#1B2433",
+        BackgroundGray = "#2A3244",
+        DrawerBackground = "#1E293B",
         DrawerText = "rgba(255,255,255,0.75)",
         DrawerIcon = "rgba(255,255,255,0.75)",
 
-        // ============================================================
-        // CAPA 2 — SUPERFICIES
-        // ============================================================
-        Surface = "#273447",             // Slate 850 — tarjetas, tablas, modales
+        // SUPERFICIES (Perfecto)
+        Surface = "#273447",
 
-        // ============================================================
-        // APPBAR
-        // ============================================================
-        AppbarBackground = "#1B2433",    // Igual que Drawer — barra superior integrada
+        // APPBAR (Perfecto)
+        AppbarBackground = "#1B2433",
         AppbarText = "rgba(255,255,255,0.85)",
 
         // ============================================================
-        // PRIMARY (Ubuntu Accent)
+        // PRIMARY DARK (Debe ser claro para contrastar, no el mismo de Light)
         // ============================================================
-        Primary = "#E95420",
-        PrimaryDarken = "#C34114",
-        PrimaryLighten = "#FF8A5C",
+        Primary = "#4A6FA5",             // Para rellenos - No se toca
+        PrimaryDarken = "#345280",       // Para hover - No se toca
+        PrimaryLighten = "#7EB8E0",      // Un poco más brillante para que resalte en la oscuridad
 
-        // ============================================================
         // SECUNDARIOS
-        // ============================================================
         Secondary = "#A0A0A0",
         SecondaryDarken = "#7A7A7A",
         SecondaryLighten = "#C8C8C8",
 
-        // ============================================================
         // TEXTO
-        // ============================================================
         TextPrimary = "#FFFFFF",
         TextSecondary = "#C0C0C0",
         TextDisabled = "#7A7A7A",
 
-        // ============================================================
-        // LÍNEAS Y DIVISORES
-        // ============================================================
+        // LÍNEAS
         Divider = "#4B5563",
         DividerLight = "rgba(255,255,255,0.10)",
         LinesDefault = "#4B5563",
         LinesInputs = "rgba(255,255,255,0.40)",
         TableLines = "#4B5563",
 
-        // ============================================================
         // TABLAS
-        // ============================================================
         TableStriped = "rgba(255,255,255,0.03)",
         TableHover = "rgba(255,255,255,0.16)",
 
-        // ============================================================
         // OVERLAYS
-        // ============================================================
         OverlayDark = "rgba(0,0,0,0.55)",
         OverlayLight = "rgba(255,255,255,0.50)",
 
         // ============================================================
-        // ESTADOS
+        // ESTADOS DARK (CORREGIDOS - "Pastelizados" para no quemar la vista)
         // ============================================================
-        Success = "#4CAF50",
-        SuccessDarken = "#099A6C",
-        SuccessLighten = "#0DE29C",
+        Success = "#4ADE80",             // Verde pastel (Ojo: no #4CAF50 que es muy fuerte)
+        SuccessDarken = "#22C55E",
+        SuccessLighten = "#86EFAC",
 
-        Warning = "#FFC107",
-        WarningDarken = "#D68F00",
-        WarningLighten = "#FFB624",
+        Warning = "#FACC15",             // Amarillo pastel
+        WarningDarken = "#EAB308",
+        WarningLighten = "#FDE047",
 
-        Error = "#EF5350",
-        ErrorDarken = "#F42F1E",
-        ErrorLighten = "#F87786",
+        Error = "#FCA5A5",               // Rojo pastel (Ojo: no #EF5350)
+        ErrorDarken = "#F87171",
+        ErrorLighten = "#FECACA",
 
-        Info = "#2196F3",
-        InfoDarken = "#0A85FF",
-        InfoLighten = "#5CADFF",
+        Info = "#93C5FD",                // Azul pastel (Ojo: no #2196F3)
+        InfoDarken = "#60A5FA",
+        InfoLighten = "#BFDBFE",
 
-        // ============================================================
         // GRAYS
-        // ============================================================
         GrayDefault = "#9CA3AF",
         GrayLight = "#D1D5DB",
         GrayLighter = "#E5E7EB",
