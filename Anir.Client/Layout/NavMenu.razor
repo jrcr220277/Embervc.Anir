@@ -1,3 +1,4 @@
+@using Anir.Client.Services.Auth
 @inject UserState User
 
 <MudNavMenu Dense="true" Class="mt-2">
@@ -11,75 +12,35 @@
 
     @if (User.Active)
     {
-        
         <MudNavGroup Title="Estructura Organizativa"
                      Icon="@Icons.Material.Outlined.AccountTree"
                      Expanded="true">
 
-            <MudNavLink Href="/organisms"
-                        Icon="@Icons.Material.Outlined.AccountBalance"
-                        Match="NavLinkMatch.Prefix">
-                Organismos
-            </MudNavLink>
-
-            <MudNavLink Href="/companies"
-                        Icon="@Icons.Material.Outlined.Domain"
-                        Match="NavLinkMatch.Prefix">
-                Empresas
-            </MudNavLink>
-
-            <MudNavLink Href="/uebs"
-                        Icon="@Icons.Material.Outlined.Factory"
-                        Match="NavLinkMatch.Prefix">
-               Establecimientos
-            </MudNavLink>
-            <!-- PERSONAS -->
-            <MudNavLink Href="/persons"
-                        Icon="@Icons.Material.Outlined.Hail"
-                        Match="NavLinkMatch.Prefix">
-                Aniristas
-            </MudNavLink>
+            <MudNavLink Href="/organisms" Icon="@Icons.Material.Outlined.AccountBalance" Match="NavLinkMatch.Prefix">Organismos</MudNavLink>
+            <MudNavLink Href="/companies" Icon="@Icons.Material.Outlined.Domain" Match="NavLinkMatch.Prefix">Empresas</MudNavLink>
+            <MudNavLink Href="/uebs" Icon="@Icons.Material.Outlined.Factory" Match="NavLinkMatch.Prefix">Establecimientos</MudNavLink>
+            <MudNavLink Href="/persons" Icon="@Icons.Material.Outlined.Hail" Match="NavLinkMatch.Prefix">Aniristas</MudNavLink>
         </MudNavGroup>
 
         <MudNavGroup Title="Trabajos ANIR"
                      Icon="@Icons.Material.Outlined.Work"
                      Expanded="true">
 
-            <MudNavLink Href="/anirworks"
-                        Icon="@Icons.Material.Outlined.ListAlt"
-                        Match="NavLinkMatch.Prefix">
-                Trabajos ANIR
-            </MudNavLink>
-
-            <MudNavLink Href="/anirworks/create"
-                        Icon="@Icons.Material.Outlined.AddCircle"
-                        Match="NavLinkMatch.Prefix">
-                Crear Trabajo
-            </MudNavLink>
-
-            <MudNavLink Href="/anirworks/reports"
-                        Icon="@Icons.Material.Outlined.Assessment"
-                        Match="NavLinkMatch.Prefix">
-                Reportes ANIR
-            </MudNavLink>
-
+            <MudNavLink Href="/anirworks" Icon="@Icons.Material.Outlined.ListAlt" Match="NavLinkMatch.Prefix">Trabajos ANIR</MudNavLink>
+            <MudNavLink Href="/anirworks/create" Icon="@Icons.Material.Outlined.AddCircle" Match="NavLinkMatch.Prefix">Crear Trabajo</MudNavLink>
+            <MudNavLink Href="/anirworks/reports" Icon="@Icons.Material.Outlined.Assessment" Match="NavLinkMatch.Prefix">Reportes ANIR</MudNavLink>
         </MudNavGroup>
     }
 
-    <!-- USUARIOS -->
     @if (User.Roles.Contains("Administrador") || User.Roles.Contains("Supervisor"))
     {
-        <MudNavLink Href="/users"
-                    Icon="@Icons.Material.Outlined.People"
-                    Match="NavLinkMatch.Prefix">
-            Gestión de Usuarios
-        </MudNavLink>
+        <MudNavLink Href="/users" Icon="@Icons.Material.Outlined.People" Match="NavLinkMatch.Prefix">Gestión de Usuarios</MudNavLink>
     }
 
     <!-- CONFIGURACIÓN -->
     @if (User.Roles.Contains("Administrador"))
     {
-        <MudNavLink Href="/settings"
+        <MudNavLink Href="/system/settings"
                     Icon="@Icons.Material.Outlined.Settings"
                     Match="NavLinkMatch.Prefix">
             Configuración

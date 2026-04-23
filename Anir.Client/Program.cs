@@ -7,6 +7,7 @@ using Anir.Client.Services.Company;
 
 using Anir.Client.Services.Organism;
 using Anir.Client.Services.Person;
+using Anir.Client.Services.SystemSettings;
 using Anir.Client.Services.Ueb;
 using Anir.Web.Client.Services;
 using Blazored.LocalStorage;
@@ -68,6 +69,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<FileService>();
 builder.Services.AddScoped<ProvinceService>();
 builder.Services.AddScoped<MunicipalityService>();
+builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
 builder.Services.AddScoped<IPersonService, PersonService>();
 builder.Services.AddScoped<IOrganismService, OrganismService>();
 builder.Services.AddScoped<ICompanyService, CompanyService>();

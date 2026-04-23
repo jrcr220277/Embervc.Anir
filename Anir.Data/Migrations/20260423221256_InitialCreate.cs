@@ -193,11 +193,19 @@ namespace Anir.Data.Migrations
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    ShortName = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
                     ImageFileId = table.Column<int>(type: "integer", nullable: true),
+                    TaxId = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    LegalRepresentative = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true),
+                    LegalRepresentativeTitle = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
                     Address = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true),
-                    Phone = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    Phone = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: true),
                     Email = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true),
-                    Website = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true)
+                    Website = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true),
+                    ReportHeaderText = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    ReportFooterText = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    PrimaryColor = table.Column<string>(type: "character varying(7)", maxLength: 7, nullable: true),
+                    LastUpdated = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -207,7 +215,7 @@ namespace Anir.Data.Migrations
                         column: x => x.ImageFileId,
                         principalTable: "StoredFiles",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.SetNull);
                 });
 
             migrationBuilder.CreateTable(

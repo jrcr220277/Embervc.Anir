@@ -3,9 +3,12 @@
 @inherits LayoutComponentBase
 @using Anir.Shared.Enums
 @using Microsoft.AspNetCore.Components.Authorization
+@using Anir.Client.Services.SystemSettings
+
 @inject AuthenticationStateProvider AuthProvider
 @inject Anir.Client.Services.Auth.IAuthService AuthService
 @inject Anir.Client.Services.Auth.UserState UserState
+@inject ISystemSettingService SettingService
 @inject NavigationManager NavManager
 @inject IJSRuntime JS
 @inject ILogger<MainLayout> Logger
@@ -36,16 +39,12 @@
         <MudAppBar Elevation="0" Dense="true">
             @if (_isAuthenticated)
             {
-                <MudIconButton Icon="@(_drawerOpen? Icons.Material.Filled.MenuOpen : Icons.Material.Filled.Menu)"
+                <MudIconButton Icon="@(_drawerOpen ? Icons.Material.Filled.MenuOpen : Icons.Material.Filled.Menu)"
                                Color="Color.Inherit"
                                OnClick="DrawerToggle"
                                Class="ml-0" />
             }
             
-            
-           @*  <MudSpacer />
-            <MudText Typo="Typo.h6" Class="ml-2">Sistema ANIR</MudText>
-            <MudText Typo="Typo.body2">Empresa: EMBERVC</MudText> *@
             <MudSpacer />
 
             @if (_isAuthenticated)
@@ -75,11 +74,6 @@
 
 </MudLayout>
 
-
-
-
-
-
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
     <a href="." class="reload">Reload</a>
@@ -90,49 +84,30 @@
     // ============================================================
     // ESTADO Y DEPENDENCIAS
     // ============================================================
-
-    // Indica si el usuario está autenticado
     private bool _isAuthenticated = false;
-
-    // Estado del drawer lateral
     private bool _drawerOpen = true;
-
-    // Modo de tema actual (por defecto Auto)
     private ThemeMode _themeMode = ThemeMode.Auto;
-
-    // Preferencia del sistema operativo (true = dark)
     private bool prefersDarkScheme = true;
-
-    // Tema MudBlazor con paletas personalizadas
     private MudTheme? _theme = null;
-
+    
+    // Color primario dinámico (por defecto tu azul acero actual)
+    private string _currentPrimaryColor = "#4A6FA5";
+    private Action? _userStateOnChangeHandler;
 
     // ============================================================
     // CICLO DE VIDA
     // ============================================================
     protected override async Task OnInitializedAsync()
     {
-        // Escuchar cambios de autenticación
         AuthProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
 
-        // ============================================================
-        // 1) Cargar tema cuando NO hay usuario autenticado
-        //    Se usa localStorage (tema público)
-        // ============================================================
         try
         {
             var savedTheme = await JS.InvokeAsync<string>("localStorage.getItem", "themeMode");
-
-            if (!string.IsNullOrWhiteSpace(savedTheme) &&
-                Enum.TryParse<ThemeMode>(savedTheme, out var mode))
-            {
+            if (!string.IsNullOrWhiteSpace(savedTheme) && Enum.TryParse<ThemeMode>(savedTheme, out var mode))
                 _themeMode = mode;
-            }
             else
-            {
-                // Si no hay nada guardado → Auto (tema del sistema)
                 _themeMode = ThemeMode.Auto;
-            }
         }
         catch (Exception ex)
         {
@@ -140,54 +115,33 @@
             _themeMode = ThemeMode.Auto;
         }
 
-        // Crear el tema con tus paletas personalizadas (usando paletas explícitas)
-        _theme = new()
-        {
-            PaletteLight = _lightPalette,
-            PaletteDark = _darkPalette,
-            LayoutProperties = new LayoutProperties()
-        };
+        // Construir tema inicial
+        RebuildTheme();
 
-        // ============================================================
-        // 2) Verificar si el usuario YA está autenticado
-        // ============================================================
         var authState = await AuthProvider.GetAuthenticationStateAsync();
         _isAuthenticated = authState.User.Identity?.IsAuthenticated ?? false;
 
         if (_isAuthenticated)
         {
-            // Cargar datos del usuario (incluye ThemeMode)
             await TryPopulateUserState();
-
-            // ============================================================
-            // 3) Aplicar el tema del usuario autenticado
-            // ============================================================
             ApplyTheme(UserState.ThemeMode);
+            await LoadSystemColorsAsync(); // Cargar color de la DB
         }
         else
         {
-            // Si no está autenticado → aplicar tema público
             ApplyTheme(_themeMode);
-
         }
 
-        // ============================================================
-        // 4) Escuchar cambios en UserState (nombre, imagen, tema)
-        // ============================================================
-        // Registrar handler en una variable para poder desuscribir correctamente en Dispose
         _userStateOnChangeHandler = () => ApplyTheme(UserState.ThemeMode);
         UserState.OnChange += _userStateOnChangeHandler;
     }
 
-
     public void Dispose()
     {
-        // Limpieza de eventos
         AuthProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
         if (_userStateOnChangeHandler != null)
             UserState.OnChange -= _userStateOnChangeHandler;
     }
-
 
     // ============================================================
     // EVENTOS DE AUTENTICACIÓN
@@ -201,25 +155,21 @@
 
             if (isAuth && !_isAuthenticated)
             {
-                // Usuario acaba de iniciar sesión
                 _isAuthenticated = true;
-
                 await TryPopulateUserState();
-
-                // Aplicar tema del usuario
                 ApplyTheme(UserState.ThemeMode);
+                await LoadSystemColorsAsync(); // Cargar color al loguearse
             }
             else if (!isAuth && _isAuthenticated)
             {
-                // Usuario cerró sesión
                 _isAuthenticated = false;
-
                 UserState.Clear();
                 _drawerOpen = false;
-
-                // Volver al tema público
                 ApplyTheme(_themeMode);
-
+                
+                // Restaurar color por defecto al cerrar sesión
+                _currentPrimaryColor = "#4A6FA5";
+                RebuildTheme();
             }
 
             await InvokeAsync(StateHasChanged);
@@ -230,30 +180,44 @@
         }
     }
 
-
     private async Task TryPopulateUserState()
+    {
+        try { await AuthService.MeAsync(); }
+        catch (Exception ex) { Logger.LogWarning(ex, "No se pudo poblar UserState tras autenticación"); }
+    }
+
+    /// <summary>
+    /// Carga el color primario desde la base de datos y reconstruye el tema.
+    /// </summary>
+    private async Task LoadSystemColorsAsync()
     {
         try
         {
-            // MeAsync() actualiza UserState internamente
-            await AuthService.MeAsync();
+            var result = await SettingService.GetAsync();
+            if (result.Value is not null && !string.IsNullOrWhiteSpace(result.Value.PrimaryColor))
+            {
+                _currentPrimaryColor = result.Value.PrimaryColor;
+            }
+            else
+            {
+                // Si el admin lo borró o es null → volvemos al original
+                _currentPrimaryColor = "#4A6FA5";
+            }
+        
+            RebuildTheme();
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "No se pudo poblar UserState tras autenticación");
+            Logger.LogWarning(ex, "No se pudo cargar el color primario del sistema.");
         }
     }
-
 
     // ============================================================
     // ACCIONES
     // ============================================================
     public void OpenLogin() => NavManager.NavigateTo("/login");
-
     private void DrawerToggle() => _drawerOpen = !_drawerOpen;
 
-
-    // Botón de cambiar tema cuando NO hay usuario autenticado
     private async Task DarkModeToggle()
     {
         _themeMode = _themeMode switch
@@ -264,128 +228,81 @@
             _ => ThemeMode.Auto
         };
 
-        if (_isAuthenticated)
-        {
-            // Si quieres guardar en servidor, aquí va
-        }
-        else
-        {
-            // Guardar preferencia pública
+        if (!_isAuthenticated)
             await JS.InvokeVoidAsync("localStorage.setItem", "themeMode", _themeMode.ToString());
-        }
 
-        // Aplicar tema inmediatamente
         ApplyTheme(_themeMode);
-
     }
 
-
-    // ============================================================
-    // APLICAR TEMA
-    // ============================================================
     private void ApplyTheme(ThemeMode mode)
     {
         _themeMode = mode;
         StateHasChanged();
     }
 
-
     // ============================================================
     // PROPIEDADES
     // ============================================================
-    private bool IsDarkMode =>
-        _themeMode switch
-        {
-            ThemeMode.Light => false,
-            ThemeMode.Dark => true,
-            ThemeMode.Auto => prefersDarkScheme,
-            _ => false
-        };
+    private bool IsDarkMode => _themeMode switch { ThemeMode.Light => false, ThemeMode.Dark => true, ThemeMode.Auto => prefersDarkScheme, _ => false };
 
-    public string DarkLightModeButtonIcon =>
-        _themeMode switch
-        {
-            ThemeMode.Light => Icons.Material.Filled.LightMode,
-            ThemeMode.Dark => Icons.Material.Filled.DarkMode,
-            ThemeMode.Auto => Icons.Material.Filled.Brightness4,
-            _ => Icons.Material.Filled.LightMode
-        };
-
+    public string DarkLightModeButtonIcon => _themeMode switch { ThemeMode.Light => Icons.Material.Filled.LightMode, ThemeMode.Dark => Icons.Material.Filled.DarkMode, ThemeMode.Auto => Icons.Material.Filled.Brightness4, _ => Icons.Material.Filled.LightMode };
 
     // ============================================================
-    // PALETAS (versión explícita, manteniendo primary dorado)
+    // CONSTRUCTOR DE TEMA DINÁMICO
     // ============================================================
-    // Handler almacenado para poder desuscribirlo correctamente
-    private Action? _userStateOnChangeHandler;
-
-    private readonly PaletteLight _lightPalette = new()
+    private void RebuildTheme()
     {
-        // FONDOS (Perfectos, no toqué nada)
+        _theme = new MudTheme
+        {
+            PaletteLight = BuildLightPalette(_currentPrimaryColor),
+            PaletteDark = BuildDarkPalette(_currentPrimaryColor),
+            LayoutProperties = new LayoutProperties()
+        };
+    }
+
+    private PaletteLight BuildLightPalette(string primary) => new()
+    {
         Background = "#F3F4F6",
         BackgroundGray = "#E7E9EC",
         DrawerBackground = "#F3F4F6",
         DrawerText = "#1F2937",
         DrawerIcon = "#1F2937",
-
-        // SUPERFICIES (Perfectos)
         Surface = "#FFFFFF",
-
-        // APPBAR
         AppbarBackground = "#FFFFFF",
         AppbarText = "#1F2937",
+        
+        // PRIMARIOS DINÁMICOS
+        Primary = primary,
+        PrimaryDarken = DarkenColor(primary, 15),
+        PrimaryLighten = LightenColor(primary, 20),
 
-        // ============================================================
-        // PRIMARY (CAMBIO RADICAL PERO NECESARIO)
-        // Antes: #E95420 (Naranja) -> Ahora: #475569 (Slate 600)
-        // Esto da el look "Sistema Serio" sin perder elegancia.
-        // ============================================================
-        Primary = "#4A6FA5",             // Para rellenos (Botones, Tabs) - No se toca, está perfecto
-        PrimaryDarken = "#345280",       // Para el hover de los botones - No se toca
-        PrimaryLighten = "#5B9BD5",      // 🚨 NUEVO: Azul acero MÁS VIVO y brillante (Para iconos/bordes)
-
-        // SECUNDARIOS (Perfectos)
         Secondary = "#6D6D6D",
         SecondaryDarken = "#4F4F4F",
         SecondaryLighten = "#9E9E9E",
-
-        // TEXTO (Perfectos)
         TextPrimary = "#1A1A1A",
         TextSecondary = "#555555",
         TextDisabled = "#999999",
-
-        // LÍNEAS (Perfectos)
         Divider = "#D1D5DB",
         DividerLight = "rgba(0,0,0,0.06)",
         LinesDefault = "#D1D5DB",
         LinesInputs = "rgba(0,0,0,0.25)",
         TableLines = "#D1D5DB",
-
-        // TABLAS (Perfectos)
         TableStriped = "rgba(0,0,0,0.02)",
         TableHover = "rgba(0,0,0,0.06)",
-
-        // OVERLAYS
         OverlayDark = "rgba(0,0,0,0.40)",
         OverlayLight = "rgba(255,255,255,0.50)",
-
-        // ESTADOS (Los tuyos de Light están bien, pero los pulí un poco)
-        Success = "#16A34A",             // Verde 600 (Un poco más vibrante que el tuyo)
+        Success = "#16A34A",
         SuccessDarken = "#15803D",
         SuccessLighten = "#4ADE80",
-
-        Warning = "#CA8A04",             // Amarillo 600 (Menos "enfantasme" que el anterior)
+        Warning = "#CA8A04",
         WarningDarken = "#A16207",
         WarningLighten = "#FDE047",
-
-        Error = "#DC2626",               // Rojo 600 (El estándar moderno de error)
+        Error = "#DC2626",
         ErrorDarken = "#B91C1C",
         ErrorLighten = "#FCA5A5",
-
-        Info = "#2563EB",                // Azul 600
+        Info = "#2563EB",
         InfoDarken = "#1D4ED8",
         InfoLighten = "#93C5FD",
-
-        // GRAYS (Perfectos)
         GrayDefault = "#9CA3AF",
         GrayLight = "#D1D5DB",
         GrayLighter = "#E5E7EB",
@@ -393,74 +310,49 @@
         GrayDarker = "#4B5563"
     };
 
-    private readonly PaletteDark _darkPalette = new()
+    private PaletteDark BuildDarkPalette(string primary) => new()
     {
-        // FONDOS (Perfectos)
         Background = "#1B2433",
         BackgroundGray = "#2A3244",
         DrawerBackground = "#1E293B",
         DrawerText = "rgba(255,255,255,0.75)",
         DrawerIcon = "rgba(255,255,255,0.75)",
-
-        // SUPERFICIES (Perfecto)
         Surface = "#273447",
-
-        // APPBAR (Perfecto)
         AppbarBackground = "#1B2433",
         AppbarText = "rgba(255,255,255,0.85)",
+        
+        // PRIMARIOS DINÁMICOS (más brillantes para dark mode)
+        Primary = primary,
+        PrimaryDarken = DarkenColor(primary, 10),
+        PrimaryLighten = LightenColor(primary, 30),
 
-        // ============================================================
-        // PRIMARY DARK (Debe ser claro para contrastar, no el mismo de Light)
-        // ============================================================
-        Primary = "#4A6FA5",             // Para rellenos - No se toca
-        PrimaryDarken = "#345280",       // Para hover - No se toca
-        PrimaryLighten = "#7EB8E0",      // Un poco más brillante para que resalte en la oscuridad
-
-        // SECUNDARIOS
         Secondary = "#A0A0A0",
         SecondaryDarken = "#7A7A7A",
         SecondaryLighten = "#C8C8C8",
-
-        // TEXTO
         TextPrimary = "#FFFFFF",
         TextSecondary = "#C0C0C0",
         TextDisabled = "#7A7A7A",
-
-        // LÍNEAS
         Divider = "#4B5563",
         DividerLight = "rgba(255,255,255,0.10)",
         LinesDefault = "#4B5563",
         LinesInputs = "rgba(255,255,255,0.40)",
         TableLines = "#4B5563",
-
-        // TABLAS
         TableStriped = "rgba(255,255,255,0.03)",
         TableHover = "rgba(255,255,255,0.16)",
-
-        // OVERLAYS
         OverlayDark = "rgba(0,0,0,0.55)",
         OverlayLight = "rgba(255,255,255,0.50)",
-
-        // ============================================================
-        // ESTADOS DARK (CORREGIDOS - "Pastelizados" para no quemar la vista)
-        // ============================================================
-        Success = "#4ADE80",             // Verde pastel (Ojo: no #4CAF50 que es muy fuerte)
+        Success = "#4ADE80",
         SuccessDarken = "#22C55E",
         SuccessLighten = "#86EFAC",
-
-        Warning = "#FACC15",             // Amarillo pastel
+        Warning = "#FACC15",
         WarningDarken = "#EAB308",
         WarningLighten = "#FDE047",
-
-        Error = "#FCA5A5",               // Rojo pastel (Ojo: no #EF5350)
+        Error = "#FCA5A5",
         ErrorDarken = "#F87171",
         ErrorLighten = "#FECACA",
-
-        Info = "#93C5FD",                // Azul pastel (Ojo: no #2196F3)
+        Info = "#93C5FD",
         InfoDarken = "#60A5FA",
         InfoLighten = "#BFDBFE",
-
-        // GRAYS
         GrayDefault = "#9CA3AF",
         GrayLight = "#D1D5DB",
         GrayLighter = "#E5E7EB",
@@ -468,9 +360,38 @@
         GrayDarker = "#4B5563"
     };
 
+    // ============================================================
+    // HELPERS DE COLOR (Sin dependencias extras)
+    // ============================================================
+    // ============================================================
+    // HELPERS DE COLOR (Sin dependencias extras)
+    // ============================================================
+    private static string DarkenColor(string hex, int percent)
+    {
+        var rgb = HexToRgb(hex);
+        return $"#{(int)(rgb.R * (100 - percent) / 100):X2}{(int)(rgb.G * (100 - percent) / 100):X2}{(int)(rgb.B * (100 - percent) / 100):X2}";
+    }
 
+    private static string LightenColor(string hex, int percent)
+    {
+        var rgb = HexToRgb(hex);
+        var r = Math.Min(255, rgb.R + (int)((255 - rgb.R) * percent / 100));
+        var g = Math.Min(255, rgb.G + (int)((255 - rgb.G) * percent / 100));
+        var b = Math.Min(255, rgb.B + (int)((255 - rgb.B) * percent / 100));
+        return $"#{r:X2}{g:X2}{b:X2}";
+    }
 
+    private static (int R, int G, int B) HexToRgb(string hex)
+    {
+        hex = hex.Replace("#", "");
+        if (hex.Length == 6)
+        {
+            return (
+                R: Convert.ToInt32(hex.Substring(0, 2), 16),
+                G: Convert.ToInt32(hex.Substring(2, 2), 16),
+                B: Convert.ToInt32(hex.Substring(4, 2), 16)
+            );
+        }
+        return (74, 111, 165); // Fallback a tu color por defecto
+    }
 }
-
-
-

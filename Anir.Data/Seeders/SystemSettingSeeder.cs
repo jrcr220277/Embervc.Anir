@@ -1,4 +1,5 @@
 ﻿using Anir.Data.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace Anir.Data.Seeders
 {
@@ -10,8 +11,12 @@ namespace Anir.Data.Seeders
             {
                 context.SystemSettings.Add(new SystemSetting
                 {
-                    Id = 1,
-                    Name = "Empresa de Bebidas y Refrescos VC",
+                    Name = "ANIR",
+                    ShortName = "ANIR",
+                    PrimaryColor = "#1e88e5",
+                    ReportHeaderText = "Sistema de Gestión ANIR",
+                    ReportFooterText = "Documento generado automáticamente — No requiere firma",
+                    LastUpdated = DateTime.UtcNow,
                     Address = "Avenida de Rojas No.23 esq. 1ra y central, Rpto, Virginia",
                     Phone = "42 208447",
                     Email = "embervc@embervc.alinet.cu",
@@ -23,3 +28,4 @@ namespace Anir.Data.Seeders
         }
     }
 }
+
