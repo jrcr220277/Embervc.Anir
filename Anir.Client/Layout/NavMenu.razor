@@ -1,9 +1,46 @@
 @using Anir.Client.Services.Auth
+@using Anir.Client.Services.SystemSettings
 @inject UserState User
+@inject SystemSettingService SettingService
 
-<MudNavMenu Dense="true" Class="mt-2">
+<MudNavMenu Dense="true">
+        
+    @* ═══ 1. HEADER DEL DRAWER ═══ *@
+    @if (SettingService.Settings is not null)
+    {
+        <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Class="pa-4 pb-2">
+            
+            @if (!string.IsNullOrEmpty(SettingService.Settings.ImageFile?.Url))
+            {
+                @* LOGO REAL: Se muestra rectangular, se adapta al ancho, máximo 40px de alto *@
+                <MudImage Src="@SettingService.Settings.ImageFile.Url"
+                          ObjectFit="ObjectFit.Contain"
+                          Style="max-height: 40px; width: auto;" />
+            }
+            else
+            {
+                @* SI NO HAY LOGO: Se muestra el ícono dentro de un Avatar cuadrado *@
+                <MudAvatar Color="Color.Surface"
+                           Variant="Variant.Outlined"
+                           Style="width: 40px; height: 40px;">
+                    <MudIcon Icon="@Icons.Material.Filled.Business" />
+                </MudAvatar>
+            }
+            
+            @if (DrawerOpen)
+            {
+                <MudText Typo="Typo.subtitle2"
+                         Color="Color.Primary"
+                         Class="font-weight-bold mt-2 text-center"
+                         Style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%;">
+                    @(SettingService.Settings.ShortName ?? SettingService.Settings.Name)
+                </MudText>
+            }
+        </MudStack>
+        <MudDivider Light="true" />
+    }
 
-    <!-- DASHBOARD -->
+    @* ═══ 2. MENÚ ═══ *@
     <MudNavLink Href="/dashboard"
                 Icon="@Icons.Material.Outlined.Dashboard"
                 Match="NavLinkMatch.Prefix">
@@ -36,18 +73,24 @@
     {
         <MudNavLink Href="/users" Icon="@Icons.Material.Outlined.People" Match="NavLinkMatch.Prefix">Gestión de Usuarios</MudNavLink>
     }
-
-    <!-- CONFIGURACIÓN -->
-    @if (User.Roles.Contains("Administrador"))
-    {
-        <MudNavLink Href="/system/settings"
-                    Icon="@Icons.Material.Outlined.Settings"
-                    Match="NavLinkMatch.Prefix">
-            Configuración
-        </MudNavLink>
-    }
-
+  
+  
 </MudNavMenu>
+
+<MudSpacer />
+
+@* ═══ 4. CONFIGURACIÓN ABAJO ═══ *@
+@if (User.Roles.Contains("Administrador"))
+{
+    <MudNavMenu Dense="true">
+    <MudDivider Light="true" />
+    <MudNavLink Href="/system/settings"
+                Icon="@Icons.Material.Outlined.Settings"
+                Match="NavLinkMatch.Prefix">
+        Configuración
+    </MudNavLink>
+    </MudNavMenu>
+}
 
 @code {
     [Parameter] public bool DrawerOpen { get; set; }

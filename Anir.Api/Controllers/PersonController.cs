@@ -2,11 +2,11 @@
 using Anir.Data;
 using Anir.Data.Entities;
 using Anir.Infrastructure.Extensions;
+using Anir.Infrastructure.Reports;
 using Anir.Infrastructure.Reports.Template.Excel;
 using Anir.Shared.Contracts.Common;
 using Anir.Shared.Contracts.Persons;
 using Anir.Shared.Enums;
-using Anir.Shared.Helpers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,20 +20,20 @@ public class PersonController : ControllerBase
 
     private readonly ApplicationDbContext _db;
     private readonly ILogger<PersonController> _logger;
-    private readonly IPdfService _pdfService;
+    private readonly IReportDataProvider _reportDataProvider;
     private readonly PersonReportExcel _excelService;
     private readonly IFileStorageService _fileStorage;
 
     public PersonController(
         ApplicationDbContext db,
         ILogger<PersonController> logger,
-        IPdfService pdfService,
+        IReportDataProvider reportDataProvider,
         PersonReportExcel excelService,
         IFileStorageService fileStorage)
     {
         _db = db;
         _logger = logger;
-        _pdfService = pdfService;
+        _reportDataProvider = reportDataProvider;
         _excelService = excelService;
         _fileStorage = fileStorage;
     }
@@ -316,23 +316,35 @@ public class PersonController : ControllerBase
     // ============================================================
     // EXPORT PDF
     // ============================================================
-    [HttpPost("export-pdf")]
-    public async Task<IActionResult> ExportPdf([FromBody] BulkSelectionRequest request, CancellationToken ct = default)
-    {
-        var query = _db.Persons.Include(p => p.ImageFile).AsNoTracking();
+    //[HttpPost("export-pdf")]
+    //public async Task<IActionResult> ExportPdfList(
+    //[FromBody] BulkSelectionRequest request,
+    //CancellationToken ct = default)
+    //{
+    //    // Obtener configuración (Logo, colores, textos)
+    //    var config = await _reportDataProvider.GetConfigAsync(ct);
 
-        if (request.Ids is { Count: > 0 })
-            query = query.Where(c => request.Ids.Contains(c.Id));
+    //    // Obtener datos del negocio
+    //    var query = _db.Persons
 
-        // CORREGIDO: Traer a memoria primero, luego mapear
-        var items = await query.ToListAsync(ct);
-        var dtos = items.Select(c => MapEntityToDto(c)).ToList();
+    //        .AsNoTracking();
 
-        var doc = new PersonReportPdf(dtos);
-        var pdfBytes = await _pdfService.GenerateAsync(doc, ct);
+    //    if (!request.SelectAll && request.Ids?.Any() == true)
+    //        query = query.Where(c => request.Ids.Contains(c.Id));
 
-        return File(pdfBytes, "application/pdf");
-    }
+    //    var data = await query.ToListAsync(ct);
+    //    var dtos = data.Select(MapEntityToDto).ToList();
+
+    //    // Generar PDF directo (Sin IPdfService)
+    //    var document = new PersonReportPdf(dtos, config);
+    //    var bytes = document.GeneratePdf();
+
+    //    // Nombre de archivo profesional
+    //    var fileName = $"{config.ShortName ?? "ANIR"}_Empresas_{DateTime.Now:yyyyMMdd}.pdf";
+
+    //    return File(bytes, "application/pdf", fileName);
+    //}
+
 
     // ============================================================
     // EXPORT EXCEL

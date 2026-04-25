@@ -33,6 +33,13 @@ namespace Anir.Api.Middlewares
 
                 context.Response.ContentType = "application/json";
 
+                // Si ya se empezó a escribir el body (ej: error durante FileStream), 
+                // no intentamos escribir JSON porque fallaría
+                if (context.Response.HasStarted)
+                {
+                    _logger.LogError(ex, "Error después de iniciar la respuesta. No se puede escribir JSON de error.");
+                    throw; // Deja que el host maneje la desconexión limpiamente
+                }
                 // Si es excepción de BD, mantenemos tu clasificación actual
                 var classification = DatabaseErrorHelper.Classify(ex);
                 if (ex is DbUpdateConcurrencyException)

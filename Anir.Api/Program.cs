@@ -4,6 +4,7 @@ using Anir.Data;
 using Anir.Data.Identity;
 using Anir.Data.Seeders;
 using Anir.Infrastructure.Jwt;
+using Anir.Infrastructure.Reports;
 using Anir.Infrastructure.Reports.Template.Excel;
 using Anir.Infrastructure.Settings;
 using Anir.Infrastructure.Storage;
@@ -115,7 +116,7 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 // REPORTS
 // ============================================================
 QuestPDF.Settings.License = LicenseType.Community;
-builder.Services.AddScoped<IPdfService, PdfService>();
+builder.Services.AddScoped<IReportDataProvider, ReportDataProvider>();
 builder.Services.AddScoped<OrganismReportExcel>();
 builder.Services.AddScoped<CompanyReportExcel>();
 builder.Services.AddScoped<UebReportExcel>();

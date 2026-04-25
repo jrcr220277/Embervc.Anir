@@ -1,7 +1,8 @@
-﻿using Anir.Data;
+﻿using Anir.Application.Common.Interfaces;
+using Anir.Data;
 using Anir.Data.Entities;
-using Anir.Application.Common.Interfaces;
 using Anir.Infrastructure.Extensions;
+using Anir.Infrastructure.Reports;
 using Anir.Infrastructure.Reports.Template.Excel;
 using Anir.Shared.Contracts.AnirWorks;
 using Anir.Shared.Contracts.AnirWorks.Persons;
@@ -20,20 +21,20 @@ public class AnirWorkController : ControllerBase
 
     private readonly ApplicationDbContext _db;
     private readonly ILogger<AnirWorkController> _logger;
-    private readonly IPdfService _pdfService;
+    private readonly IReportDataProvider _reportDataProvider;
     private readonly AnirWorkReportExce _excelService;
     private readonly IFileStorageService _fileStorage;
 
     public AnirWorkController(
         ApplicationDbContext db,
         ILogger<AnirWorkController> logger,
-        IPdfService pdfService,
+        IReportDataProvider reportDataProvider,
         AnirWorkReportExce excelService,
         IFileStorageService fileStorage)
     {
         _db = db;
         _logger = logger;
-        _pdfService = pdfService;
+        _reportDataProvider = reportDataProvider; ;
         _excelService = excelService;
         _fileStorage = fileStorage;
     }
@@ -324,7 +325,7 @@ public class AnirWorkController : ControllerBase
                 _logger.LogWarning(ex, "No se pudo eliminar la imagen antigua {Id}", oldImageId);
             }
         }
-       
+
         _db.AnirWorkPersons.RemoveRange(entity.AnirWorkPersons);
         foreach (var p in dto.Persons)
         {
@@ -450,31 +451,39 @@ public class AnirWorkController : ControllerBase
         return Ok(ProcessResponse<int>.Success(affected, $"Se eliminaron {items.Count} registros."));
     }
 
-    // ============================================================
-    // EXPORTAR LISTADO A PDF (QuestPDF)
-    // ============================================================
-    [HttpPost("export-pdf")]
-    public async Task<IActionResult> ExportPdfList(
-        [FromBody] BulkSelectionRequest request,
-        CancellationToken ct = default)
-    {
-        var query = _db.AnirWorks
-            .Include(w => w.Ueb).ThenInclude(u => u.Company)
-            .AsNoTracking();
+    //// ============================================================
+    //// EXPORTAR LISTADO A PDF (QuestPDF)
+    //// ============================================================
+    //[HttpPost("export-pdf")]
+    //public async Task<IActionResult> ExportPdfList(
+    //[FromBody] BulkSelectionRequest request,
+    //CancellationToken ct = default)
+    //{
+    //    // Obtener configuración (Logo, colores, textos)
+    //    var config = await _reportDataProvider.GetConfigAsync(ct);
 
-        if (!request.SelectAll && request.Ids?.Any() == true)
-            query = query.Where(w => request.Ids.Contains(w.Id));
+    //    // Obtener datos del negocio
+    //    var query = _db.AnirWorks
+    //        .Include(c => c.Municipality)
 
-        var data = await query.ToListAsync(ct);
+    //        .AsNoTracking();
 
-        // Mapeamos a DTOs porque tu plantilla AnirWorkListPdf lo espera así
-        var dtos = data.Select(MapEntityToDto).ToList();
+    //    if (!request.SelectAll && request.Ids?.Any() == true)
+    //        query = query.Where(c => request.Ids.Contains(c.Id));
 
-        var document = new AnirWorkListPdf(dtos);
-        var bytes = await _pdfService.GenerateAsync(document, ct);
+    //    var data = await query.ToListAsync(ct);
+    //    var dtos = data.Select(MapEntityToDto).ToList();
 
-        return File(bytes, "application/pdf", "Listado_AnirWorks.pdf");
-    }
+    //    // Generar PDF directo (Sin IPdfService)
+    //    var document = new AnirWorkReportPdf(dtos, config);
+    //    var bytes = document.GeneratePdf();
+
+    //    // Nombre de archivo profesional
+    //    var fileName = $"{config.ShortName ?? "ANIR"}_Empresas_{DateTime.Now:yyyyMMdd}.pdf";
+
+    //    return File(bytes, "application/pdf", fileName);
+    //}
+
 
     // ============================================================
     // EXPORTAR LISTADO A EXCEL (ClosedXML)

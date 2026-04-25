@@ -1,5 +1,4 @@
-﻿// Anir.Client\Services\SystemSettings\SystemSettingService.cs
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Anir.Shared.Contracts.Common;
@@ -7,14 +6,20 @@ using Anir.Shared.Contracts.SystemSettings;
 
 namespace Anir.Client.Services.SystemSettings;
 
-public class SystemSettingService : ISystemSettingService
+public class SystemSettingService
 {
-    private readonly HttpClient _httpClient;
+    private readonly IServiceProvider _serviceProvider;
     private readonly JsonSerializerOptions _jsonOptions;
 
-    public SystemSettingService(HttpClient httpClient)
+    private SystemSettingDto? _current;
+    public SystemSettingDto? Settings => _current;
+    public event Action? OnChange;
+    private void Notify() => OnChange?.Invoke();
+
+    // Inyectamos el proveedor de servicios
+    public SystemSettingService(IServiceProvider serviceProvider)
     {
-        _httpClient = httpClient;
+        _serviceProvider = serviceProvider;
 
         _jsonOptions = new JsonSerializerOptions
         {
@@ -31,49 +36,53 @@ public class SystemSettingService : ISystemSettingService
 
     private async Task<T?> ReadJsonAsync<T>(HttpResponseMessage response, CancellationToken ct)
     {
-        try
-        {
-            return await response.Content.ReadFromJsonAsync<T>(_jsonOptions, ct);
-        }
-        catch
-        {
-            var raw = await response.Content.ReadAsStringAsync(ct);
-            return JsonSerializer.Deserialize<T>(raw, _jsonOptions);
-        }
+        try { return await response.Content.ReadFromJsonAsync<T>(_jsonOptions, ct); }
+        catch { var raw = await response.Content.ReadAsStringAsync(ct); return JsonSerializer.Deserialize<T>(raw, _jsonOptions); }
     }
 
-    // ============================================================
-    // GET
-    // ============================================================
-    public async Task<ProcessResponse<SystemSettingDto>> GetAsync(CancellationToken ct = default)
+    public async Task<SystemSettingDto?> GetAsync(CancellationToken ct = default)
     {
-        using var response = await _httpClient.GetAsync("/api/systemsetting", ct);
+        if (_current is not null) return _current;
 
-        if (!response.IsSuccessStatusCode)
-        {
-            var body = await ReadJsonAsync<ProcessResponse<SystemSettingDto>>(response, ct);
-            return body ?? ProcessResponse<SystemSettingDto>.Fail($"Error HTTP {(int)response.StatusCode}");
-        }
+        // Creamos un scope para obtener el HttpClient con la BaseAddress del backend correcta
+        using var scope = _serviceProvider.CreateScope();
+        var http = scope.ServiceProvider.GetRequiredService<HttpClient>();
+
+        using var response = await http.GetAsync("/api/systemsetting", ct);
+
+        if (!response.IsSuccessStatusCode) return null;
 
         var result = await ReadJsonAsync<ProcessResponse<SystemSettingDto>>(response, ct);
-        return result ?? ProcessResponse<SystemSettingDto>.Fail("Respuesta inválida del servidor.");
+
+        if (result?.Value is not null)
+            _current = result.Value;
+
+        return _current;
     }
 
-    // ============================================================
-    // UPDATE
-    // ============================================================
-    public async Task<ProcessResponse<SystemSettingDto>> UpdateAsync(SystemSettingDto dto, CancellationToken ct = default)
+    public async Task<ProcessResponse<SystemSettingDto>?> UpdateAsync(SystemSettingDto dto, CancellationToken ct = default)
     {
+        // Creamos un scope para obtener el HttpClient con la BaseAddress del backend correcta
+        using var scope = _serviceProvider.CreateScope();
+        var http = scope.ServiceProvider.GetRequiredService<HttpClient>();
+
         using var content = ToJsonContent(dto);
-        using var response = await _httpClient.PutAsync("/api/systemsetting", content, ct);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            var body = await ReadJsonAsync<ProcessResponse<SystemSettingDto>>(response, ct);
-            return body ?? ProcessResponse<SystemSettingDto>.Fail($"Error HTTP {(int)response.StatusCode}");
-        }
+        using var response = await http.PutAsync("/api/systemsetting", content, ct);
 
         var result = await ReadJsonAsync<ProcessResponse<SystemSettingDto>>(response, ct);
-        return result ?? ProcessResponse<SystemSettingDto>.Fail("Respuesta inválida del servidor.");
+
+        if (result?.Value is not null)
+        {
+            _current = result.Value;
+            Notify();
+        }
+
+        return result;
+    }
+
+    public void Clear()
+    {
+        _current = null;
+        Notify();
     }
 }

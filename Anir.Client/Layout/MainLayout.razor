@@ -1,14 +1,15 @@
 @using System
 @using System.Security.Claims
-@inherits LayoutComponentBase
 @using Anir.Shared.Enums
-@using Microsoft.AspNetCore.Components.Authorization
 @using Anir.Client.Services.SystemSettings
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inherits LayoutComponentBase
 
 @inject AuthenticationStateProvider AuthProvider
 @inject Anir.Client.Services.Auth.IAuthService AuthService
 @inject Anir.Client.Services.Auth.UserState UserState
-@inject ISystemSettingService SettingService
+@inject SystemSettingService SettingService
 @inject NavigationManager NavManager
 @inject IJSRuntime JS
 @inject ILogger<MainLayout> Logger
@@ -31,7 +32,10 @@
                    Variant="DrawerVariant.Mini"
                    Elevation="2"
                    Width="240px">
+           
+           
             <NavMenu DrawerOpen="_drawerOpen" />
+
         </MudDrawer>
     }
 
@@ -89,10 +93,10 @@
     private ThemeMode _themeMode = ThemeMode.Auto;
     private bool prefersDarkScheme = true;
     private MudTheme? _theme = null;
-    
-    // Color primario dinámico (por defecto tu azul acero actual)
     private string _currentPrimaryColor = "#4A6FA5";
+    
     private Action? _userStateOnChangeHandler;
+    private Action? _settingOnChangeHandler;
 
     // ============================================================
     // CICLO DE VIDA
@@ -100,6 +104,12 @@
     protected override async Task OnInitializedAsync()
     {
         AuthProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        
+        _userStateOnChangeHandler = () => ApplyTheme(UserState.ThemeMode);
+        UserState.OnChange += _userStateOnChangeHandler;
+
+        _settingOnChangeHandler = RefreshThemeFromSettings;
+        SettingService.OnChange += _settingOnChangeHandler;
 
         try
         {
@@ -115,7 +125,6 @@
             _themeMode = ThemeMode.Auto;
         }
 
-        // Construir tema inicial
         RebuildTheme();
 
         var authState = await AuthProvider.GetAuthenticationStateAsync();
@@ -125,15 +134,12 @@
         {
             await TryPopulateUserState();
             ApplyTheme(UserState.ThemeMode);
-            await LoadSystemColorsAsync(); // Cargar color de la DB
+            await LoadSystemSettingsAsync();
         }
         else
         {
             ApplyTheme(_themeMode);
         }
-
-        _userStateOnChangeHandler = () => ApplyTheme(UserState.ThemeMode);
-        UserState.OnChange += _userStateOnChangeHandler;
     }
 
     public void Dispose()
@@ -141,6 +147,8 @@
         AuthProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
         if (_userStateOnChangeHandler != null)
             UserState.OnChange -= _userStateOnChangeHandler;
+        if (_settingOnChangeHandler != null)
+            SettingService.OnChange -= _settingOnChangeHandler;
     }
 
     // ============================================================
@@ -158,18 +166,16 @@
                 _isAuthenticated = true;
                 await TryPopulateUserState();
                 ApplyTheme(UserState.ThemeMode);
-                await LoadSystemColorsAsync(); // Cargar color al loguearse
+                await LoadSystemSettingsAsync();
             }
             else if (!isAuth && _isAuthenticated)
             {
                 _isAuthenticated = false;
                 UserState.Clear();
+                SettingService.Clear();
                 _drawerOpen = false;
                 ApplyTheme(_themeMode);
-                
-                // Restaurar color por defecto al cerrar sesión
-                _currentPrimaryColor = "#4A6FA5";
-                RebuildTheme();
+                RefreshThemeFromSettings();
             }
 
             await InvokeAsync(StateHasChanged);
@@ -187,29 +193,34 @@
     }
 
     /// <summary>
-    /// Carga el color primario desde la base de datos y reconstruye el tema.
+    /// Carga la config de la DB SIN disparar el evento (para la primera carga).
     /// </summary>
-    private async Task LoadSystemColorsAsync()
+    private async Task LoadSystemSettingsAsync()
     {
         try
         {
-            var result = await SettingService.GetAsync();
-            if (result.Value is not null && !string.IsNullOrWhiteSpace(result.Value.PrimaryColor))
-            {
-                _currentPrimaryColor = result.Value.PrimaryColor;
-            }
-            else
-            {
-                // Si el admin lo borró o es null → volvemos al original
-                _currentPrimaryColor = "#4A6FA5";
-            }
-        
-            RebuildTheme();
+            await SettingService.GetAsync();
+            RefreshThemeFromSettings();
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "No se pudo cargar el color primario del sistema.");
+            Logger.LogWarning(ex, "No se pudo cargar la configuración del sistema.");
         }
+    }
+
+    /// <summary>
+    /// SE DISPARA SOLO cuando el admin guarda cambios en /system/settings
+    /// </summary>
+    private void RefreshThemeFromSettings()
+    {
+        var settings = SettingService.Settings;
+        
+        _currentPrimaryColor = (settings is not null && !string.IsNullOrWhiteSpace(settings.PrimaryColor))
+            ? settings.PrimaryColor
+            : "#4A6FA5";
+            
+        RebuildTheme();
+        StateHasChanged(); // Refresca el Drawer (logo/nombre) y colores
     }
 
     // ============================================================
@@ -270,12 +281,9 @@
         Surface = "#FFFFFF",
         AppbarBackground = "#FFFFFF",
         AppbarText = "#1F2937",
-        
-        // PRIMARIOS DINÁMICOS
         Primary = primary,
         PrimaryDarken = DarkenColor(primary, 15),
         PrimaryLighten = LightenColor(primary, 20),
-
         Secondary = "#6D6D6D",
         SecondaryDarken = "#4F4F4F",
         SecondaryLighten = "#9E9E9E",
@@ -320,12 +328,9 @@
         Surface = "#273447",
         AppbarBackground = "#1B2433",
         AppbarText = "rgba(255,255,255,0.85)",
-        
-        // PRIMARIOS DINÁMICOS (más brillantes para dark mode)
         Primary = primary,
         PrimaryDarken = DarkenColor(primary, 10),
         PrimaryLighten = LightenColor(primary, 30),
-
         Secondary = "#A0A0A0",
         SecondaryDarken = "#7A7A7A",
         SecondaryLighten = "#C8C8C8",
@@ -361,10 +366,7 @@
     };
 
     // ============================================================
-    // HELPERS DE COLOR (Sin dependencias extras)
-    // ============================================================
-    // ============================================================
-    // HELPERS DE COLOR (Sin dependencias extras)
+    // HELPERS DE COLOR
     // ============================================================
     private static string DarkenColor(string hex, int percent)
     {
@@ -392,6 +394,6 @@
                 B: Convert.ToInt32(hex.Substring(4, 2), 16)
             );
         }
-        return (74, 111, 165); // Fallback a tu color por defecto
+        return (74, 111, 165); // Fallback por defecto
     }
 }

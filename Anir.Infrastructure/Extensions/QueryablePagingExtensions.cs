@@ -25,7 +25,7 @@ public static class QueryablePagingExtensions
     {
         // Si no se especifica Sort → orden por Id
         if (string.IsNullOrWhiteSpace(qp.Sort))
-            return query.OrderBy(e => EF.Property<object>(e, "Id"));
+            return query.OrderBy(e => EF.Property<object>(e!, "Id"));
 
         // Dividimos Sort por puntos para detectar navegación
         var parts = qp.Sort.Split('.');

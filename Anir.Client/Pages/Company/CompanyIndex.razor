@@ -11,201 +11,140 @@
         <UiLoading Indeterminate="true" Message="Cargando datos..." ContainerHeight="100vh" Size="Size.Large" />
         return;
     }
-
-    <!-- ============================================================
-     ENCABEZADO PRINCIPAL (Profesional, limpio, con jerarquía)
-     ============================================================ -->
-    <MudGrid Class="mb-2">
-        <MudItem xs="12">
-            <div class="d-flex align-center">
-                <MudIcon Icon="@Icons.Material.TwoTone.Domain" Style="font-size: 3rem;" />
-             
-                <div class="ml-3">
-                    <MudText Typo="Typo.h5" Class="fw-bold">Clasificador de Empresas</MudText>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">
-                        Gestión de empresas: búsqueda, filtros y acciones masivas
-                    </MudText>
-                </div>
-            </div>
-        </MudItem>
-    </MudGrid>
-
-    <MudDivider Class="mb-3" />
-
-    <!-- ============================================================
-     ACTION BAR (Profesional, alineada, con peso visual)
-     ============================================================ -->
-    <MudPaper Elevation="0" Outlined="true" Class="pa-3 mb-3">
-
-        <MudGrid AlignItems="Center">
-
-            <!-- IZQUIERDA (3 columnas) -->
-            <MudItem xs="12" sm="3">
-                <MudButton Color="Color.Primary"
-                           Variant="Variant.Filled"
-                           StartIcon="@Icons.Material.Rounded.AddCircleOutline"
-                           OnClick="OpenAddModal">
+    <MudPaper Elevation="0" Outlined="true" Class="pa-3 mb-4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudAvatar Rounded="true" Color="Color.Primary">
+                    <MudIcon Icon="@Icons.Material.TwoTone.Business" Size="Size.Medium"/>
+                </MudAvatar>
+                
+                <MudText Typo="Typo.h6" Class="font-weight-medium">Directorio de Empresas</MudText>
+            </MudStack>
+                
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                 
+                <MudButton StartIcon="@Icons.Material.TwoTone.Add" Color="Color.Primary" Variant="Variant.Filled" OnClick="OpenAddModal">
                     Agregar
                 </MudButton>
-            </MudItem>
-
-            <!-- CENTRO (6 columnas, centrado REAL) -->
-            <MudItem xs="12" sm="6" Class="d-flex justify-center align-end">
-                <MudTextField T="string"
-                              Value="@SearchText"
-                              ValueChanged="OnSearchInput"
-                              Immediate="true"
-                              Clearable="true"
-                              Placeholder="Buscar..."
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Rounded.Search" />
-            </MudItem>
-
-            <!-- DERECHA (3 columnas, alineado a la derecha) -->
-            <MudItem xs="12" sm="3" Class="d-flex justify-end align-end">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                    <MudIcon Icon="@Icons.Material.Rounded.FilterAlt" Size="Size.Medium" />
-                    <MudSelect T="string"
-                               Value="@StatusFilterValue"
-                               ValueChanged="OnStatusFilterChanged"
-                               Style="width: 100px;">
-                        
-                        <MudSelectItem Value=@("Todos")>Todos</MudSelectItem>
-                        <MudSelectItem Value=@("Activo")>Activo</MudSelectItem>
-                        <MudSelectItem Value=@("Inactivo")>Inactivo</MudSelectItem>
-                    </MudSelect>
-                </MudStack>
-            </MudItem>
-
-        </MudGrid>
-
-    </MudPaper>
-
-
-    <!-- ============================================================
-         ACCIONES MASIVAS (Banner profesional)
-         ============================================================ -->
-    <MudCollapse Expanded="@(SelectedItems.Any() || IsGlobalSelected)">
-        <MudPaper Outlined="true" Elevation="0"
-                  Class="px-4 mb-3 d-flex align-center justify-space-between flex-wrap gap-2">
-
-            <!-- IZQUIERDA: Icono + texto corto -->
-            <div class="d-flex align-center">
-
-                <MudTooltip Text="@(IsGlobalSelected ? "Cancelar selección global" : "Seleccionar global")" Arrow="true">
-                    <MudIconButton Icon="@(IsGlobalSelected
-                                                                                                              ? Icons.Material.Filled.Deselect
-                                                                                                      : Icons.Material.Filled.SelectAll)"
-                                   Edge="Edge.Start"
-                                   Color="Color.Primary"
-                                   Size="Size.Medium"
-                                   OnClick="@(() => ToggleGlobalSelection())" />
-                </MudTooltip>
-
-                <MudText Typo="Typo.body2" Class="ml-2 font-weight-medium">
-                    @BulkSelectionText
-                </MudText>
-
-            </div>
-
-
-            <!-- DERECHA: Acciones -->
-            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-
-                <MudTooltip Text="Exportar PDF" Arrow="true">
-                    <MudIconButton OnClick="@(() => ExportPdf())"
-                                   Icon="@Icons.Custom.FileFormats.FilePdf"
-                                   Color="Color.Default"
-                                   Size="Size.Medium"
-                                   aria-label="PDF"
-                                   Variant="Variant.Text" />
-                </MudTooltip>
-
-                <MudTooltip Text="Exportar Excel" Arrow="true">
-                    <MudIconButton OnClick="@(() => ExportExcel())"
-                                   Icon="@Icons.Custom.FileFormats.FileExcel"
-                                   Color="Color.Default"
-                                   Size="Size.Medium"
-                                   aria-label="Excel" />
-                </MudTooltip>
-
-                <MudTooltip Text="Eliminar seleccionados" Arrow="true">
-                    <MudIconButton OnClick="@(() => DeleteSelected())"
-                                   Icon="@Icons.Material.Rounded.DeleteForever"
-                                   Color="Color.Error"
-                                   Size="Size.Medium"
-                                   Edge="Edge.End"
-                                   aria-label="Eliminar" />
-                </MudTooltip>
-
             </MudStack>
+        </MudStack>
+    </MudPaper>
+    
 
+    <!-- ACCIONES MASIVAS -->
+    <MudCollapse Expanded="@(SelectedItems.Any() || IsGlobalSelected)">
+        <MudPaper Outlined="true" Elevation="0" Class="px-4 py-3 mb-3">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudTooltip Text="@(IsGlobalSelected ? "Cancelar selección global" : "Seleccionar global")" Arrow="true">
+                        <MudIconButton Icon="@(IsGlobalSelected ? Icons.Material.Filled.Deselect : Icons.Material.Filled.SelectAll)"
+                                       Size="Size.Medium" Edge="Edge.Start"
+                                       OnClick="@(() => ToggleGlobalSelection())" />
+                    </MudTooltip>
+                    <MudText Typo="Typo.body2" Class="font-weight-medium">@BulkSelectionText</MudText>
+                </MudStack>
+
+                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                    <MudIconButton OnClick="ViewPdf" Icon="@Icons.Custom.FileFormats.FilePdf"/>
+                    
+                        <MudMenu Icon="@Icons.Material.Outlined.SaveAlt" Dense="true" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                            <MudMenuItem label="Descargar PDF" Icon="@Icons.Custom.FileFormats.FilePdf" OnClick="DownloadPdf" />
+                            <MudDivider />
+                            <MudMenuItem label="Descargar Excel" Icon="@Icons.Custom.FileFormats.FileExcel" OnClick="ExportExcel" />
+                        </MudMenu>
+                    
+                    <MudIconButton OnClick="@(() => DeleteSelected())" Icon="@Icons.Material.Outlined.DeleteForever" Color="Color.Error" Edge="Edge.End"/>
+                    
+                </MudStack>
+            </MudStack>
         </MudPaper>
     </MudCollapse>
 
+    <!-- TABLA PRINCIPAL -->
+    <MudTable T="CompanyDto" ServerData="ServerReload" @ref="TableRef" Hover="true" Dense="true" MultiSelection="true" @bind-SelectedItems="SelectedItems" SelectOnRowClick="true" Loading="@IsLoadingTable" HorizontalScrollbar="true" Elevation="0" Outlined="true">
+        
+        <ToolBarContent>
+     
+            <!-- IZQUIERDA: Contador tipo Chip (Amigable y estructurado visualmente) -->
+            @if (_totalFilteredCount > 0)
+            {
+                <MudChip T="string"
+                         Variant="Variant.Text"
+                         Color="Color.Info"
+                         Icon="@Icons.Material.Rounded.ListAlt">
+                    @_totalFilteredCount registro@(_totalFilteredCount == 1 ? "" : "s")
+                </MudChip>
+            }
 
+            <MudSpacer />
+            <MudTextField T="string"
+                          Variant="Variant.Text"
+                          Margin="Margin.Dense"
+                          Class="flex-grow-1"
+                          Value="@SearchText"
+                          ValueChanged="OnSearchInput"
+                          Immediate="true"
+                          Clearable="true"
+                          Placeholder="Buscar por valores de la tabla..."
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Rounded.Search" />
+            
+                          <!-- DERECHA: Agrupados en un Stack para tener espacio perfecto entre ellos -->
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                              
+                <!-- Ícono de filtro (Reemplaza el texto "Estado:") -->
+                <MudIcon Icon="@Icons.Material.Rounded.FilterList" Size="Size.Medium" />
 
-    <!-- ============================================================
-         TABLA PRINCIPAL (Respira, se ve limpia)
-     ============================================================ -->
-    <MudTable T="CompanyDto"
-              ServerData="ServerReload"
-              @ref="TableRef"
-              Hover="true"
-              Striped="true"
-              Dense="true"
-              MultiSelection="true"
-              @bind-SelectedItems="SelectedItems"
-              SelectOnRowClick="true"
-              Loading="@IsLoadingTable"
-              HorizontalScrollbar="true" Elevation="0" Outlined="true">
+                <!-- Select compacto -->
+                <MudSelect T="string"
+                           Value="@StatusFilterValue"
+                           ValueChanged="OnStatusFilterChanged"
+                           Variant="Variant.Text"
+                           Margin="Margin.Dense"
+                           Dense="true"
+                           Style="min-width: 120px;">
+                    <MudSelectItem Value="@("Todos")">Estado</MudSelectItem>
+                    <MudSelectItem Value="@("Activo")">Activo</MudSelectItem>
+                    <MudSelectItem Value="@("Inactivo")">Inactivo</MudSelectItem>
+                </MudSelect>
+               
+            </MudStack>
+        </ToolBarContent>
 
         <HeaderContent>
             <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="Organism.ShortName">Organismo</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="Code">Código</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="ShortName">Abrev.</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="Name">Nombre</MudTableSortLabel></MudTh>
-            @* <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="Municipality.Province.Name">Provincia</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="Municipality.Name">Municipio</MudTableSortLabel></MudTh> *@
             <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="Active">Estado</MudTableSortLabel></MudTh>
             <MudTh Style="width: 120px; text-align:end">Acciones</MudTh>
         </HeaderContent>
-
+        
         <RowTemplate Context="company">
             <MudTd>@company.OrganismName</MudTd>
             <MudTd>@company.Code</MudTd>
             <MudTd>@company.ShortName</MudTd>
             <MudTd>@company.Name</MudTd>
-           @*  <MudTd>@company.ProvinceName</MudTd>
-            <MudTd>@company.MunicipalityName</MudTd> *@
             <MudTd>
-                <MudChip T="string" Color="@(company.Active? Color.Success: Color.Error)" Variant="Variant.Text" Size="Size.Small">
+                <MudChip T="string" Color="@(company.Active ? Color.Success : Color.Error)" Variant="Variant.Text" Size="Size.Small">
                     @(company.Active ? "Activa" : "Inactiva")
                 </MudChip>
             </MudTd>
             <MudTd Style="width: 120px; text-align:end">
                 <MudIconButton Icon="@Icons.Material.Rounded.Visibility" OnClick="@(() => ViewCompany(company))" Size="Size.Small" />
                 <MudIconButton Icon="@Icons.Material.Rounded.Edit" OnClick="@(() => EditCompany(company))" Size="Size.Small" />
-                <MudIconButton Icon="@Icons.Material.Rounded.Delete" Color="Color.Error" OnClick="@(() => DeleteCompany(company))" Size="Size.Small" />
+                <MudIconButton Icon="@Icons.Material.Rounded.Delete" Color="Color.Error" Variant="Variant.Text" OnClick="@(() => DeleteCompany(company))" Size="Size.Small" />
             </MudTd>
         </RowTemplate>
-
+        
         <NoRecordsContent>
-            <MudText Typo="Typo.body2" Class="pa-4 text-center">
-                No se encontraron datos para mostrar.
-            </MudText>
+            <MudText Typo="Typo.body2" Class="pa-4 text-center">No se encontraron datos para mostrar.</MudText>
         </NoRecordsContent>
-
+        
         <PagerContent>
-            <MudTablePager PageSizeOptions="new int[] { 5, 10, 15, 20, 50, 100, int.MaxValue }"
-                           RowsPerPageString="Registros por página:"
-                           InfoFormat="{first_item}-{last_item} de {all_items}"
-                           AllItemsText="Todos"
-                           HorizontalAlignment="HorizontalAlignment.Right" />
-
-
+            <MudTablePager PageSizeOptions="new int[] { 5, 10, 15, 20, 50, 100, int.MaxValue }" RowsPerPageString="Registros por página:" InfoFormat="{first_item}-{last_item} de {all_items}" AllItemsText="Todos" HorizontalAlignment="HorizontalAlignment.Right" />
         </PagerContent>
-
     </MudTable>
 
 </MudContainer>
@@ -550,23 +489,55 @@
     }
 
 
-    private async Task ExportPdf()
+    private async Task ViewPdf()
     {
-        var request = new BulkSelectionRequest
+        try
         {
-            SelectAll = IsGlobalSelected,
-            Ids = IsGlobalSelected ? new List<int>() : SelectedItems.Select(x => x.Id).ToList()
-        };
+            var request = new BulkSelectionRequest
+            {
+                SelectAll = IsGlobalSelected,
+                Ids = IsGlobalSelected ? new List<int>() : SelectedItems.Select(x => x.Id).ToList()
+            };
 
-        var response = await CompanyService.ExportPdfAsync(request);
-        if (response.IsSuccessStatusCode)
-        {
+            var response = await CompanyService.ExportPdfAsync(request);
+            response.EnsureSuccessStatusCode();
+
             var bytes = await response.Content.ReadAsByteArrayAsync();
-            await JS.InvokeVoidAsync("openPdfBlob", bytes);
+            var fileName = response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? "Listado_Empresas.pdf";
+
+            // Abre en nueva pestaña (El navegador le pondrá un GUID si el usuario lo guarda desde ahí)
+            await JS.InvokeVoidAsync("openPdfBlob", bytes, fileName);
         }
-        else
+        catch (Exception)
         {
-            await AlertService.ShowError("Error", "No se pudo generar el PDF.");
+            await AlertService.ShowError("Error", "Ocurrió un error al generar el PDF.");
+        }
+    }
+
+    private async Task DownloadPdf()
+    {
+        try
+        {
+            var request = new BulkSelectionRequest
+            {
+                SelectAll = IsGlobalSelected,
+                Ids = IsGlobalSelected ? new List<int>() : SelectedItems.Select(x => x.Id).ToList()
+            };
+
+            var response = await CompanyService.ExportPdfAsync(request);
+            response.EnsureSuccessStatusCode();
+
+            var bytes = await response.Content.ReadAsByteArrayAsync();
+            var fileName = response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? "Listado_Empresas.pdf";
+
+            // Descarga directa con el nombre correcto
+            await JS.InvokeVoidAsync("downloadBlob", bytes, fileName, "application/pdf");
+        
+            await AlertService.ShowSuccess("Éxito", $"PDF '{fileName}' descargado correctamente.");
+        }
+        catch (Exception)
+        {
+            await AlertService.ShowError("Error", "Ocurrió un error al generar el PDF.");
         }
     }
 

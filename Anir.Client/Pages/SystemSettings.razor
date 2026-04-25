@@ -1,289 +1,205 @@
 ﻿@page "/system/settings"
 @attribute [Authorize]
-@using Anir.Client.Services.SystemSettings
-@using Anir.Shared.Contracts.SystemSettings
-@using Anir.Shared.Contracts.Common
-@using Anir.Client.Components.File
-@using MudBlazor.Utilities
 
-@inject ISystemSettingService SettingService
+@inject SystemSettingService SettingService
 @inject IAlertService Alerts
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="pa-2">
-    <MudGrid Justify="Justify.Center" AlignItems="AlignItems.Center">
-        <MudItem xs="12" sm="10" md="10" lg="10" Class="d-flex flex-column align-items-center">
+<PageTitle>Configuración del Sistema</PageTitle>
 
-            @* ── Encabezado ─────────────────────────────────── *@
-            <div class="d-flex flex-column justify-center align-center mt-2">
-                <MudAvatar Size="Size.Large" Color="Color.Primary" Variant="Variant.Filled">
-                    <MudIcon Icon="@Icons.Material.Filled.Settings" Size="Size.Large" />
-                </MudAvatar>
-                <MudText Typo="Typo.h5" Class="font-weight-bold">Configuración del Sistema</MudText>
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                    Datos generales de la organización para reportes e interfaz
-                </MudText>
-            </div>
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-3">
 
-            @* ── Formulario ──────────────────────────────────── *@
-            <EditForm EditContext="_editContext" OnValidSubmit="HandleSaveAsync">
-                <DataAnnotationsValidator />
+    @if (_isLoading)
+    {
+        <UiLoading Indeterminate="true" Message="Cargando configuración..." ContainerHeight="100vh" Size="Size.Large" />
+        return;
+    }
 
-                <MudCard Outlined="true" Class="pa-6 mt-4">
-                    <MudCardContent>
+    <!-- ╔══════════════════════════════════════════════════════════════╗
+         ║ SOLUCIÓN: El EditForm debe envolver TODO, incluido el Paper ║
+         ╚══════════════════════════════════════════════════════════════╝ -->
+    <EditForm EditContext="_editContext" OnValidSubmit="HandleSaveAsync">
+        <DataAnnotationsValidator />
 
-                        @if (_isLoading)
-                        {
-                            <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Style="min-height: 300px;">
-                                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+        <!-- PATRÓN ÚNICO (Con el iconito pequeño que te gustó) -->
+        <MudPaper Elevation="0" Outlined="true" Class="pa-3 mb-4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.TwoTone.Settings" Size="Size.Medium" Color="Color.Primary" />
+                    <MudText Typo="Typo.subtitle1" Class="font-weight-medium">Configuración del Sistema</MudText>
+                </MudStack>
+                
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-none d-md-block mr-2">
+                        Última actualización: @_formModel.LastUpdated.ToLocalTime().ToString("g")
+                    </MudText>
+                    <MudButton Variant="Variant.Text" Color="Color.Default" Size="Size.Small" OnClick="HandleReset" Disabled="@_isSaving">
+                        Descartar
+                    </MudButton>
+                    <!-- Ahora este botón SÍ sabe que pertenece al EditForm de arriba -->
+                    <MudButton Loading="@_isSaving" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" ButtonType="ButtonType.Submit">
+                        Guardar
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+
+        <!-- CONTENIDO DEL FORMULARIO -->
+        <MudStack AlignItems="AlignItems.Center" Class="mb-4">
+            <MudExpansionPanels Elevation="1" Rounded="true" Style="max-width: 900px; width: 100%;">
+
+                @* ═══ 1. IDENTIDAD ═══ *@
+                <MudExpansionPanel HideIcon="true" @bind-Expanded="_panelIdentity">
+                    <TitleContent>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="w-100">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudIcon Icon="@Icons.Material.Filled.Business" />
+                                <MudText Typo="Typo.subtitle1" Class="font-weight-medium">Identidad de la Organización</MudText>
                             </MudStack>
-                        }
-                        else
-                        {
-                            <MudStack Spacing="4">
-
-                                @* ══════ IDENTIDAD ══════ *@
-                                <MudText Typo="Typo.subtitle1" Color="Color.Secondary" Class="font-weight-bold">
-                                    <MudIcon Icon="@Icons.Material.Filled.Business" Class="mr-1" Size="Size.Small" />
-                                    Identidad de la Organización
-                                </MudText>
-
-                                <MudGrid Spacing="3">
-                                    <MudItem xs="12" md="4">
-                                        <MudStack Spacing="2" AlignItems="AlignItems.Center">
-                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Logo</MudText>
-                                            <PhotoUploader Value="@(_formModel.ImageFile?.Url)"
-                                                           IsProfile="true"
-                                                           PixelSize="120"
-                                                           OnUploaded="HandleImageUploaded" />
-                                        </MudStack>
-                                    </MudItem>
-
-                                    <MudItem xs="12" md="8">
-                                        <MudStack Spacing="2">
-                                            <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Name)"
-                                                          For="@(() => _formModel.Name)"
-                                                          @bind-Value="_formModel.Name"
-                                                          Variant="Variant.Outlined"
-                                                          Required="true"
-                                                          FullWidth="true"
-                                                          Margin="Margin.Dense" />
-
-                                            <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.ShortName)"
-                                                          For="@(() => _formModel.ShortName)"
-                                                          @bind-Value="_formModel.ShortName"
-                                                          Variant="Variant.Outlined"
-                                                          FullWidth="true"
-                                                          Margin="Margin.Dense" />
-
-                                            <MudGrid Spacing="2">
-                                                <MudItem xs="12" md="6">
-                                                    <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.TaxId)"
-                                                                  For="@(() => _formModel.TaxId)"
-                                                                  @bind-Value="_formModel.TaxId"
-                                                                  Variant="Variant.Outlined"
-                                                                  FullWidth="true"
-                                                                  Margin="Margin.Dense" />
-                                                </MudItem>
-                                                <MudItem xs="12" md="6">
-                                                    <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.LegalRepresentative)"
-                                                                  For="@(() => _formModel.LegalRepresentative)"
-                                                                  @bind-Value="_formModel.LegalRepresentative"
-                                                                  Variant="Variant.Outlined"
-                                                                  FullWidth="true"
-                                                                  Margin="Margin.Dense" />
-                                                </MudItem>
-                                            </MudGrid>
-
-                                            <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.LegalRepresentativeTitle)"
-                                                          For="@(() => _formModel.LegalRepresentativeTitle)"
-                                                          @bind-Value="_formModel.LegalRepresentativeTitle"
-                                                          Variant="Variant.Outlined"
-                                                          FullWidth="true"
-                                                          Margin="Margin.Dense" />
-                                        </MudStack>
-                                    </MudItem>
-                                </MudGrid>
-
-                                <MudDivider />
-
-                                @* ══════ CONTACTO ══════ *@
-                                <MudText Typo="Typo.subtitle1" Color="Color.Secondary" Class="font-weight-bold">
-                                    <MudIcon Icon="@Icons.Material.Filled.ContactMail" Class="mr-1" Size="Size.Small" />
-                                    Información de Contacto
-                                </MudText>
-
-                                <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Address)"
-                                              For="@(() => _formModel.Address)"
-                                              @bind-Value="_formModel.Address"
-                                              Variant="Variant.Outlined"
-                                              FullWidth="true"
-                                              Margin="Margin.Dense"
-                                              Lines="2" />
-
-                                <MudGrid Spacing="2">
-                                    <MudItem xs="12" md="4">
-                                        <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Phone)"
-                                                      For="@(() => _formModel.Phone)"
-                                                      @bind-Value="_formModel.Phone"
-                                                      Variant="Variant.Outlined"
-                                                      FullWidth="true"
-                                                      Margin="Margin.Dense" />
-                                    </MudItem>
-                                    <MudItem xs="12" md="4">
-                                        <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Email)"
-                                                      For="@(() => _formModel.Email)"
-                                                      @bind-Value="_formModel.Email"
-                                                      Variant="Variant.Outlined"
-                                                      FullWidth="true"
-                                                      Margin="Margin.Dense" />
-                                    </MudItem>
-                                    <MudItem xs="12" md="4">
-                                        <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Website)"
-                                                      For="@(() => _formModel.Website)"
-                                                      @bind-Value="_formModel.Website"
-                                                      Variant="Variant.Outlined"
-                                                      FullWidth="true"
-                                                      Margin="Margin.Dense" />
-                                    </MudItem>
-                                </MudGrid>
-
-                                <MudDivider />
-
-                                @* ══════ REPORTES ══════ *@
-                                <MudText Typo="Typo.subtitle1" Color="Color.Secondary" Class="font-weight-bold">
-                                    <MudIcon Icon="@Icons.Material.Filled.Description" Class="mr-1" Size="Size.Small" />
-                                    Textos para Reportes
-                                </MudText>
-
-                                <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.ReportHeaderText)"
-                                              For="@(() => _formModel.ReportHeaderText)"
-                                              @bind-Value="_formModel.ReportHeaderText"
-                                              Variant="Variant.Outlined"
-                                              FullWidth="true"
-                                              Margin="Margin.Dense"
-                                              Lines="2"
-                                              HelperText="Aparece en la parte superior de los reportes PDF y Excel"
-                                              HelperTextOnFocus="true" />
-
-                                <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.ReportFooterText)"
-                                              For="@(() => _formModel.ReportFooterText)"
-                                              @bind-Value="_formModel.ReportFooterText"
-                                              Variant="Variant.Outlined"
-                                              FullWidth="true"
-                                              Margin="Margin.Dense"
-                                              Lines="2"
-                                              HelperText="Aparece en la parte inferior de los reportes"
-                                              HelperTextOnFocus="true" />
-
-                                <MudDivider />
-
-                                @* ══════ APARIENCIA ══════ *@
-                                @* ══════ APARIENCIA ══════ *@
-                                <MudText Typo="Typo.subtitle1" Color="Color.Secondary" Class="font-weight-bold">
-                                    <MudIcon Icon="@Icons.Material.Filled.Palette" Class="mr-1" Size="Size.Small" />
-                                    Apariencia
-                                </MudText>
-
-                                <MudGrid Spacing="3" AlignItems="AlignItems.Center">
-                                    <MudItem xs="12" md="4">
-                                        <MudStack Spacing="2" AlignItems="AlignItems.Start">
-                                            <MudColorPicker Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.PrimaryColor)"
-                                                            @bind-Value="_primaryColor"
-                                                            Variant="Variant.Outlined"
-                                                            Margin="Margin.Dense"
-                                                            UpdateEvent="update:onchange" />
-
-                                            @* ── BOTÓN RESTABLECER ── *@
-                                            <MudButton Variant="Variant.Text"
-                                                       Color="Color.Default"
-                                                       Size="Size.Small"
-                                                       StartIcon="@Icons.Material.Filled.Restore"
-                                                       OnClick="ResetColor">
-                                                Restablecer color original
-                                            </MudButton>
-                                        </MudStack>
-                                    </MudItem>
-                                    <MudItem xs="12" md="8">
-                                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-                                            <MudText Typo="Typo.body2" Color="Color.Secondary">Vista previa:</MudText>
-
-                                            <MudChip T="string"
-                                                     Text="@(string.IsNullOrEmpty(_formModel.ShortName) ? _formModel.Name : _formModel.ShortName)"
-                                                     Variant="Variant.Filled"
-                                                     Style="@($"background-color: {_primaryColor.Value}; color: #fff;")" />
-
-                                            <MudButton Variant="Variant.Filled"
-                                                       Style="@($"background-color: {_primaryColor.Value};")"
-                                                       DisableElevation="true">
-                                                Botón ejemplo
-                                            </MudButton>
-                                        </MudStack>
-                                    </MudItem>
-                                </MudGrid>
-
-                            </MudStack>
-                        }
-
-                    </MudCardContent>
-
-                    @* ── Pie del formulario ───────────────────────── *@
-                    <MudDivider />
-                    <MudCardActions Class="px-6 py-4">
-                        <MudStack Row="true" Spacing="2" Justify="Justify.SpaceBetween" FullWidth="true" AlignItems="AlignItems.Center">
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                Última actualización: @_formModel.LastUpdated.ToLocalTime().ToString("g")
-                            </MudText>
-                            <MudStack Row="true" Spacing="2">
-                                <MudButton Variant="Variant.Text"
-                                           Color="Color.Default"
-                                           OnClick="HandleReset"
-                                           Disabled="@_isSaving">
-                                    Descartar
-                                </MudButton>
-                                <MudButton Loading="@_isSaving"
-                                           Variant="Variant.Filled"
-                                           Color="Color.Primary"
-                                           ButtonType="ButtonType.Submit"
-                                           DisableElevation="true">
-                                    Guardar configuración
-                                </MudButton>
-                            </MudStack>
+                            <MudIcon Icon="@(_panelIdentity ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" Color="Color.Secondary" />
                         </MudStack>
-                    </MudCardActions>
-                </MudCard>
-            </EditForm>
+                    </TitleContent>
+                    <ChildContent>
+                        <MudGrid Spacing="3">
+                            <MudItem xs="12" Class="d-flex justify-center">
+                                <PhotoUploader Value="@(_formModel.ImageFile?.Url)" IsProfile="false" PixelSize="120" OnUploaded="HandleImageUploaded" />
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.ShortName)" For="@(() => _formModel.ShortName)" @bind-Value="_formModel.ShortName" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Name)" For="@(() => _formModel.Name)" @bind-Value="_formModel.Name" Variant="Variant.Outlined" Required="true" Margin="Margin.Dense" />
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.TaxId)" For="@(() => _formModel.TaxId)" @bind-Value="_formModel.TaxId" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.LegalRepresentative)" For="@(() => _formModel.LegalRepresentative)" @bind-Value="_formModel.LegalRepresentative" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.LegalRepresentativeTitle)" For="@(() => _formModel.LegalRepresentativeTitle)" @bind-Value="_formModel.LegalRepresentativeTitle" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            </MudItem>
+                        </MudGrid>
+                    </ChildContent>
+                </MudExpansionPanel>
 
-        </MudItem>
-    </MudGrid>
+                @* ═══ 2. CONTACTO ═══ *@
+                <MudExpansionPanel HideIcon="true" @bind-Expanded="_panelContact">
+                    <TitleContent>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="w-100">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spaing="2">
+                                <MudIcon Icon="@Icons.Material.Filled.ContactMail" />
+                                <MudText Typo="Typo.subtitle1" Class="font-weight-medium">Información de Contacto</MudText>
+                            </MudStack>
+                            <MudIcon Icon="@(_panelContact ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" Color="Color.Secondary" />
+                        </MudStack>
+                    </TitleContent>
+                    <ChildContent>
+                        <MudGrid Spacing="3">
+                            <MudItem xs="12">
+                                <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Address)" For="@(() => _formModel.Address)" @bind-Value="_formModel.Address" Variant="Variant.Outlined" Margin="Margin.Dense" Lines="2" />
+                            </MudItem>
+                            <MudItem xs="12" md="4">
+                                <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Phone)" For="@(() => _formModel.Phone)" @bind-Value="_formModel.Phone" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            </MudItem>
+                            <MudItem xs="12" md="4">
+                                <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Email)" For="@(() => _formModel.Email)" @bind-Value="_formModel.Email" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            </MudItem>
+                            <MudItem xs="12" md="4">
+                                <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Website)" For="@(() => _formModel.Website)" @bind-Value="_formModel.Website" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            </MudItem>
+                        </MudGrid>
+                    </ChildContent>
+                </MudExpansionPanel>
+
+                @* ═══ 3. REPORTES ═══ *@
+                <MudExpansionPanel HideIcon="true" @bind-Expanded="_panelReports">
+                    <TitleContent>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="w-100">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudIcon Icon="@Icons.Material.Filled.Description" />
+                                <MudText Typo="Typo.subtitle1" Class="font-weight-medium">Textos para Reportes</MudText>
+                            </MudStack>
+                            <MudIcon Icon="@(_panelReports ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" Color="Color.Secondary" />
+                        </MudStack>
+                    </TitleContent>
+                    <ChildContent>
+                        <MudStack Spacing="3">
+                            <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.ReportHeaderText)" For="@(() => _formModel.ReportHeaderText)" @bind-Value="_formModel.ReportHeaderText" Variant="Variant.Outlined" Margin="Margin.Dense" Lines="2" HelperText="Aparece en la parte superior de los reportes PDF y Excel" HelperTextOnFocus="true" />
+                            <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.ReportFooterText)" For="@(() => _formModel.ReportFooterText)" @bind-Value="_formModel.ReportFooterText" Variant="Variant.Outlined" Margin="Margin.Dense" Lines="2" HelperText="Aparece en la parte inferior de los reportes" HelperTextOnFocus="true" />
+                        </MudStack>
+                    </ChildContent>
+                </MudExpansionPanel>
+
+                @* ═══ 4. APARIENCIA ═══ *@
+                <MudExpansionPanel HideIcon="true" @bind-Expanded="_panelAppearance">
+                    <TitleContent>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="w-100">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudIcon Icon="@Icons.Material.Filled.Palette" />
+                                <MudText Typo="Typo.subtitle1" Class="font-weight-medium">Apariencia</MudText>
+                            </MudStack>
+                            <MudIcon Icon="@(_panelAppearance ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" Color="Color.Secondary" />
+                        </MudStack>
+                    </TitleContent>
+                    <ChildContent>
+                        <MudGrid Spacing="3" AlignItems="AlignItems.Center">
+                            <MudItem xs="12" md="4">
+                                <MudStack Spacing="2" AlignItems="AlignItems.Start">
+                                    <MudColorPicker Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.PrimaryColor)" @bind-Value="_primaryColor" Variant="Variant.Outlined" Margin="Margin.Dense" UpdateEvent="update:onchange" />
+                                    <MudButton Variant="Variant.Text" Color="Color.Default" Size="Size.Small" OnClick="ResetColor">
+                                        Restablecer color original
+                                    </MudButton>
+                                </MudStack>
+                            </MudItem>
+                            <MudItem xs="12" md="8">
+                                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">Vista previa:</MudText>
+                                    <MudChip T="string" Text="@(string.IsNullOrEmpty(_formModel.ShortName) ? _formModel.Name : _formModel.ShortName)" Variant="Variant.Filled" Style="@($"background-color: {_primaryColor.ToString()}; color: #fff;")" />
+                                    <MudButton Variant="Variant.Filled" Style="@($"background-color: {_primaryColor.ToString()};")" DisableElevation="true" Size="Size.Small">Botón ejemplo</MudButton>
+                                </MudStack>
+                            </MudItem>
+                        </MudGrid>
+                    </ChildContent>
+                </MudExpansionPanel>
+
+            </MudExpansionPanels>
+        </MudStack>
+        
+    </EditForm> <!-- Aquí cierra el EditForm que ahora envuelve todo -->
+
 </MudContainer>
 
 @code {
+    // ... El código @code permanece EXACTAMENTE igual, no toques nada aquí ...
     private SystemSettingDto _formModel = new();
     private SystemSettingDto? _originalModel;
     private EditContext _editContext = new(new SystemSettingDto());
     private bool _isLoading = true;
     private bool _isSaving;
+    private MudColor _primaryColor = new("#4A6FA5");
 
-    // MudColorPicker trabaja con MudColor, no con string directamente
-    private MudColor _primaryColor = new("#1e88e5");
+    private bool _panelIdentity = true;
+    private bool _panelContact;
+    private bool _panelReports;
+    private bool _panelAppearance;
 
     protected override async Task OnInitializedAsync()
     {
         var result = await SettingService.GetAsync();
 
-        if (result.Value is not null)
+        if (result is not null)
         {
-            _formModel = result.Value;
+            _formModel = result;
             _originalModel = CloneDto(_formModel);
         }
         else
         {
-            await Alerts.ShowError("Error", result.ErrorMessage ?? "No se pudo cargar la configuración.");
+            await Alerts.ShowError("Error", "No se pudo cargar la configuración del sistema.");
             _formModel = new SystemSettingDto();
             _originalModel = new SystemSettingDto();
         }
 
-        // Inicializar el color picker
         if (!string.IsNullOrEmpty(_formModel.PrimaryColor))
             _primaryColor = new MudColor(_formModel.PrimaryColor);
 
@@ -297,10 +213,15 @@
         return Task.CompletedTask;
     }
 
+    private void ResetColor()
+    {
+        _primaryColor = new MudColor("#4A6FA5");
+        _formModel.PrimaryColor = null;
+    }
+
     private void HandleReset()
     {
         if (_originalModel is null) return;
-
         _formModel.Name = _originalModel.Name;
         _formModel.ShortName = _originalModel.ShortName;
         _formModel.ImageFile = _originalModel.ImageFile;
@@ -322,18 +243,10 @@
         _editContext?.NotifyValidationStateChanged();
     }
 
-    private void ResetColor()
-    {
-        // Volvemos al azul acero original
-        _primaryColor = new MudColor("#4A6FA5");
-        _formModel.PrimaryColor = null; // Guardará NULL en la base de datos
-    }
-
     private async Task HandleSaveAsync()
     {
         if (_editContext is null || !_editContext.Validate()) return;
 
-        // SINCRONIZAR MudColor → string SIEMPRE en formato #RRGGBB (7 caracteres)
         _formModel.PrimaryColor = $"#{_primaryColor.R:X2}{_primaryColor.G:X2}{_primaryColor.B:X2}";
 
         _isSaving = true;
@@ -341,17 +254,14 @@
         {
             var result = await SettingService.UpdateAsync(_formModel);
 
-            if (result.Value is null)
+            if (result?.Value is null)
             {
-                await Alerts.ShowError("Error", result.ErrorMessage ?? "No se pudo guardar la configuración.");
+                await Alerts.ShowError("Error", result?.ErrorMessage ?? "No se pudo guardar la configuración.");
                 return;
             }
-           
-            if (result.Value is not null)
-            {
-                _originalModel = CloneDto(result.Value);
-                _formModel.LastUpdated = result.Value.LastUpdated;
-            }
+
+            _originalModel = CloneDto(result.Value);
+            _formModel.LastUpdated = result.Value.LastUpdated;
 
             await Alerts.ShowSuccess("Configuración guardada", "Los cambios se aplicaron correctamente.");
         }

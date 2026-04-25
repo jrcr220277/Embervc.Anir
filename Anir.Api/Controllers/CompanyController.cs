@@ -1,13 +1,15 @@
 ﻿using Anir.Data;
 using Anir.Data.Entities;
 using Anir.Infrastructure.Extensions;
+using Anir.Infrastructure.Reports;
 using Anir.Infrastructure.Reports.Template.Excel;
+using Anir.Infrastructure.Reports.Template.Pdfs;
 using Anir.Shared.Contracts.Common;
 using Anir.Shared.Contracts.Companies;
-using Anir.Shared.Contracts.Organisms;
-using Anir.Shared.Enums;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
 
 
 namespace Anir.Api.Controllers;
@@ -20,14 +22,14 @@ public class CompanyController : ControllerBase
 
     private readonly ApplicationDbContext _db;
     private readonly ILogger<CompanyController> _logger;
-    private readonly IPdfService _pdfService;
+    private readonly IReportDataProvider _reportDataProvider;
     private readonly CompanyReportExcel _excelService;
 
-    public CompanyController(ApplicationDbContext db, ILogger<CompanyController> logger, IPdfService pdfService, CompanyReportExcel excelService)
+    public CompanyController(ApplicationDbContext db, ILogger<CompanyController> logger, IReportDataProvider reportDataProvider, CompanyReportExcel excelService)
     {
         _db = db;
         _logger = logger;
-        _pdfService = pdfService;
+        _reportDataProvider = reportDataProvider; ;
         _excelService = excelService;
     }
 
@@ -64,7 +66,7 @@ public class CompanyController : ControllerBase
         Active = entity.Active
     };
 
-
+    
     // ============================================================
     // GET ALL
     // ============================================================
@@ -226,9 +228,6 @@ public class CompanyController : ControllerBase
 
 
     // ============================================================
-    // DELETE BATCH
-    // ============================================================
-    // ============================================================
     // DELETE BATCH (versión simple y profesional)
     // ============================================================
     [HttpPost("batch-delete")]
@@ -268,6 +267,45 @@ public class CompanyController : ControllerBase
             affectedRows,
             $"Se eliminaron {affectedRows} {ENTITY.ToLower()}."
         ));
+    }
+
+
+    // ============================================================
+    // EXPORT PDF
+    // ============================================================
+    [HttpPost("export-pdf")]
+    public async Task<IActionResult> ExportPdfList(
+    [FromBody] BulkSelectionRequest request,
+    CancellationToken ct = default)
+    {
+        var config = await _reportDataProvider.GetConfigAsync(ct);
+
+        var query = _db.Companies
+            .Include(c => c.Municipality)
+            .ThenInclude(m => m.Province)
+            .AsNoTracking();
+
+        if (!request.SelectAll && request.Ids?.Count > 0)
+            query = query.Where(c => request.Ids.Contains(c.Id));
+
+        var data = await query.ToListAsync(ct);
+        var dtos = data.Select(MapEntityToDto).ToList();
+
+        var document = new CompanyReportPdf(dtos, config);
+
+        using var stream = new MemoryStream();
+        document.GeneratePdf(stream);
+        var bytes = stream.ToArray();
+
+        // ✅ AQUÍ ARMAS EL NOMBRE COMO QUIERAS, DINÁMICAMENTE
+        // Ejemplos de lo que puedes hacer:
+        // var fileName = $"Empresas_{dtos.Count}_Registros.pdf";
+        // var fileName = $"Clasificadores_{DateTime.Now:yyyyMMdd}.pdf";
+        // var fileName = $"{config.ShortName}_Empresas_Activas.pdf";
+
+        var fileName = $"Listado_Empresas_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+
+        return File(bytes, "application/pdf", fileName);
     }
 
 

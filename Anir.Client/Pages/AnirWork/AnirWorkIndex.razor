@@ -75,6 +75,74 @@
     </MudCollapse>
 
     <MudTable T="AnirWorkDto" ServerData="ServerReload" @ref="TableRef" Hover="true" Striped="true" Dense="true" MultiSelection="true" @bind-SelectedItems="SelectedItems" SelectOnRowClick="false" Loading="@IsLoadingTable" HorizontalScrollbar="true">
+        <ToolBarContent>
+            <!-- IZQUIERDA: Buscador se expande -->
+            <MudTextField T="string"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Class="flex-grow-1"
+                          Value="@SearchText"
+                          ValueChanged="OnSearchInput"
+                          Immediate="true"
+                          Clearable="true"
+                          Placeholder="Buscar por título, número ANIR, empresa..."
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Rounded.Search" />
+
+            <!-- SEPARADOR MÁGICO -->
+            <MudSpacer />
+
+            <!-- DERECHA: Los 3 filtros en línea -->
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+        
+                <!-- Filtro 1: Social (Sí/No) -->
+                <MudToggleGroup T="string"
+                                Value="@SocialFilterValue"
+                                ValueChanged="OnFilterChanged"
+                                Variant="Variant.Outlined"
+                                Size="Size.Small"
+                                Color="Color.Primary"
+                                CheckMark>
+                    <MudToggleItem Value="@("Todos")">Social</MudToggleItem>
+                    <MudToggleItem Value="@("Si")">Sí</MudToggleItem>
+                    <MudToggleItem Value="@("No")">No</MudToggleItem>
+                </MudToggleGroup>
+
+                <!-- Separador visual sutil entre filtros -->
+                <MudDivider Vertical="true" FlexItem="true" />
+
+                <!-- Filtro 2: Económico (Sí/No) -->
+                <MudToggleGroup T="string"
+                                Value="@EconomicFilterValue"
+                                ValueChanged="OnFilterChanged"
+                                Variant="Variant.Outlined"
+                                Size="Size.Small"
+                                Color="Color.Primary"
+                                CheckMark>
+                    <MudToggleItem Value="@("Todos")">Económico</MudToggleItem>
+                    <MudToggleItem Value="@("Si")">Sí</MudToggleItem>
+                    <MudToggleItem Value="@("No")">No</MudToggleItem>
+                </MudToggleGroup>
+
+                <MudDivider Vertical="true" FlexItem="true" />
+
+                <!-- Filtro 3: Generalización (Sí/No/Pendiente) -->
+                <MudToggleGroup T="string"
+                                Value="@GeneralizationFilterValue"
+                                ValueChanged="OnFilterChanged"
+                                Variant="Variant.Outlined"
+                                Size="Size.Small"
+                                Color="Color.Primary"
+                                CheckMark>
+                    <MudToggleItem Value="@("Todos")">General.</MudToggleItem>
+                    <MudToggleItem Value="@("Si")">Sí</MudToggleItem>
+                    <MudToggleItem Value="@("No")">No</MudToggleItem>
+                    <MudToggleItem Value="@("Pendiente")">Pend.</MudToggleItem>
+                </MudToggleGroup>
+
+            </MudStack>
+        </ToolBarContent>
+        
         <HeaderContent>
             <MudTh><MudTableSortLabel T="AnirWorkDto" SortLabel="AnirNumber">Número</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="AnirWorkDto" SortLabel="Title">Título</MudTableSortLabel></MudTh>

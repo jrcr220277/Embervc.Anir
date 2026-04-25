@@ -61,3 +61,9 @@ window.downloadBlob = (bytes, fileName, contentType) => {
     document.body.removeChild(link);
     setTimeout(() => window.URL.revokeObjectURL(url), 1000);
 };
+
+// 5. Crear URL temporal para mostrar PDFs en iframes (sin abrir pestañas)
+window.createPdfBlobUrl = (bytes) => {
+    const blob = new Blob([new Uint8Array(bytes)], { type: "application/pdf" });
+    return URL.createObjectURL(blob);
+};

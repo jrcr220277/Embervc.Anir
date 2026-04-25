@@ -1,10 +1,10 @@
 ﻿using Anir.Data;
 using Anir.Data.Entities;
 using Anir.Infrastructure.Extensions;
+using Anir.Infrastructure.Reports;
 using Anir.Infrastructure.Reports.Template.Excel;
 using Anir.Shared.Contracts.Common;
 using Anir.Shared.Contracts.Organisms;
-using Anir.Shared.Enums;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,18 +18,18 @@ public class OrganismController : ControllerBase
 
     private readonly ApplicationDbContext _db;
     private readonly ILogger<OrganismController> _logger;
-    private readonly IPdfService _pdfService;
+    private readonly IReportDataProvider _reportDataProvider;
     private readonly OrganismReportExcel _excelService;
 
     public OrganismController(
         ApplicationDbContext db,
         ILogger<OrganismController> logger,
-        IPdfService pdfService,
+        IReportDataProvider reportDataProvider,
         OrganismReportExcel excelService)
     {
         _db = db;
         _logger = logger;
-        _pdfService = pdfService;
+        _reportDataProvider = reportDataProvider;
         _excelService = excelService;
     }
 
@@ -105,7 +105,7 @@ public class OrganismController : ControllerBase
         return Ok(ProcessResponse<PagedResponse<OrganismDto>>.Success(pagedResult));
     }
 
-     // ============================================================
+    // ============================================================
     // GET BY ID
     // ============================================================
     [HttpGet("{id:int}")]
@@ -224,21 +224,35 @@ public class OrganismController : ControllerBase
     // ============================================================
     // EXPORT PDF
     // ============================================================
-    [HttpPost("export-pdf")]
-    public async Task<IActionResult> ExportPdf([FromBody] BulkSelectionRequest request, CancellationToken ct = default)
-    {
-        IQueryable<Organism> query = _db.Organisms;
+    //[HttpPost("export-pdf")]
+    //public async Task<IActionResult> ExportPdfList(
+    //[FromBody] BulkSelectionRequest request,
+    //CancellationToken ct = default)
+    //{
+    //    // Obtener configuración (Logo, colores, textos)
+    //    var config = await _reportDataProvider.GetConfigAsync(ct);
 
-        if (request.Ids is { Count: > 0 })
-            query = query.Where(c => request.Ids.Contains(c.Id));
+    //    // Obtener datos del negocio
+    //    var query = _db.Organisms
 
-        var items = await query.Select(c => MapEntityToDto(c)).ToListAsync(ct);
+    //        .AsNoTracking();
 
-        var doc = new OrganismReportPdf(items);
-        var pdfBytes = await _pdfService.GenerateAsync(doc, ct);
+    //    if (!request.SelectAll && request.Ids?.Any() == true)
+    //        query = query.Where(c => request.Ids.Contains(c.Id));
 
-        return File(pdfBytes, "application/pdf");
-    }
+    //    var data = await query.ToListAsync(ct);
+    //    var dtos = data.Select(MapEntityToDto).ToList();
+
+    //    // Generar PDF directo (Sin IPdfService)
+    //    var document = new OrganismReportPdf(dtos, config);
+    //    var bytes = document.GeneratePdf();
+
+    //    // Nombre de archivo profesional
+    //    var fileName = $"{config.ShortName ?? "ANIR"}_Empresas_{DateTime.Now:yyyyMMdd}.pdf";
+
+    //    return File(bytes, "application/pdf", fileName);
+    //}
+
 
     // ============================================================
     // EXPORT EXCEL

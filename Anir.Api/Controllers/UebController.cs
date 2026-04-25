@@ -1,6 +1,7 @@
 ﻿using Anir.Data;
 using Anir.Data.Entities;
 using Anir.Infrastructure.Extensions;
+using Anir.Infrastructure.Reports;
 using Anir.Infrastructure.Reports.Template.Excel;
 using Anir.Shared.Contracts.Common;
 using Anir.Shared.Contracts.Companies;
@@ -19,14 +20,14 @@ public class UebController : ControllerBase
 
     private readonly ApplicationDbContext _db;
     private readonly ILogger<UebController> _logger;
-    private readonly IPdfService _pdfService;
+    private readonly IReportDataProvider _reportDataProvider;
     private readonly UebReportExcel _excelService;
 
-    public UebController(ApplicationDbContext db, ILogger<UebController> logger, IPdfService pdfService, UebReportExcel excelService)
+    public UebController(ApplicationDbContext db, ILogger<UebController> logger, IReportDataProvider reportDataProvider, UebReportExcel excelService)
     {
         _db = db;
         _logger = logger;
-        _pdfService = pdfService;
+        _reportDataProvider = reportDataProvider;
         _excelService = excelService;
     }
 
@@ -320,24 +321,24 @@ public class UebController : ControllerBase
         ));
     }
 
-    // ============================================================
-    // EXPORT PDF
-    // ============================================================
-    [HttpPost("export-pdf")]
-    public async Task<IActionResult> ExportPdf([FromBody] BulkSelectionRequest request, CancellationToken ct = default)
-    {
-        IQueryable<Ueb> query = _db.Uebs;
+    //// ============================================================
+    //// EXPORT PDF
+    //// ============================================================
+    //[HttpPost("export-pdf")]
+    //public async Task<IActionResult> ExportPdf([FromBody] BulkSelectionRequest request, CancellationToken ct = default)
+    //{
+    //    IQueryable<Ueb> query = _db.Uebs;
 
-        if (request.Ids is { Count: > 0 })
-            query = query.Where(c => request.Ids.Contains(c.Id));
+    //    if (request.Ids is { Count: > 0 })
+    //        query = query.Where(c => request.Ids.Contains(c.Id));
 
-        var items = await query.Select(c => MapEntityToDto(c)).ToListAsync(ct);
+    //    var items = await query.Select(c => MapEntityToDto(c)).ToListAsync(ct);
 
-        var doc = new UebReportPdf(items);
-        var pdfBytes = await _pdfService.GenerateAsync(doc, ct);
+    //    var doc = new UebReportPdf(items);
+    //    var pdfBytes = await _pdfService.GenerateAsync(doc, ct);
 
-        return File(pdfBytes, "application/pdf");
-    }
+    //    return File(pdfBytes, "application/pdf");
+    //}
 
     // ============================================================
     // EXPORT EXCEL

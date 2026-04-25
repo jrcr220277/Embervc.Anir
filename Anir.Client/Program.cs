@@ -65,11 +65,14 @@ builder.Services.AddScoped<UserState>();
 // ------------------------------------------------------------
 // 7. Servicios del Cliente
 // ------------------------------------------------------------
+// Solo esto, sin HttpClient tipado porque usamos la fábrica
+builder.Services.AddSingleton<SystemSettingService>();
+
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<FileService>();
 builder.Services.AddScoped<ProvinceService>();
 builder.Services.AddScoped<MunicipalityService>();
-builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
+
 builder.Services.AddScoped<IPersonService, PersonService>();
 builder.Services.AddScoped<IOrganismService, OrganismService>();
 builder.Services.AddScoped<ICompanyService, CompanyService>();
