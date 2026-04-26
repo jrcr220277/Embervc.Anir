@@ -7,7 +7,7 @@ using Anir.Client.Services.Company;
 
 using Anir.Client.Services.Organism;
 using Anir.Client.Services.Person;
-using Anir.Client.Services.SystemSettings;
+using Anir.Client.Services.Administration;
 using Anir.Client.Services.Ueb;
 using Anir.Web.Client.Services;
 using Blazored.LocalStorage;
@@ -67,9 +67,12 @@ builder.Services.AddScoped<UserState>();
 // ------------------------------------------------------------
 // Solo esto, sin HttpClient tipado porque usamos la fábrica
 builder.Services.AddSingleton<SystemSettingService>();
+builder.Services.AddScoped<MaintenanceService>();
+builder.Services.AddScoped<BackupService>();
+builder.Services.AddScoped<FileService>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<FileService>();
+
 builder.Services.AddScoped<ProvinceService>();
 builder.Services.AddScoped<MunicipalityService>();
 

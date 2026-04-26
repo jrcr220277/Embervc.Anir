@@ -1,8 +1,12 @@
 ﻿@page "/system/settings"
 @attribute [Authorize]
 
+@using Anir.Shared.Contracts.Common
 @inject SystemSettingService SettingService
+@inject MaintenanceService MaintenanceService
+@inject BackupService BackupService
 @inject IAlertService Alerts
+@inject IJSRuntime JS
 
 <PageTitle>Configuración del Sistema</PageTitle>
 
@@ -14,33 +18,34 @@
         return;
     }
 
-    <!-- ╔══════════════════════════════════════════════════════════════╗
-         ║ SOLUCIÓN: El EditForm debe envolver TODO, incluido el Paper ║
-         ╚══════════════════════════════════════════════════════════════╝ -->
     <EditForm EditContext="_editContext" OnValidSubmit="HandleSaveAsync">
         <DataAnnotationsValidator />
 
-        <!-- PATRÓN ÚNICO (Con el iconito pequeño que te gustó) -->
+        <!-- ENCABEZADO PROFESIONAL -->
         <MudPaper Elevation="0" Outlined="true" Class="pa-3 mb-4">
             <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
                 
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                    <MudIcon Icon="@Icons.Material.TwoTone.Settings" Size="Size.Medium" Color="Color.Primary" />
-                    <MudText Typo="Typo.subtitle1" Class="font-weight-medium">Configuración del Sistema</MudText>
-                </MudStack>
-                
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-none d-md-block mr-2">
+                <MudStack Column="true" Spacing="1">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudIcon Icon="@Icons.Material.TwoTone.Settings" Size="Size.Medium" Color="Color.Primary" />
+                        <MudText Typo="Typo.subtitle1" Class="font-weight-medium">Configuración del Sistema</MudText>
+                    </MudStack>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="ml-9">
                         Última actualización: @_formModel.LastUpdated.ToLocalTime().ToString("g")
                     </MudText>
-                    <MudButton Variant="Variant.Text" Color="Color.Default" Size="Size.Small" OnClick="HandleReset" Disabled="@_isSaving">
-                        Descartar
-                    </MudButton>
-                    <!-- Ahora este botón SÍ sabe que pertenece al EditForm de arriba -->
-                    <MudButton Loading="@_isSaving" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" ButtonType="ButtonType.Submit">
-                        Guardar
-                    </MudButton>
                 </MudStack>
+                
+                @if (_isDirty)
+                {
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudButton Variant="Variant.Text" Color="Color.Default" Size="Size.Small" OnClick="HandleReset" Disabled="@_isSaving">
+                            Descartar
+                        </MudButton>
+                        <MudButton Loading="@_isSaving" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" ButtonType="ButtonType.Submit">
+                            Guardar
+                        </MudButton>
+                    </MudStack>
+                }
             </MudStack>
         </MudPaper>
 
@@ -87,7 +92,7 @@
                 <MudExpansionPanel HideIcon="true" @bind-Expanded="_panelContact">
                     <TitleContent>
                         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="w-100">
-                            <MudStack Row="true" AlignItems="AlignItems.Center" Spaing="2">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                                 <MudIcon Icon="@Icons.Material.Filled.ContactMail" />
                                 <MudText Typo="Typo.subtitle1" Class="font-weight-medium">Información de Contacto</MudText>
                             </MudStack>
@@ -163,26 +168,179 @@
                     </ChildContent>
                 </MudExpansionPanel>
 
+                @* ═══ 5. MANTENIMIENTO Y RESPALDOS ═══ *@
+                <MudExpansionPanel HideIcon="true" @bind-Expanded="_panelMaintenance">
+                    <TitleContent>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="w-100">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudIcon Icon="@Icons.Material.Filled.BuildCircle" />
+                                <MudText Typo="Typo.subtitle1" Class="font-weight-medium">Mantenimiento y Respaldos</MudText>
+                            </MudStack>
+                            <MudIcon Icon="@(_panelMaintenance ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)" Color="Color.Secondary" />
+                        </MudStack>
+                    </TitleContent>
+                    <ChildContent>
+        
+                        @* INFO VISUAL DEL SISTEMA *@
+                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-4">
+                            <MudChip T="string" Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">
+                                @($"App v{_systemInfo.AppVersion}")
+                            </MudChip>
+                            <MudChip T="string" Color="Color.Info" Variant="Variant.Outlined" Size="Size.Small">
+                                @($"BD: {_systemInfo.LastMigration}")
+                            </MudChip>
+                        </MudStack>
+
+                        @* INFRAESTRUCTURA *@
+                        <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="mt-2 mb-3">Infraestructura</MudText>
+                        <MudGrid Spacing="3">
+                            <MudItem xs="12" md="8">
+                                <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.BackupToolPath)"
+                                              For="@(() => _formModel.BackupToolPath)"
+                                              @bind-Value="_formModel.BackupToolPath"
+                                              Variant="Variant.Outlined" Margin="Margin.Dense"
+                                              HelperText="Ej: C:\Program Files\PostgreSQL\16\bin\pg_dump.exe" />
+                            </MudItem>
+                            <MudItem xs="12" md="4">
+                                <MudNumericField T="int"
+                                                 Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.MaxBackupFiles)"
+                                                 For="@(() => _formModel.MaxBackupFiles)"
+                                                 @bind-Value="_formModel.MaxBackupFiles"
+                                                 Variant="Variant.Outlined" Margin="Margin.Dense" Min="1" Max="50" />
+                            </MudItem>
+                        </MudGrid>
+
+                        <MudDivider Class="my-4" />
+
+                        @* AUTOMATIZACIÓN (Hora primero, luego qué hacer) *@
+                        <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="mb-3">Automatización</MudText>
+                        <MudGrid Spacing="3" AlignItems="AlignItems.Center">
+                            <MudItem xs="12" md="3">
+                                <MudTimePicker T="TimeSpan?"
+                                               Label="Hora programada"
+                                               @bind-Value="_formModel.ScheduledTime"
+                                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                                               AmPm="false" OpenTo="OpenTo.Hours" />
+                            </MudItem>
+                            <MudItem xs="6" md="4" Class="d-flex justify-center">
+                                <MudSwitch Label="Limpieza Auto" @bind-Value="_formModel.AutoMaintenanceEnabled" Color="Color.Primary" />
+                            </MudItem>
+                            <MudItem xs="6" md="5" Class="d-flex justify-center">
+                                <MudSwitch Label="Respaldo Auto" @bind-Value="_formModel.AutoBackupEnabled" Color="Color.Primary" />
+                            </MudItem>
+                        </MudGrid>
+
+                        <MudDivider Class="my-4" />
+
+                        @* ACCIONES MANUALES (3 FABs compactos) *@
+                        <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="mb-3">Acciones Manuales</MudText>
+                        <MudStack Row="true" Justify="Justify.Center" Spacing="6" Class="my-6">
+
+                            <MudTooltip Text="Limpiar archivos huérfanos">
+                                <MudFab Color="Color.Inherit" StartIcon="@Icons.Material.Filled.CleaningServices" Size="Size.Small"
+                                        OnClick="HandleCleanOrphans" Loading="@_isCleaning" Disabled="@_isCleaning" />
+                            </MudTooltip>
+            
+                            <MudTooltip Text="Generar Respaldo">
+                                <MudFab Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Save" Size="Size.Small"
+                                        OnClick="HandleCreateBackup" Loading="@_isCreatingBackup" Disabled="@_isCreatingBackup" />
+                            </MudTooltip>
+            
+                            <MudTooltip Text="Restaurar desde ZIP">
+                                <MudFileUpload T="IBrowserFile"
+                                               Accept=".zip"
+                                               FilesChanged="OnRestoreFileSelected">
+
+                                    <CustomContent Context="uploader">
+                                        <MudFab Color="Color.Error"
+                                                StartIcon="@Icons.Material.Filled.Restore"
+                                                Size="Size.Small"
+                                                Disabled="@_isRestoring"
+                                                Loading="@_isRestoring"
+                                                OnClick="@uploader.OpenFilePickerAsync" />
+                                    </CustomContent>
+
+                                    <SelectedTemplate Context="file">
+                                        @* vacío para eliminar template *@
+                                    </SelectedTemplate>
+
+                                </MudFileUpload>
+                            </MudTooltip>
+                        </MudStack>
+
+                        <MudDivider Class="my-4" />
+
+                        @* HISTORIAL DE RESPALDOS *@
+                        <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="mb-3">Respaldos Disponibles en Servidor</MudText>
+                        @if (_backups.Any())
+                        {
+                            <MudTable T="BackupResult" Items="@_backups" Hover="true" Elevation="0" Outlined="true" Dense="true">
+                                <HeaderContent>
+                                    <MudTh>Fecha</MudTh>
+                                    <MudTh>Archivo</MudTh>
+                                    <MudTh>Tamaño</MudTh>
+                                    <MudTh Style="text-align:right">Acciones</MudTh>
+                                </HeaderContent>
+                                <RowTemplate Context="item">
+                                    <MudTd DataLabel="Fecha">@ExtractDateFromBackupName(item.FileName)</MudTd>
+                                    <MudTd DataLabel="Archivo">@item.FileName</MudTd>
+                                    <MudTd DataLabel="Tamaño">@item.FormattedSize</MudTd>
+                                    <MudTd Style="text-align:right">
+                                        <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="1">
+                                            <MudTooltip Text="Descargar">
+                                                <MudIconButton Icon="@Icons.Material.Filled.Download" Color="Color.Primary" Size="Size.Small"
+                                                               OnClick="@(() => DownloadBackup(item.FileName))" />
+                                            </MudTooltip>
+                                            <MudTooltip Text="Eliminar">
+                                                <MudIconButton Icon="@Icons.Material.Filled.DeleteForever" Color="Color.Error" Size="Size.Small"
+                                                               OnClick="@(() => DeleteBackup(item.FileName))" />
+                                            </MudTooltip>
+                                        </MudStack>
+                                    </MudTd>
+                                </RowTemplate>
+                            </MudTable>
+                        }
+                        else
+                        {
+                            <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mt-2">
+                                No hay respaldos generados actualmente.
+                            </MudAlert>
+                        }
+
+                    </ChildContent>
+                </MudExpansionPanel>
+
             </MudExpansionPanels>
         </MudStack>
         
-    </EditForm> <!-- Aquí cierra el EditForm que ahora envuelve todo -->
+    </EditForm>
 
 </MudContainer>
 
 @code {
-    // ... El código @code permanece EXACTAMENTE igual, no toques nada aquí ...
+    [Inject] private IDialogService DialogService { get; set; } = default!;
+    [Inject] private IAlertService AlertService { get; set; } = default!;
+
     private SystemSettingDto _formModel = new();
     private SystemSettingDto? _originalModel;
     private EditContext _editContext = new(new SystemSettingDto());
     private bool _isLoading = true;
     private bool _isSaving;
+    private bool _isRestoring = false;
+    private bool _isDirty;
+    private BackupResult _systemInfo = new();
     private MudColor _primaryColor = new("#4A6FA5");
 
     private bool _panelIdentity = true;
     private bool _panelContact;
     private bool _panelReports;
     private bool _panelAppearance;
+    private bool _panelMaintenance;
+
+    // Mantenimiento y Backups
+    private bool _isCleaning = false;
+    private bool _isCreatingBackup = false;
+    private List<BackupResult> _backups = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -204,24 +362,39 @@
             _primaryColor = new MudColor(_formModel.PrimaryColor);
 
         _editContext = new EditContext(_formModel);
+        
+        _editContext.OnFieldChanged += (sender, e) =>
+        {
+            _isDirty = true;
+            StateHasChanged();
+        };
+
         _isLoading = false;
+
+        var infoResult = await BackupService.GetSystemInfoAsync();
+        if (infoResult?.Value != null)
+            _systemInfo = infoResult.Value;
+
+        await LoadBackupsAsync();
     }
 
-    private Task HandleImageUploaded(FileResponse? file)
+    private async Task HandleImageUploaded(FileResponse? file)
     {
         _formModel.ImageFile = file;
-        return Task.CompletedTask;
+        _isDirty = true;
     }
 
     private void ResetColor()
     {
         _primaryColor = new MudColor("#4A6FA5");
         _formModel.PrimaryColor = null;
+        _isDirty = true;
     }
 
     private void HandleReset()
     {
         if (_originalModel is null) return;
+        
         _formModel.Name = _originalModel.Name;
         _formModel.ShortName = _originalModel.ShortName;
         _formModel.ImageFile = _originalModel.ImageFile;
@@ -235,11 +408,23 @@
         _formModel.ReportHeaderText = _originalModel.ReportHeaderText;
         _formModel.ReportFooterText = _originalModel.ReportFooterText;
         _formModel.PrimaryColor = _originalModel.PrimaryColor;
+        _formModel.BackupToolPath = _originalModel.BackupToolPath;
+        _formModel.MaxBackupFiles = _originalModel.MaxBackupFiles;
+        
+        // ============================================================
+        // FIX: CAMPOS FALTANTES EN EL RESET (Esto arregla el binding)
+        // ============================================================
+        _formModel.AutoBackupEnabled = _originalModel.AutoBackupEnabled;
+        _formModel.AutoMaintenanceEnabled = _originalModel.AutoMaintenanceEnabled;
+        _formModel.ScheduledTime = _originalModel.ScheduledTime;
+        // ============================================================
+
         _formModel.LastUpdated = _originalModel.LastUpdated;
 
         if (!string.IsNullOrEmpty(_formModel.PrimaryColor))
             _primaryColor = new MudColor(_formModel.PrimaryColor);
 
+        _isDirty = false;
         _editContext?.NotifyValidationStateChanged();
     }
 
@@ -262,6 +447,7 @@
 
             _originalModel = CloneDto(result.Value);
             _formModel.LastUpdated = result.Value.LastUpdated;
+            _isDirty = false;
 
             await Alerts.ShowSuccess("Configuración guardada", "Los cambios se aplicaron correctamente.");
         }
@@ -275,6 +461,182 @@
         }
     }
 
+    // ============================================================
+    // MÉTODOS DE MANTENIMIENTO Y RESPALDOS
+    // ============================================================
+    
+    private async Task HandleCleanOrphans()
+    {
+        _isCleaning = true;
+        try
+        {
+            var result = await MaintenanceService.CleanOrphansAsync();
+            if (result?.Value != null)
+            {
+                await Alerts.ShowSuccess("Limpieza Completada", result.Value.Summary);
+            }
+            else
+            {
+                await Alerts.ShowError("Error", "No se pudo completar la limpieza.");
+            }
+        }
+        finally
+        {
+            _isCleaning = false;
+        }
+    }
+
+    private async Task HandleCreateBackup()
+    {
+        _isCreatingBackup = true;
+        try
+        {
+            var result = await BackupService.CreateBackupAsync();
+            if (result?.Value != null)
+            {
+                await Alerts.ShowSuccess("Respaldo Creado", result.Value.Message);
+                await LoadBackupsAsync();
+            }
+            else
+            {
+                var errorMsg = result?.ErrorMessage ?? "No se pudo generar el respaldo. Verifique la configuración de la ruta de pg_dump.";
+                await Alerts.ShowError("Error", errorMsg);
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alerts.ShowError("Error", $"Excepción al respaldar: {ex.Message}");
+        }
+        finally
+        {
+            _isCreatingBackup = false;
+        }
+    }
+
+    private async Task DeleteBackup(string fileName)
+    {
+        var confirmed = await ConfirmDialog.Show(
+            DialogService,
+            "Eliminar Respaldo",
+            $"¿Está seguro de eliminar el archivo {fileName}? Esta acción no se puede deshacer.",
+            type: "delete",
+            confirmText: "Eliminar",
+            centerMessage: true);
+
+        if (!confirmed) return;
+
+        try
+        {
+            var result = await BackupService.DeleteBackupAsync(fileName);
+            if (result?.Value == true)
+            {
+                await Alerts.ShowSuccess("Eliminado", "Respaldo eliminado del servidor.");
+                await LoadBackupsAsync(); // Refrescar tabla
+            }
+            else
+            {
+                await Alerts.ShowError("Error", result?.ErrorMessage ?? "No se pudo eliminar el respaldo.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alerts.ShowError("Error", $"Excepción al eliminar: {ex.Message}");
+        }
+    }
+
+    // Helper para sacar la fecha del nombre del archivo y mostrarla bonita
+    private string ExtractDateFromBackupName(string fileName)
+    {
+        try
+        {
+            // ANIR_Backup_20260426_113849_v1.0.0.0.zip
+            var parts = fileName.Split('_');
+            if (parts.Length >= 3)
+            {
+                var dateStr = parts[2]; // 20260426
+                var timeStr = parts[3]; // 113849
+                if (dateStr.Length == 8 && timeStr.Length >= 6)
+                {
+                    var year = dateStr.Substring(0, 4);
+                    var month = dateStr.Substring(4, 2);
+                    var day = dateStr.Substring(6, 2);
+                    var hour = timeStr.Substring(0, 2);
+                    var min = timeStr.Substring(2, 2);
+                    return $"{day}/{month}/{year} {hour}:{min}";
+                }
+            }
+        }
+        catch { }
+        return string.Empty;
+    }
+
+   
+    private async Task OnRestoreFileSelected(IBrowserFile file)
+    {
+        var confirmed = await ConfirmDialog.Show(
+            DialogService,
+            "⚠️ RESTAURACIÓN COMPLETA DEL SISTEMA",
+            "¡ATENCIÓN! Esto sobreescribirá TODA la base de datos y todos los archivos actuales con el respaldo seleccionado. Esta acción no se puede deshacer. ¿Está absolutamente seguro?",
+            type: "warning",
+            confirmText: "SÍ, RESTAURAR SISTEMA",
+            cancelText: "Cancelar",
+            centerMessage: true);
+
+        if (!confirmed) return;
+
+        _isRestoring = true;
+        try
+        {
+            var result = await BackupService.RestoreBackupAsync(file);
+            if (result?.Value == true)
+            {
+                await Alerts.ShowSuccess("Éxito", "Sistema restaurado. La aplicación se recargará en unos segundos...");
+            }
+            else
+            {
+                await Alerts.ShowError("Error", result?.ErrorMessage ?? "No se pudo restaurar el sistema.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alerts.ShowError("Error", $"Excepción al restaurar: {ex.Message}");
+        }
+        finally
+        {
+            _isRestoring = false;
+        }
+    }
+
+    private async Task LoadBackupsAsync()
+    {
+        var result = await BackupService.GetBackupsAsync();
+        _backups = result?.Value ?? new List<BackupResult>();
+    }
+
+    private async Task DownloadBackup(string fileName)
+    {
+        try
+        {
+            var bytes = await BackupService.DownloadBackupAsync(fileName);
+            if (bytes != null && bytes.Length > 0)
+            {
+                var base64 = Convert.ToBase64String(bytes);
+                await JS.InvokeVoidAsync("downloadFile", fileName, "application/zip", base64);
+            }
+            else
+            {
+                await Alerts.ShowError("Error", "No se pudo descargar el archivo.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await Alerts.ShowError("Error", $"Error descargando: {ex.Message}");
+        }
+    }
+
+    // ============================================================
+    // CLONE DTO (Actualizado con nuevos campos)
+    // ============================================================
     private static SystemSettingDto CloneDto(SystemSettingDto src) => new()
     {
         Id = src.Id,
@@ -291,6 +653,11 @@
         ReportHeaderText = src.ReportHeaderText,
         ReportFooterText = src.ReportFooterText,
         PrimaryColor = src.PrimaryColor,
-        LastUpdated = src.LastUpdated
+        BackupToolPath = src.BackupToolPath,
+        MaxBackupFiles = src.MaxBackupFiles,
+        LastUpdated = src.LastUpdated,
+        AutoBackupEnabled = src.AutoBackupEnabled,
+        AutoMaintenanceEnabled = src.AutoMaintenanceEnabled,
+        ScheduledTime = src.ScheduledTime
     };
 }

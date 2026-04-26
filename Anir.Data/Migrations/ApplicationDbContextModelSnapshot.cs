@@ -426,6 +426,15 @@ namespace Anir.Data.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
 
+                    b.Property<bool>("AutoBackupEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("AutoMaintenanceEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("BackupToolPath")
+                        .HasColumnType("text");
+
                     b.Property<string>("Email")
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
@@ -443,6 +452,9 @@ namespace Anir.Data.Migrations
                     b.Property<string>("LegalRepresentativeTitle")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<int>("MaxBackupFiles")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -464,6 +476,9 @@ namespace Anir.Data.Migrations
                     b.Property<string>("ReportHeaderText")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<TimeSpan>("ScheduledTime")
+                        .HasColumnType("interval");
 
                     b.Property<string>("ShortName")
                         .HasMaxLength(50)

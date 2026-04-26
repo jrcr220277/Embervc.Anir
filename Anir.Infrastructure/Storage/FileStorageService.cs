@@ -2,7 +2,6 @@
 using Anir.Data;
 using Anir.Data.Entities;
 using Anir.Infrastructure.Settings; // <-- USAMOS TU CLASE
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace Anir.Infrastructure.Storage;

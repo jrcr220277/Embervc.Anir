@@ -4,6 +4,7 @@ using Anir.Data;
 using Anir.Data.Identity;
 using Anir.Data.Seeders;
 using Anir.Infrastructure.Jwt;
+using Anir.Infrastructure.Maintenance;
 using Anir.Infrastructure.Reports;
 using Anir.Infrastructure.Reports.Template.Excel;
 using Anir.Infrastructure.Settings;
@@ -39,6 +40,7 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 builder.Host.UseSerilog();
+
 
 // ============================================================
 // DATABASE
@@ -117,6 +119,16 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 // ============================================================
 QuestPDF.Settings.License = LicenseType.Community;
 builder.Services.AddScoped<IReportDataProvider, ReportDataProvider>();
+
+// ============================================================
+// Servicios del SItema
+// ============================================================
+
+builder.Services.AddHostedService<SystemBackgroundService>();
+
+builder.Services.AddScoped<IMaintenanceService, MaintenanceService>();
+builder.Services.AddScoped<IBackupService, BackupService>();
+
 builder.Services.AddScoped<OrganismReportExcel>();
 builder.Services.AddScoped<CompanyReportExcel>();
 builder.Services.AddScoped<UebReportExcel>();

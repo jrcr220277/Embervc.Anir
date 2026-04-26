@@ -14,6 +14,7 @@ namespace Anir.Infrastructure.Settings
         public string RootPath { get; set; } = null!;
         public string ImagesFolder { get; set; } = "images";
         public string DocsFolder { get; set; } = "docs";
+        public string BackupsFolder { get; set; } = "AnirBackups";
     }
 
 }

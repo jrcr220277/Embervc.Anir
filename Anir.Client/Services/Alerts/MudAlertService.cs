@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components;
+
 using MudBlazor;
 
 namespace Anir.Client.Services.Alerts
