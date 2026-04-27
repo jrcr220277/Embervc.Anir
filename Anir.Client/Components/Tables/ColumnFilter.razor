@@ -1,0 +1,161 @@
+﻿@* ColumnFilter.razor
+   Un filtro desplegable compacto pensado para colocarse junto a encabezados de columna,
+   aunque funciona en cualquier contenedor (barras de herramientas, formularios, etc.).
+   Muestra un icono que cambia de aspecto y color cuando se aplica un filtro activo.
+   1. En un encabezado de tabla (uso principal)
+   <MudTh>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+            <MudTableSortLabel T="CompanyDto" SortLabel="Active">Estado</MudTableSortLabel>
+          <ColumnFilter Options="_statusOptions"
+              Value="@StatusFilterValue"
+              ValueChanged="OnStatusFilterChanged"
+              ActiveColor="Color.Primary" />
+        </MudStack>
+    </MudTh>
+    En el @code: private readonly IReadOnlyList<string> _statusOptions = new List<string> { "Todos", "Activo", "Inactivo" };
+private string StatusFilterValue = "Todos";
+
+2. En una barra de herramientas (sin tabla)
+<MudToolBar>
+    <MudText>Filtrar por categoría:</MudText>
+    <ColumnFilter Options="_categoryOptions"
+                  @bind-Value="SelectedCategory"
+                  ActiveColor="Color.Secondary"
+                  Size="Size.Medium" />
+</MudToolBar>
+
+3. Con opciones desde un Enum
+public enum CompanyStatus { Activo, Inactivo }
+// Generar opciones agregando "Todos" al inicio
+private readonly IReadOnlyList<string> _statusFromEnum =
+    new[] { "Todos" }.Concat(Enum.GetNames(typeof(CompanyStatus))).ToList();
+
+4. Personalizando iconos y color
+<ColumnFilter Options="_myOptions"
+              @bind-Value="MyFilter"
+              DefaultIcon="@Icons.Material.Filled.FilterList"
+              ActiveIcon="@Icons.Material.Filled.FilterAltOff"
+              ActiveColor="Color.Error" />
+
+5. Manejo manual del evento (sin binding bidireccional)
+<ColumnFilter Options="_options"
+              Value="CurrentFilter"
+              ValueChanged="OnFilterChangedAsync" />
+
+private async Task OnFilterChangedAsync(string newValue)
+{
+    CurrentFilter = newValue;
+    await CargarDatosAsync();
+}
+
+*@
+@using MudBlazor
+
+<MudMenu Icon="@GetCurrentIcon()"
+         IconColor="@GetIconColor()"
+         Dense="true"
+         Size="@Size"
+         AnchorOrigin="Origin.BottomRight"
+         TransformOrigin="Origin.TopRight"
+         Disabled="@Disabled">
+
+    @* Si NO estamos en el valor por defecto, ofrecemos "Borrar filtro" *@
+    @if (!IsDefaultValue)
+    {
+        <MudMenuItem OnClick="@(() => OnOptionClicked(Options[0]))"
+                     Icon="@Icons.Material.Rounded.Clear">
+            Borrar filtro
+        </MudMenuItem>
+        <MudDivider />
+    }
+
+    @* Listamos todas las opciones, marcando con check la activa *@
+    @foreach (var option in Options)
+    {
+        <MudMenuItem OnClick="@(() => OnOptionClicked(option))"
+                     Icon="@(Value == option ? Icons.Material.Rounded.Check : null)">
+            @option
+        </MudMenuItem>
+    }
+</MudMenu>
+
+@code {
+    /// <summary>
+    /// Lista completa de opciones. La primera (índice 0) se considera el valor "sin filtro".
+    /// Ejemplo: new List<string> { "Todos", "Activo", "Inactivo" }
+    /// </summary>
+    [Parameter, EditorRequired]
+    public IReadOnlyList<string> Options { get; set; } = new List<string> { "Todos" };
+
+    /// <summary>
+    /// Valor actual seleccionado (debe coincidir con uno de los elementos de Options).
+    /// Normalmente se enlaza con @bind-Value.
+    /// </summary>
+    [Parameter]
+    public string Value { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Callback que se invoca cuando el usuario elige una opción.
+    /// Se usa con @bind-Value o ValueChanged directamente.
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> ValueChanged { get; set; }
+
+    /// <summary>
+    /// Icono que se muestra cuando NO hay filtro activo (valor = Options[0]).
+    /// Valor predeterminado: FilterList (contorno vacío).
+    /// </summary>
+    [Parameter]
+    public string DefaultIcon { get; set; } = Icons.Material.Rounded.FilterList;
+
+    /// <summary>
+    /// Icono que se muestra cuando HAY filtro activo (valor ≠ Options[0]).
+    /// Valor predeterminado: FilterAlt (embudo lleno).
+    /// </summary>
+    [Parameter]
+    public string ActiveIcon { get; set; } = Icons.Material.Rounded.FilterAlt;
+
+    /// <summary>
+    /// Color del icono cuando hay filtro activo.
+    /// </summary>
+    [Parameter]
+    public Color ActiveColor { get; set; } = Color.Primary;
+
+    /// <summary>
+    /// Tamaño del icono y del menú (afecta al padding y al icono).
+    /// </summary>
+    [Parameter]
+    public Size Size { get; set; } = Size.Small;
+
+    /// <summary>
+    /// Deshabilita el menú si es true. Útil mientras se cargan datos.
+    /// </summary>
+    [Parameter]
+    public bool Disabled { get; set; } = false;
+
+    /// <summary>
+    /// Devuelve true si el valor actual es el valor por defecto (Options[0]).
+    /// </summary>
+    private bool IsDefaultValue => Value == Options[0];
+
+    /// <summary>
+    /// Icono actual según el estado.
+    /// </summary>
+    private string GetCurrentIcon() => IsDefaultValue ? DefaultIcon : ActiveIcon;
+
+    /// <summary>
+    /// Color del icono según el estado (default o activo).
+    /// </summary>
+    private Color GetIconColor() => IsDefaultValue ? Color.Default : ActiveColor;
+
+    /// <summary>
+    /// Maneja el clic en una opción. Si cambia, dispara ValueChanged.
+    /// </summary>
+    private async Task OnOptionClicked(string option)
+    {
+        if (option != Value)
+        {
+            await ValueChanged.InvokeAsync(option);
+        }
+    }
+}

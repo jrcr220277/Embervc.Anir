@@ -1,4 +1,5 @@
 ﻿@page "/companies"
+@using Anir.Client.Components.Tables
 @using Anir.Shared.Contracts.Companies
 @using Anir.Shared.Contracts.Common
 @using Anir.Client.Services.Company
@@ -13,17 +14,21 @@
     }
     <MudPaper Elevation="0" Outlined="true" Class="pa-3 mb-4">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                
+        
+            <!-- Icono + (título/subtítulo) -->
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                 <MudAvatar Rounded="true" Color="Color.Primary">
-                    <MudIcon Icon="@Icons.Material.TwoTone.Business" Size="Size.Medium"/>
+                    <MudIcon Icon="@Icons.Material.TwoTone.Business" Size="Size.Medium" />
                 </MudAvatar>
-                
-                <MudText Typo="Typo.h6" Class="font-weight-medium">Directorio de Empresas</MudText>
+            
+                <MudStack AlignItems="AlignItems.Start" Spacing="0">
+                    <MudText Typo="Typo.h6" Class="font-weight-medium">Directorio de Empresas</MudText>
+                    <MudText Typo="Typo.caption">Gestione las empresas</MudText>
+                </MudStack>
             </MudStack>
-                
+        
+            <!-- Botón de acción a la derecha -->
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                 
                 <MudButton StartIcon="@Icons.Material.TwoTone.Add" Color="Color.Primary" Variant="Variant.Filled" OnClick="OpenAddModal">
                     Agregar
                 </MudButton>
@@ -31,7 +36,6 @@
         </MudStack>
     </MudPaper>
     
-
     <!-- ACCIONES MASIVAS -->
     <MudCollapse Expanded="@(SelectedItems.Any() || IsGlobalSelected)">
         <MudPaper Outlined="true" Elevation="0" Class="px-4 py-3 mb-3">
@@ -69,12 +73,9 @@
             <!-- IZQUIERDA: Contador tipo Chip (Amigable y estructurado visualmente) -->
             @if (_totalFilteredCount > 0)
             {
-                <MudChip T="string"
-                         Variant="Variant.Filled"
-                         Color="Color.Inherit"
-                         Icon="@Icons.Material.Rounded.ListAlt">
-                    @_totalFilteredCount registro@(_totalFilteredCount == 1 ? "" : "s")
-                </MudChip>
+                <MudBadge Content="@_totalFilteredCount.ToString()" Color="Color.Primary" Overlap="true">
+                    <MudIcon Icon="@Icons.Material.Rounded.TableRows" Size="Size.Medium" />
+                </MudBadge>
             }
 
             <MudSpacer />
@@ -89,27 +90,8 @@
                           Placeholder="Buscar por valores de la tabla..."
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Rounded.Search" />
-            
-                          <!-- DERECHA: Agrupados en un Stack para tener espacio perfecto entre ellos -->
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                              
-                <!-- Ícono de filtro (Reemplaza el texto "Estado:") -->
-                <MudIcon Icon="@Icons.Material.Rounded.FilterList" Size="Size.Medium" />
-
-                <!-- Select compacto -->
-                <MudSelect T="string"
-                           Value="@StatusFilterValue"
-                           ValueChanged="OnStatusFilterChanged"
-                           Variant="Variant.Text"
-                           Margin="Margin.Dense"
-                           Dense="true"
-                           Style="min-width: 120px;">
-                    <MudSelectItem Value="@("Todos")">Estado</MudSelectItem>
-                    <MudSelectItem Value="@("Activo")">Activo</MudSelectItem>
-                    <MudSelectItem Value="@("Inactivo")">Inactivo</MudSelectItem>
-                </MudSelect>
-               
-            </MudStack>
+                                      
+           
         </ToolBarContent>
 
         <HeaderContent>
@@ -117,7 +99,15 @@
             <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="Code">Código</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="ShortName">Abrev.</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="Name">Nombre</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="CompanyDto" SortLabel="Active">Estado</MudTableSortLabel></MudTh>
+            <MudTh>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudTableSortLabel T="CompanyDto" SortLabel="Active">Estado</MudTableSortLabel>
+                    <ColumnFilter Options="_statusOptions"
+                                  Value="@StatusFilterValue"
+                                  ValueChanged="OnStatusFilterChanged"
+                                  ActiveColor="Color.Primary" />
+                </MudStack>
+            </MudTh>
             <MudTh Style="width: 120px; text-align:end">Acciones</MudTh>
         </HeaderContent>
         
@@ -173,6 +163,7 @@
 
     private MudTable<CompanyDto>? TableRef;
     private HashSet<CompanyDto> SelectedItems = new(new CompanyDtoComparer());
+    private readonly IReadOnlyList<string> _statusOptions = new List<string> { "Todos", "Activo", "Inactivo" };
     
     private bool IsGlobalSelected = false;
     private int _totalFilteredCount = 0;
@@ -431,7 +422,7 @@
     /// </summary>
     private string BulkSelectionText =>
        IsGlobalSelected
-           ? $"Selección global: {_totalFilteredCount}registro{(SelectedItems.Count == 1 ? "" : "s")} seleccionado{(SelectedItems.Count == 1 ? "" : "s")} del resultado actual"
+           ? $"Selección global: {_totalFilteredCount} registro{(SelectedItems.Count == 1 ? "" : "s")} seleccionado{(SelectedItems.Count == 1 ? "" : "s")} del resultado actual"
            : $"{SelectedItems.Count} registro{(SelectedItems.Count == 1 ? "" : "s")} seleccionado{(SelectedItems.Count == 1 ? "" : "s")} del resultado actual";
 
     // ============================================================
