@@ -20,7 +20,7 @@
         <MudTable Items="Presentations" Dense="true" Hover="true">
             <HeaderContent>
                 <MudTh>Fecha</MudTh>
-                <MudTh>Resultados</MudTh>
+                <MudTh>Resultado</MudTh>
                 <MudTh>Notas</MudTh>
                 @if (!IsViewMode)
                 {
@@ -29,7 +29,7 @@
             </HeaderContent>
             <RowTemplate Context="ctx">
                 <MudTd>@ctx.PresentationDate?.ToString("dd/MM/yyyy")</MudTd>
-                <MudTd>@ctx.Result</MudTd>
+                <MudTd>@GetResultDisplay(ctx.Result)</MudTd>
                 <MudTd>@ctx.Notes</MudTd>
                 @if (!IsViewMode)
                 {
@@ -47,7 +47,15 @@
     <DialogContent>
         <MudText Typo="Typo.h6" Class="mb-4">@(_isNewPresentation ? "Agregar presentación" : "Editar presentación")</MudText>
 
-        <MudDatePicker Label="Fecha" Date="@(_editingPresentation.PresentationDate?.ToDateTime(TimeOnly.MinValue))" DateChanged="@(d => _editingPresentation.PresentationDate = d.HasValue ? DateOnly.FromDateTime(d.Value) : null)" Variant="Variant.Outlined" Dense="true" Class="w-100" Disabled="IsViewMode" />
+        <MudDatePicker Label="Fecha"
+                       Date="@(_editingPresentation.PresentationDate?.ToDateTime(TimeOnly.MinValue))"
+                       DateChanged="@(d => _editingPresentation.PresentationDate = d.HasValue ? DateOnly.FromDateTime(d.Value) : null)"
+                       Variant="Variant.Outlined"
+                       Dense="true"
+                       Class="w-100"
+                       Disabled="IsViewMode"
+                       Required="true"
+                       RequiredError="La fecha es obligatoria" />
 
         <MudText Typo="Typo.subtitle2" Class="mb-1 mt-4">Resultado Obtenido</MudText>
         <MudRadioGroup T="PresentationResult" @bind-Value="_editingPresentation.Result" Dense="true" Row="true" Disabled="IsViewMode">
@@ -58,7 +66,14 @@
             <MudRadio Value="PresentationResult.Participacion">Participación</MudRadio>
         </MudRadioGroup>
 
-        <MudTextField Label="Notas" @bind-Value="_editingPresentation.Notes" Variant="Variant.Outlined" Dense="true" Lines="3" Class="w-100 mt-4" Disabled="IsViewMode" />
+        <MudTextField Label="Notas"
+                      @bind-Value="_editingPresentation.Notes"
+                      Variant="Variant.Outlined"
+                      Dense="true"
+                      Lines="3"
+                      Class="w-100 mt-4"
+                      Disabled="IsViewMode"
+                      MaxLength="500" />
     </DialogContent>
     <DialogActions>
         <MudButton Variant="Variant.Text" OnClick="CloseModal">Cancelar</MudButton>
@@ -67,6 +82,8 @@
 </MudDialog>
 
 @code {
+    [Inject] private IAlertService AlertService { get; set; } = default!;
+    
     [Parameter] public List<AnirWorkPresentationDto> Presentations { get; set; } = new();
     [Parameter] public bool IsViewMode { get; set; }
 
@@ -74,23 +91,52 @@
     private bool _isNewPresentation = true;
     private AnirWorkPresentationDto _editingPresentation = new();
 
+    private string GetResultDisplay(PresentationResult result) => result switch
+    {
+        PresentationResult.AltoImpacto => "Alto impacto",
+        PresentationResult.Relevante => "Relevante",
+        PresentationResult.Destacado => "Destacado",
+        PresentationResult.Mencion => "Mención",
+        PresentationResult.Participacion => "Participación",
+        _ => result.ToString()
+    };
+
     private void OpenAddModal()
     {
-        _editingPresentation = new AnirWorkPresentationDto { Notes = string.Empty };
+        _editingPresentation = new AnirWorkPresentationDto
+        {
+            Notes = string.Empty,
+            PresentationDate = null,
+            Result = PresentationResult.Participacion  // valor por defecto
+        };
         _isNewPresentation = true;
         _modalOpen = true;
     }
 
     private void OpenEditModal(AnirWorkPresentationDto p)
     {
-        _editingPresentation = new AnirWorkPresentationDto { Id = p.Id, PresentationDate = p.PresentationDate, Result = p.Result, Notes = p.Notes };
+        _editingPresentation = new AnirWorkPresentationDto
+        {
+            Id = p.Id,
+            PresentationDate = p.PresentationDate,
+            Result = p.Result,
+            Notes = p.Notes
+        };
         _isNewPresentation = false;
         _modalOpen = true;
     }
 
-    private void SavePresentation()
+    private async Task SavePresentation()
     {
-        if (_isNewPresentation) Presentations.Add(_editingPresentation);
+        // Validar fecha obligatoria
+        if (_editingPresentation.PresentationDate == null)
+        {
+            await AlertService.ShowError("Error", "Debe seleccionar una fecha para la presentación.");
+            return;
+        }
+
+        if (_isNewPresentation)
+            Presentations.Add(_editingPresentation);
         else
         {
             var existing = Presentations.First(x => x.Id == _editingPresentation.Id);

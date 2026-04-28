@@ -1,11 +1,11 @@
 ﻿@page "/anirworks"
+@using Anir.Client.Components.Tables
 @using Anir.Shared.Contracts.AnirWorks
 @using Anir.Shared.Contracts.Common
 @using Anir.Client.Services.AnirWorks
 @using MudBlazor
-@implements IDisposable
 
-<MudContainer MaxWidth="MaxWidth.False" Class="px-3">
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-3">
 
     @if (IsInitializingPage)
     {
@@ -13,72 +13,76 @@
         return;
     }
 
-    <MudGrid Class="mb-2">
-        <MudItem xs="12">
-            <div class="d-flex align-center">
-                <MudIcon Icon="@Icons.Material.TwoTone.Work" Style="font-size: 3rem;" />
-                <div class="ml-3">
-                    <MudText Typo="Typo.h5" Class="fw-bold">Trabajos ANIR</MudText>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">Gestión de trabajos ANIR: búsqueda, filtros y acciones masivas</MudText>
-                </div>
-            </div>
-        </MudItem>
-    </MudGrid>
-
-    <MudDivider Class="mb-3" />
-
+    <!-- ENCABEZADO (igual que Companies) -->
     <MudPaper Elevation="0" Outlined="true" Class="pa-3 mb-4">
-        <MudGrid AlignItems="Center">
-            <MudItem xs="12" sm="3">
-                <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Rounded.AddCircleOutline" OnClick="GoToCreate">Agregar</MudButton>
-            </MudItem>
-            <MudItem xs="12" sm="6" Class="d-flex justify-center">
-                <MudTextField T="string" Value="@SearchText" ValueChanged="OnSearchInput" Immediate="true" Clearable="true" Placeholder="Buscar por título, número ANIR, empresa..." Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Rounded.Search" />
-            </MudItem>
-            <MudItem xs="12" sm="3" Class="d-flex justify-end">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                    <MudSelect T="string" Value="@SocialFilterValue" ValueChanged="OnFilterChanged" Style="width: 120px;" Dense="true">
-                        <MudSelectItem Value=@("Todos")>Social</MudSelectItem>
-                        <MudSelectItem Value=@("Si")>Sí</MudSelectItem>
-                        <MudSelectItem Value=@("No")>No</MudSelectItem>
-                    </MudSelect>
-                    <MudSelect T="string" Value="@EconomicFilterValue" ValueChanged="OnFilterChanged" Style="width: 120px;" Dense="true">
-                        <MudSelectItem Value=@("Todos")>Económico</MudSelectItem>
-                        <MudSelectItem Value=@("Si")>Sí</MudSelectItem>
-                        <MudSelectItem Value=@("No")>No</MudSelectItem>
-                    </MudSelect>
-                    <MudSelect T="string" Value="@GeneralizationFilterValue" ValueChanged="OnFilterChanged" Style="width: 120px;" Dense="true">
-                        <MudSelectItem Value=@("Todos")>Generalización</MudSelectItem>
-                        <MudSelectItem Value=@("Si")>Sí</MudSelectItem>
-                        <MudSelectItem Value=@("No")>No</MudSelectItem>
-                        <MudSelectItem Value=@("Pendiente")>Pendiente</MudSelectItem>
-                    </MudSelect>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+        
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudAvatar Rounded="true" Color="Color.Primary">
+                    <MudIcon Icon="@Icons.Material.TwoTone.Work" Size="Size.Medium" />
+                </MudAvatar>
+                <MudStack AlignItems="AlignItems.Start" Spacing="0">
+                    <MudText Typo="Typo.h6" Class="font-weight-medium">Trabajos ANIR</MudText>
+                    <MudText Typo="Typo.caption">Gestión de trabajos ANIR: búsqueda, filtros y acciones masivas</MudText>
                 </MudStack>
-            </MudItem>
-        </MudGrid>
+            </MudStack>
+
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudButton StartIcon="@Icons.Material.TwoTone.Add" Color="Color.Primary" Variant="Variant.Filled" OnClick="GoToCreate">
+                    Agregar
+                </MudButton>
+            </MudStack>
+        </MudStack>
     </MudPaper>
 
-    <MudCollapse Expanded="@(SelectedItems?.Any() == true || IsGlobalSelected)">
-        <MudPaper Outlined="true" Elevation="0" Class="px-4 mb-3 d-flex align-center justify-space-between flex-wrap gap-2">
-            <div class="d-flex align-center">
-                <MudTooltip Text="Seleccionar todo" Arrow="true">
-                    <MudIconButton Icon="@(IsGlobalSelected? Icons.Material.Rounded.Deselect : Icons.Material.Rounded.SelectAll)" Edge="Edge.Start" Size="Size.Medium" OnClick="@ToggleGlobalSelection" />
-                </MudTooltip>
-                <MudText Typo="Typo.body2" Class="font-weight-medium ml-2">@BulkSelectionText</MudText>
-            </div>
-            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-                <MudTooltip Text="Exportar PDF" Arrow="true"><MudIconButton OnClick="@ExportPdfList" Icon="@Icons.Custom.FileFormats.FilePdf" Color="Color.Default" Size="Size.Medium" /></MudTooltip>
-                <MudTooltip Text="Exportar Excel" Arrow="true"><MudIconButton OnClick="@ExportExcelList" Icon="@Icons.Custom.FileFormats.FileExcel" Color="Color.Success" Size="Size.Medium" /></MudTooltip>
-                <MudTooltip Text="Eliminar seleccionados" Arrow="true"><MudIconButton OnClick="@DeleteSelected" Icon="@Icons.Material.Rounded.DeleteForever" Color="Color.Error" Size="Size.Medium" /></MudTooltip>
+    <!-- ACCIONES MASIVAS -->
+    <MudCollapse Expanded="@(SelectedItems.Any() || IsGlobalSelected)">
+        <MudPaper Outlined="true" Elevation="0" Class="px-4 py-3 mb-3">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudTooltip Text="@(IsGlobalSelected ? "Cancelar selección global" : "Seleccionar global")" Arrow="true" Placement="Placement.Top">
+                        <MudIconButton Icon="@(IsGlobalSelected ? Icons.Material.Filled.Deselect : Icons.Material.Filled.SelectAll)"
+                                       Size="Size.Medium" Edge="Edge.Start"
+                                       OnClick="@(() => ToggleGlobalSelection())" />
+                    </MudTooltip>
+                    <MudText Typo="Typo.body2" Class="font-weight-medium">@BulkSelectionText</MudText>
+                </MudStack>
+
+                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                    <MudTooltip Text="Ver reporte pdf" Arrow="true" Placement="Placement.Top">
+                        <MudIconButton OnClick="ViewPdf" Icon="@Icons.Custom.FileFormats.FilePdf" />
+                    </MudTooltip>
+                    <MudTooltip Text="Descargar reportes" Arrow="true" Placement="Placement.Top">
+                        <MudMenu Icon="@Icons.Material.Outlined.SaveAlt" Dense="true" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                            <MudMenuItem label="Descargar PDF" Icon="@Icons.Custom.FileFormats.FilePdf" OnClick="DownloadPdf" />
+                            <MudDivider />
+                            <MudMenuItem label="Descargar Excel" Icon="@Icons.Custom.FileFormats.FileExcel" OnClick="ExportExcel" />
+                        </MudMenu>
+                    </MudTooltip>
+                    <MudTooltip Text="Eliminar registros seleccionados" Arrow="true" Placement="Placement.Top">
+                        <MudIconButton OnClick="@(() => DeleteSelected())" Icon="@Icons.Material.Outlined.DeleteForever" Color="Color.Error" Edge="Edge.End" />
+                    </MudTooltip>
+                </MudStack>
             </MudStack>
         </MudPaper>
     </MudCollapse>
 
-    <MudTable T="AnirWorkDto" ServerData="ServerReload" @ref="TableRef" Hover="true" Striped="true" Dense="true" MultiSelection="true" @bind-SelectedItems="SelectedItems" SelectOnRowClick="false" Loading="@IsLoadingTable" HorizontalScrollbar="true">
+    <!-- TABLA PRINCIPAL -->
+    <MudTable T="AnirWorkDto" ServerData="ServerReload" @ref="TableRef" Hover="true" Dense="true" MultiSelection="true" @bind-SelectedItems="SelectedItems" SelectOnRowClick="true" Loading="@IsLoadingTable" HorizontalScrollbar="true" Elevation="0" Outlined="true">
+        
         <ToolBarContent>
-            <!-- IZQUIERDA: Buscador se expande -->
+            @if (_totalFilteredCount > 0)
+            {
+                <MudTooltip Text="Numero de registros en tabla" Arrow="true" Placement="Placement.Top">
+                    <MudBadge Content="@_totalFilteredCount.ToString()" Color="Color.Primary" Overlap="true">
+                        <MudIcon Icon="@Icons.Material.Rounded.TableRows" Size="Size.Medium" />
+                    </MudBadge>
+                </MudTooltip>
+            }
+
+            <MudSpacer />
             <MudTextField T="string"
-                          Variant="Variant.Outlined"
+                          Variant="Variant.Text"
                           Margin="Margin.Dense"
                           Class="flex-grow-1"
                           Value="@SearchText"
@@ -88,95 +92,97 @@
                           Placeholder="Buscar por título, número ANIR, empresa..."
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Rounded.Search" />
-
-            <!-- SEPARADOR MÁGICO -->
-            <MudSpacer />
-
-            <!-- DERECHA: Los 3 filtros en línea -->
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-        
-                <!-- Filtro 1: Social (Sí/No) -->
-                <MudToggleGroup T="string"
-                                Value="@SocialFilterValue"
-                                ValueChanged="OnFilterChanged"
-                                Variant="Variant.Outlined"
-                                Size="Size.Small"
-                                Color="Color.Primary"
-                                CheckMark>
-                    <MudToggleItem Value="@("Todos")">Social</MudToggleItem>
-                    <MudToggleItem Value="@("Si")">Sí</MudToggleItem>
-                    <MudToggleItem Value="@("No")">No</MudToggleItem>
-                </MudToggleGroup>
-
-                <!-- Separador visual sutil entre filtros -->
-                <MudDivider Vertical="true" FlexItem="true" />
-
-                <!-- Filtro 2: Económico (Sí/No) -->
-                <MudToggleGroup T="string"
-                                Value="@EconomicFilterValue"
-                                ValueChanged="OnFilterChanged"
-                                Variant="Variant.Outlined"
-                                Size="Size.Small"
-                                Color="Color.Primary"
-                                CheckMark>
-                    <MudToggleItem Value="@("Todos")">Económico</MudToggleItem>
-                    <MudToggleItem Value="@("Si")">Sí</MudToggleItem>
-                    <MudToggleItem Value="@("No")">No</MudToggleItem>
-                </MudToggleGroup>
-
-                <MudDivider Vertical="true" FlexItem="true" />
-
-                <!-- Filtro 3: Generalización (Sí/No/Pendiente) -->
-                <MudToggleGroup T="string"
-                                Value="@GeneralizationFilterValue"
-                                ValueChanged="OnFilterChanged"
-                                Variant="Variant.Outlined"
-                                Size="Size.Small"
-                                Color="Color.Primary"
-                                CheckMark>
-                    <MudToggleItem Value="@("Todos")">General.</MudToggleItem>
-                    <MudToggleItem Value="@("Si")">Sí</MudToggleItem>
-                    <MudToggleItem Value="@("No")">No</MudToggleItem>
-                    <MudToggleItem Value="@("Pendiente")">Pend.</MudToggleItem>
-                </MudToggleGroup>
-
-            </MudStack>
         </ToolBarContent>
-        
+
         <HeaderContent>
             <MudTh><MudTableSortLabel T="AnirWorkDto" SortLabel="AnirNumber">Número</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="AnirWorkDto" SortLabel="Title">Título</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="AnirWorkDto" SortLabel="CompanyName">Empresa</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="AnirWorkDto" SortLabel="Date">Fecha</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="AnirWorkDto" SortLabel="EconomicImpact">Impacto Econ.</MudTableSortLabel></MudTh>
-            <MudTh>Social</MudTh>
-            <MudTh>Económico</MudTh>
-            <MudTh>Generalización</MudTh>
+            
+            <MudTh>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudText>Social</MudText>
+                    <ColumnFilter Options="_socialOptions"
+                                  Value="@SocialFilterValue"
+                                  ValueChanged="OnSocialFilterChanged"
+                                  ActiveColor="Color.Primary" />
+                </MudStack>
+            </MudTh>
+
+            <MudTh>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudText>Económico</MudText>
+                    <ColumnFilter Options="_economicOptions"
+                                  Value="@EconomicFilterValue"
+                                  ValueChanged="OnEconomicFilterChanged"
+                                  ActiveColor="Color.Primary" />
+                </MudStack>
+            </MudTh>
+
+            <MudTh>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudText>Generalización</MudText>
+                    <ColumnFilter Options="_generalizationOptions"
+                                  Value="@GeneralizationFilterValue"
+                                  ValueChanged="OnGeneralizationFilterChanged"
+                                  ActiveColor="Color.Primary" />
+                </MudStack>
+            </MudTh>
+
             <MudTh Style="width: 140px; text-align:end">Acciones</MudTh>
         </HeaderContent>
+
         <RowTemplate Context="work">
             <MudTd>@work.AnirNumber</MudTd>
             <MudTd>@work.Title</MudTd>
             <MudTd>@work.CompanyName</MudTd>
             <MudTd>@work.Date.ToString("dd/MM/yyyy")</MudTd>
             <MudTd>@work.EconomicImpact.ToString("C")</MudTd>
-            <MudTd><MudChip T="string" Color="@(work.HasSocialEffect ? Color.Success : Color.Error)" Variant="Variant.Text" Size="Size.Small">@(work.HasSocialEffect ? "Sí" : "No")</MudChip></MudTd>
-            <MudTd><MudChip T="string" Color="@(work.HasEconomicEffect ? Color.Info : Color.Default)" Variant="Variant.Text" Size="Size.Small">@(work.HasEconomicEffect ? "Sí" : "No")</MudChip></MudTd>
-            <MudTd><MudChip T="string" Color="@(work.Generalization == GeneralizationStatus.Si ? Color.Success : work.Generalization == GeneralizationStatus.No ? Color.Error : Color.Warning)" Variant="Variant.Text" Size="Size.Small">@(work.Generalization == GeneralizationStatus.Si ? "Sí" : work.Generalization == GeneralizationStatus.No ? "No" : "Pendiente")</MudChip></MudTd>
+            <MudTd>
+                <MudChip T="string" Color="@(work.HasSocialEffect ? Color.Success : Color.Error)" Variant="Variant.Text" Size="Size.Small">
+                    @(work.HasSocialEffect ? "Sí" : "No")
+                </MudChip>
+            </MudTd>
+            <MudTd>
+                <MudChip T="string" Color="@(work.HasEconomicEffect ? Color.Info : Color.Default)" Variant="Variant.Text" Size="Size.Small">
+                    @(work.HasEconomicEffect ? "Sí" : "No")
+                </MudChip>
+            </MudTd>
+            <MudTd>
+                <MudChip T="string" Color="@(work.Generalization == GeneralizationStatus.Si ? Color.Success : work.Generalization == GeneralizationStatus.No ? Color.Error : Color.Warning)" Variant="Variant.Text" Size="Size.Small">
+                    @(work.Generalization == GeneralizationStatus.Si ? "Sí" : work.Generalization == GeneralizationStatus.No ? "No" : "Pendiente")
+                </MudChip>
+            </MudTd>
             <MudTd Style="width: 140px; text-align:end">
-                <MudIconButton Icon="@Icons.Material.Rounded.Visibility" OnClick="@(() => ViewWork(work))" Size="Size.Small" />
-                <MudIconButton Icon="@Icons.Material.Rounded.Edit" OnClick="@(() => EditWork(work))" Size="Size.Small" />
-                <MudIconButton Icon="@Icons.Material.Rounded.Delete" Color="Color.Error" OnClick="@(() => DeleteWork(work))" Size="Size.Small" />
+                <MudTooltip Text="Visualizar registro seleccionado" Arrow="true" Placement="Placement.Left">
+                    <MudIconButton Icon="@Icons.Material.Rounded.Visibility" OnClick="@(() => ViewWork(work))" Size="Size.Small" />
+                </MudTooltip>
+                <MudTooltip Text="Editar registro seleccionado" Arrow="true" Placement="Placement.Left">
+                    <MudIconButton Icon="@Icons.Material.Rounded.Edit" OnClick="@(() => EditWork(work))" Size="Size.Small" />
+                </MudTooltip>
+                <MudTooltip Text="Eliminar registro seleccionado" Arrow="true" Placement="Placement.Left">
+                    <MudIconButton Icon="@Icons.Material.Rounded.Delete" Color="Color.Error" Variant="Variant.Text" OnClick="@(() => DeleteWork(work))" Size="Size.Small" />
+                </MudTooltip>
             </MudTd>
         </RowTemplate>
-        <NoRecordsContent><MudText Typo="Typo.body2" Class="pa-4 text-center">No se encontraron trabajos ANIR.</MudText></NoRecordsContent>
+
+        <NoRecordsContent>
+            <MudText Typo="Typo.body2" Class="pa-4 text-center">No se encontraron trabajos ANIR.</MudText>
+        </NoRecordsContent>
+
         <PagerContent>
-            <MudTablePager PageSizeOptions="new int[] { 5, 10, 15, 20, 50, 100 }" RowsPerPageString="Filas por página:" InfoFormat="{first_item}-{last_item} de {all_items}" AllItemsText="Todas" HorizontalAlignment="HorizontalAlignment.Right" />
+            <MudTablePager PageSizeOptions="new int[] { 5, 10, 15, 20, 50, 100, int.MaxValue }" RowsPerPageString="Registros por página:" InfoFormat="{first_item}-{last_item} de {all_items}" AllItemsText="Todos" HorizontalAlignment="HorizontalAlignment.Right" />
         </PagerContent>
     </MudTable>
+
 </MudContainer>
 
 @code {
+    // ============================================================
+    // DEPENDENCIAS
+    // ============================================================
     [Inject] private IAnirWorkService WorkService { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
     [Inject] private IAlertService AlertService { get; set; } = default!;
@@ -184,10 +190,16 @@
     [Inject] private ILogger<AnirWorkIndex> Logger { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
+    // ============================================================
+    // ESTADO GENERAL
+    // ============================================================
     private bool IsInitializingPage = true;
     private bool IsLoadingTable = false;
+    private bool IsProcessingBulkAction = false;
+
     private MudTable<AnirWorkDto>? TableRef;
     private HashSet<AnirWorkDto> SelectedItems = new(new AnirWorkComparer());
+    
     private bool IsGlobalSelected = false;
     private int _totalFilteredCount = 0;
 
@@ -196,31 +208,52 @@
     private string EconomicFilterValue = "Todos";
     private string GeneralizationFilterValue = "Todos";
 
-    private CancellationTokenSource? _searchDebounceCts;
+    private IReadOnlyList<AnirWorkDto> LastPageItems = Array.Empty<AnirWorkDto>();
 
+    private readonly IReadOnlyList<string> _socialOptions = new List<string> { "Todos", "Sí", "No" };
+    private readonly IReadOnlyList<string> _economicOptions = new List<string> { "Todos", "Sí", "No" };
+    private readonly IReadOnlyList<string> _generalizationOptions = new List<string> { "Todos", "Sí", "No", "Pendiente" };
+
+    private CancellationTokenSource? _searchDebounceCts;
+    private CancellationTokenSource? _serverReloadCts;
+
+    // ============================================================
+    // CICLO DE VIDA
+    // ============================================================
     protected override Task OnInitializedAsync()
     {
         IsInitializingPage = false;
         return Task.CompletedTask;
     }
 
+    // ============================================================
+    // NAVEGACIÓN
+    // ============================================================
     private void GoToCreate() => Nav.NavigateTo("/anirworks/create");
     private void EditWork(AnirWorkDto work) => Nav.NavigateTo($"/anirworks/edit/{work.Id}");
     private void ViewWork(AnirWorkDto work) => Nav.NavigateTo($"/anirworks/view/{work.Id}");
 
+    // ============================================================
+    // SERVER DATA
+    // ============================================================
     private async Task<TableData<AnirWorkDto>> ServerReload(TableState state, CancellationToken token)
     {
+        _serverReloadCts?.Cancel();
+        _serverReloadCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+        var linkedToken = _serverReloadCts.Token;
+
         IsLoadingTable = true;
+
         try
         {
             var query = MapTableStateToQuery(state);
-            var response = await WorkService.GetPagedAsync(query, token);
+            var response = await WorkService.GetPagedAsync(query, linkedToken);
 
             if (response.Result == ResponseStatus.Success && response.Value != null)
             {
+                LastPageItems = response.Value.Items.ToList().AsReadOnly();
                 _totalFilteredCount = response.Value.TotalCount;
 
-                // FIX PRO: Sincronizar selección cuando MudBlazor instancia objetos nuevos
                 if (SelectedItems.Any())
                 {
                     var selectedIds = SelectedItems.Select(x => x.Id).ToHashSet();
@@ -230,29 +263,52 @@
                     );
                 }
 
-                return new TableData<AnirWorkDto> { Items = response.Value.Items, TotalItems = response.Value.TotalCount };
+                return new TableData<AnirWorkDto>
+                {
+                    Items = response.Value.Items,
+                    TotalItems = response.Value.TotalCount
+                };
             }
+
             await AlertService.ShowError("Error", response.ErrorMessage ?? "Error cargando trabajos ANIR");
             return new TableData<AnirWorkDto>();
         }
-        finally { IsLoadingTable = false; }
+        finally
+        {
+            IsLoadingTable = false;
+        }
     }
 
     private AnirWorkQueryDto MapTableStateToQuery(TableState state)
     {
+        var sortLabel = string.IsNullOrWhiteSpace(state.SortLabel)
+            ? "Date"
+            : state.SortLabel;
+
+        var desc = state.SortDirection == SortDirection.Descending;
+
         return new AnirWorkQueryDto
         {
-            Page = state.Page + 1, Size = state.PageSize,
-            Sort = string.IsNullOrWhiteSpace(state.SortLabel) ? "Date" : state.SortLabel,
-            Desc = state.SortDirection == SortDirection.Descending,
+            Page = state.Page + 1,
+            Size = state.PageSize,
+            Sort = sortLabel,
+            Desc = desc,
             Search = string.IsNullOrWhiteSpace(SearchText) ? null : SearchText,
-            HasSocialEffect = SocialFilterValue switch { "Si" => true, "No" => false, _ => null },
-            HasEconomicEffect = EconomicFilterValue switch { "Si" => true, "No" => false, _ => null },
-            Generalization = GeneralizationFilterValue switch { "Si" => GeneralizationStatus.Si, "No" => GeneralizationStatus.No, "Pendiente" => GeneralizationStatus.Pendiente, _ => null }
+            HasSocialEffect = SocialFilterValue switch { "Sí" => true, "No" => false, _ => null },
+            HasEconomicEffect = EconomicFilterValue switch { "Sí" => true, "No" => false, _ => null },
+            Generalization = GeneralizationFilterValue switch
+            {
+                "Sí" => GeneralizationStatus.Si,
+                "No" => GeneralizationStatus.No,
+                "Pendiente" => GeneralizationStatus.Pendiente,
+                _ => null
+            }
         };
     }
 
-    // FIX CRÍTICO: Eliminado Task.Run que causaba error de hilo en Blazor
+    // ============================================================
+    // BÚSQUEDA
+    // ============================================================
     private async Task OnSearchInput(string value)
     {
         SearchText = value;
@@ -263,78 +319,201 @@
             await Task.Delay(300, _searchDebounceCts.Token);
             if (TableRef != null) await TableRef.ReloadServerData();
         }
-        catch (TaskCanceledException) { /* Esperado al escribir rápido */ }
+        catch (TaskCanceledException) { }
     }
 
-    // Unificado para no repetir código
-    private async Task OnFilterChanged(string _) 
-    { 
-        if (TableRef != null) await TableRef.ReloadServerData(); 
+    // ============================================================
+    // FILTROS POR COLUMNA
+    // ============================================================
+    private async Task OnSocialFilterChanged(string value)
+    {
+        SocialFilterValue = value;
+        if (TableRef != null) await TableRef.ReloadServerData();
     }
 
+    private async Task OnEconomicFilterChanged(string value)
+    {
+        EconomicFilterValue = value;
+        if (TableRef != null) await TableRef.ReloadServerData();
+    }
+
+    private async Task OnGeneralizationFilterChanged(string value)
+    {
+        GeneralizationFilterValue = value;
+        if (TableRef != null) await TableRef.ReloadServerData();
+    }
+
+    // ============================================================
+    // ELIMINAR INDIVIDUAL
+    // ============================================================
     private async Task DeleteWork(AnirWorkDto work)
     {
-        var confirmed = await ConfirmDialog.Show(DialogService, "Eliminar Trabajo ANIR", $"¿Eliminar el trabajo {work.AnirNumber}?", type: "Delete", confirmText: "Eliminar", centerMessage: true);
+        var confirmed = await ConfirmDialog.Show(
+            DialogService,
+            "¿Está seguro de que desea eliminar este registro?",
+            $"¿Eliminar el trabajo {work.AnirNumber}?",
+            type: "Delete",
+            confirmText: "Eliminar",
+            centerMessage: true
+        );
+
         if (!confirmed) return;
 
         var response = await WorkService.DeleteAsync(work.Id);
+
         if (response.Result == ResponseStatus.Success)
         {
             SelectedItems.RemoveWhere(c => c.Id == work.Id);
             if (TableRef != null) await TableRef.ReloadServerData();
             await AlertService.ShowSuccess("Éxito", "Trabajo ANIR eliminado correctamente.");
+            return;
         }
-        else await AlertService.ShowError("Error", response.ErrorMessage ?? "No se pudo eliminar.");
+
+        if (response.ValidationErrors != null && response.ValidationErrors.TryGetValue("Restricciones", out var ids))
+        {
+            await AlertService.ShowWarning("Borrado no completado", "Este registro tiene dependencias asociadas. La acción de borrado no se realizó.");
+            return;
+        }
+
+        await AlertService.ShowError("Error", response.ErrorMessage ?? "No se pudo eliminar.");
     }
 
-    private void ToggleGlobalSelection() { IsGlobalSelected = !IsGlobalSelected; SelectedItems.Clear(); }
-    private string BulkSelectionText => IsGlobalSelected ? $"Selección global: {_totalFilteredCount} trabajos ANIR" : $"{SelectedItems.Count} trabajos ANIR seleccionados";
+    // ============================================================
+    // SELECCIÓN
+    // ============================================================
+    private void ToggleGlobalSelection()
+    {
+        IsGlobalSelected = !IsGlobalSelected;
+        SelectedItems.Clear();
+        if (IsGlobalSelected)
+        {
+            foreach (var item in LastPageItems)
+                SelectedItems.Add(item);
+        }
+    }
 
+    private string BulkSelectionText =>
+        IsGlobalSelected
+            ? $"Selección global: {_totalFilteredCount} trabajo{(SelectedItems.Count == 1 ? "" : "s")} seleccionado{(SelectedItems.Count == 1 ? "" : "s")} del resultado actual"
+            : $"{SelectedItems.Count} trabajo{(SelectedItems.Count == 1 ? "" : "s")} seleccionado{(SelectedItems.Count == 1 ? "" : "s")} del resultado actual";
+
+    // ============================================================
+    // ACCIONES MASIVAS
+    // ============================================================
     private async Task DeleteSelected()
     {
-        var msg = IsGlobalSelected ? $"¿Eliminar todos los {_totalFilteredCount} trabajos ANIR del filtro?" : $"¿Eliminar {SelectedItems.Count} trabajos ANIR seleccionados?";
-        var confirmed = await ConfirmDialog.Show(DialogService, "Eliminar seleccionados", msg, type: "Delete", confirmText: "Eliminar", centerMessage: true);
+        var confirmed = await ConfirmDialog.Show(
+            DialogService,
+            "¿Desea eliminar los registros seleccionados?",
+            IsGlobalSelected
+                ? $"¿Eliminar todos los {_totalFilteredCount} trabajos ANIR del filtro?"
+                : $"¿Eliminar {SelectedItems.Count} trabajo(s) seleccionado(s)?",
+            type: "Delete",
+            confirmText: "Eliminar",
+            centerMessage: true
+        );
+
         if (!confirmed) return;
 
-        var request = new BulkSelectionRequest { SelectAll = IsGlobalSelected, Ids = IsGlobalSelected ? new List<int>() : SelectedItems.Select(x => x.Id).ToList() };
-        var response = await WorkService.DeleteBatchAsync(request);
-        
-        if (response.Result == ResponseStatus.Success)
+        IsProcessingBulkAction = true;
+        try
         {
-            SelectedItems.Clear(); IsGlobalSelected = false;
-            if (TableRef != null) await TableRef.ReloadServerData();
-            await AlertService.ShowSuccess("Éxito", "Trabajos ANIR eliminados correctamente.");
+            var request = new BulkSelectionRequest
+            {
+                SelectAll = IsGlobalSelected,
+                Ids = IsGlobalSelected ? new List<int>() : SelectedItems.Select(x => x.Id).ToList()
+            };
+
+            var response = await WorkService.DeleteBatchAsync(request);
+
+            if (response.Result == ResponseStatus.Success)
+            {
+                SelectedItems.Clear();
+                IsGlobalSelected = false;
+                if (TableRef != null) await TableRef.ReloadServerData();
+                await AlertService.ShowSuccess("Éxito", "Trabajos ANIR eliminados correctamente.");
+                return;
+            }
+
+            if (response.ValidationErrors != null && response.ValidationErrors.TryGetValue("Restricciones", out var ids))
+            {
+                await AlertService.ShowWarning("Borrado no completado", $"{ids.Length} registro(s) tienen dependencias asociadas. El borrado masivo no se realizó.");
+                return;
+            }
+
+            await AlertService.ShowError("Error", response.ErrorMessage ?? "No se pudo eliminar.");
         }
-        else await AlertService.ShowError("Error", response.ErrorMessage ?? "No se pudo eliminar.");
+        finally
+        {
+            IsProcessingBulkAction = false;
+        }
     }
 
-    private async Task ExportPdfList()
+    private async Task ViewPdf()
     {
         try
         {
-            var request = new BulkSelectionRequest { SelectAll = IsGlobalSelected, Ids = IsGlobalSelected ? new List<int>() : SelectedItems.Select(x => x.Id).ToList() };
+            var request = new BulkSelectionRequest
+            {
+                SelectAll = IsGlobalSelected,
+                Ids = IsGlobalSelected ? new List<int>() : SelectedItems.Select(x => x.Id).ToList()
+            };
             var bytes = await WorkService.ExportPdfListAsync(request);
             await JS.InvokeVoidAsync("openPdfBlob", bytes, "Listado_AnirWorks.pdf");
         }
-        catch (Exception ex) { await AlertService.ShowError("Error", $"No se pudo generar el PDF: {ex.Message}"); }
+        catch (Exception ex)
+        {
+            await AlertService.ShowError("Error", $"No se pudo generar el PDF: {ex.Message}");
+        }
     }
 
-    private async Task ExportExcelList()
+    private async Task DownloadPdf()
     {
         try
         {
-            var request = new BulkSelectionRequest { SelectAll = IsGlobalSelected, Ids = IsGlobalSelected ? new List<int>() : SelectedItems.Select(x => x.Id).ToList() };
-            var bytes = await WorkService.ExportExcelListAsync(request);
-            await JS.InvokeVoidAsync("downloadBlob", bytes, "Listado_AnirWorks.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            var request = new BulkSelectionRequest
+            {
+                SelectAll = IsGlobalSelected,
+                Ids = IsGlobalSelected ? new List<int>() : SelectedItems.Select(x => x.Id).ToList()
+            };
+            var bytes = await WorkService.ExportPdfListAsync(request);
+            await JS.InvokeVoidAsync("downloadBlob", bytes, "Listado_AnirWorks.pdf", "application/pdf");
+            await AlertService.ShowSuccess("Éxito", "PDF descargado correctamente.");
         }
-        catch (Exception ex) { await AlertService.ShowError("Error", $"No se pudo generar el Excel: {ex.Message}"); }
+        catch (Exception ex)
+        {
+            await AlertService.ShowError("Error", $"No se pudo generar el PDF: {ex.Message}");
+        }
     }
 
-    // FIX PRO: Prevenir fuga de memoria
+    private async Task ExportExcel()
+    {
+        try
+        {
+            var request = new BulkSelectionRequest
+            {
+                SelectAll = IsGlobalSelected,
+                Ids = IsGlobalSelected ? new List<int>() : SelectedItems.Select(x => x.Id).ToList()
+            };
+            var bytes = await WorkService.ExportExcelListAsync(request);
+            await JS.InvokeVoidAsync("downloadBlob", bytes, "Listado_AnirWorks.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            await AlertService.ShowSuccess("Éxito", "Reporte Excel descargado correctamente.");
+        }
+        catch (Exception ex)
+        {
+            await AlertService.ShowError("Error", $"No se pudo generar el Excel: {ex.Message}");
+        }
+    }
+
+    // ============================================================
+    // LIMPIEZA
+    // ============================================================
     public void Dispose()
     {
         _searchDebounceCts?.Cancel();
         _searchDebounceCts?.Dispose();
+        _serverReloadCts?.Cancel();
+        _serverReloadCts?.Dispose();
     }
 
     private class AnirWorkComparer : IEqualityComparer<AnirWorkDto>

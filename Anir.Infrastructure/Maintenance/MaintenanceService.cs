@@ -48,7 +48,7 @@ public class MaintenanceService : IMaintenanceService
             .ToDictionaryAsync(f => f.Id, f => f, ct);
 
         // ============================================================
-        // PASO 2: Escanear disco vs BD (Archivos Huérfanos)
+        // PASO 2: Escanear disco vs BD (Archivos Huérfanos Físicos)
         // ============================================================
         var physicalFiles = Directory.GetFiles(_rootPath, "*", SearchOption.AllDirectories);
         var validDbFileNames = new HashSet<string>(dbFiles.Values.Select(f => f.FileName), StringComparer.OrdinalIgnoreCase);
@@ -60,20 +60,19 @@ public class MaintenanceService : IMaintenanceService
 
             if (validDbFileNames.Contains(fileName))
             {
-                // El archivo físico SÍ está en la BD. Lo marcamos como "encontrado".
                 var dbFile = dbFiles.Values.First(f => f.FileName.Equals(fileName, StringComparison.OrdinalIgnoreCase));
                 foundDbFileIds.Add(dbFile.Id);
             }
             else
             {
-                // ARCHIVO HUÉRFANO: Está en disco pero NO en BD -> Borrar de disco
+                // Archivo en disco sin registro en BD
                 try
                 {
                     var fileInfo = new FileInfo(physicalPath);
                     result.SpaceFreedBytes += fileInfo.Length;
                     fileInfo.Delete();
                     result.OrphanFilesDeleted++;
-                    _logger.LogInformation("Archivo huérfano eliminado: {File}", fileName);
+                    _logger.LogInformation("Archivo huérfano (solo disco) eliminado: {File}", fileName);
                 }
                 catch (Exception ex)
                 {
@@ -89,7 +88,7 @@ public class MaintenanceService : IMaintenanceService
 
         if (phantomIds.Any())
         {
-            // MAGIA DE EF CORE: Buscar dinámicamente todas las FK que apuntan a StoredFile
+            // Reparar referencias rotas (FK apuntando a StoredFile que ya no existe en disco)
             var storedFileEntity = _db.Model.FindEntityType(typeof(StoredFile));
             if (storedFileEntity != null)
             {
@@ -97,46 +96,103 @@ public class MaintenanceService : IMaintenanceService
 
                 foreach (var fk in referencingForeignKeys)
                 {
-                    var principalEntityType = fk.DeclaringEntityType; // Ej: AnirWork
-                    var fkProperty = fk.Properties.First();           // Ej: ImageFileId
-
-                    var table = StoreObjectIdentifier.Table(
-                        principalEntityType.GetTableName()!,
-                        principalEntityType.GetSchema());
-
+                    var principalEntityType = fk.DeclaringEntityType;
+                    var fkProperty = fk.Properties.First();
+                    var table = StoreObjectIdentifier.Table(principalEntityType.GetTableName()!, principalEntityType.GetSchema());
                     string tableName = table.Name;
                     string columnName = fkProperty.GetColumnName(table)!;
 
-                    // Ejecutar: UPDATE "AnirWorks" SET "ImageFileId" = NULL WHERE "ImageFileId" IN (1, 2, 3...)
-                    // Lo hacemos iterando para que el log sea claro de qué ID se limpió
-                    foreach (var phantomId in phantomIds)
+                    // Optimización: un solo UPDATE con IN en lugar de muchos individuales
+                    if (phantomIds.Any())
                     {
+                        var idsList = string.Join(",", phantomIds);
                         try
                         {
-                            // PostgreSQL usa comillas dobles para identificadores
                             int rowsAffected = await _db.Database.ExecuteSqlRawAsync(
-                                $"UPDATE \"{tableName}\" SET \"{columnName}\" = NULL WHERE \"{columnName}\" = {{0}}",
-                                phantomId, ct);
-
+                                $"UPDATE \"{tableName}\" SET \"{columnName}\" = NULL WHERE \"{columnName}\" IN ({idsList})",
+                                ct);
                             if (rowsAffected > 0)
                             {
                                 result.BrokenReferencesFixed += rowsAffected;
-                                _logger.LogInformation("Referencia rota reparada: {Table}.{Column} = {Id} puesto a NULL", tableName, columnName, phantomId);
+                                _logger.LogInformation("Referencias rotas reparadas en {Table}.{Column}: {Count} filas actualizadas", tableName, columnName, rowsAffected);
                             }
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogError(ex, "Error al limpiar FK {Table}.{Column} para StoredFile {Id}", tableName, columnName, phantomId);
+                            _logger.LogError(ex, "Error al limpiar FK {Table}.{Column} para los IDs {Ids}", tableName, columnName, idsList);
                         }
                     }
                 }
             }
 
-            // Finalmente, borramos los registros fantasma de la tabla StoredFile
+            // Eliminar los registros fantasma de StoredFile
             var phantomRecords = dbFiles.Values.Where(f => phantomIds.Contains(f.Id)).ToList();
             _db.StoredFiles.RemoveRange(phantomRecords);
             result.PhantomRecordsDeleted = await _db.SaveChangesAsync(ct);
+            // Re-cargar dbFiles actualizado para el siguiente paso (opcional, pero limpia)
+            dbFiles = await _db.StoredFiles.ToDictionaryAsync(f => f.Id, f => f, ct);
         }
+
+        // ============================================================
+        // PASO 4: ELIMINAR STOREDFILE NO REFERENCIADOS POR NINGUNA FK (HUÉRFANOS LÓGICOS)
+        // ============================================================
+        // Obtener todas las FKs que apuntan a StoredFile de forma dinámica
+        var storedFileEntityType = _db.Model.FindEntityType(typeof(StoredFile));
+        if (storedFileEntityType == null) return result;
+
+        var referencingFks = storedFileEntityType.GetReferencingForeignKeys().ToList();
+        if (!referencingFks.Any()) return result;
+
+        // Construir una lista de SQL queries para obtener todos los IDs referenciados
+        var referencedIds = new HashSet<int>();
+        foreach (var fk in referencingFks)
+        {
+            var declaringType = fk.DeclaringEntityType;
+            var tableName = declaringType.GetTableName();
+            var schema = declaringType.GetSchema();
+            var fkProperty = fk.Properties.First();
+            var columnName = fkProperty.GetColumnName(StoreObjectIdentifier.Table(tableName!, schema!));
+
+            // Consulta: SELECT DISTINCT {columnName} FROM {tableName} WHERE {columnName} IS NOT NULL
+            var sql = $"SELECT DISTINCT \"{columnName}\" FROM \"{tableName}\" WHERE \"{columnName}\" IS NOT NULL";
+            var ids = await _db.Database.SqlQueryRaw<int>(sql).ToListAsync(ct);
+            referencedIds.UnionWith(ids);
+        }
+
+        // Los StoredFile cuyo Id no está en referencedIds son huérfanos lógicos
+        var logicalOrphans = dbFiles.Values.Where(sf => !referencedIds.Contains(sf.Id)).ToList();
+        foreach (var orphan in logicalOrphans)
+        {
+            // 1. Eliminar archivo físico si existe
+            var fullPath = Path.Combine(_rootPath, orphan.Folder, orphan.FileName);
+            if (File.Exists(fullPath))
+            {
+                try
+                {
+                    var fileInfo = new FileInfo(fullPath);
+                    result.SpaceFreedBytes += fileInfo.Length;
+                    fileInfo.Delete();
+                    result.OrphanFilesDeleted++;
+                    _logger.LogInformation("Archivo huérfano lógico (sin referencias) eliminado: {Path}", fullPath);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error al eliminar archivo huérfano lógico: {Path}", fullPath);
+                }
+            }
+            else
+            {
+                // No existe en disco, es un registro fantasma (ya se habría tratado en paso 3)
+                // Pero lo contamos como phantom (por si acaso)
+                result.PhantomRecordsDeleted++;
+            }
+
+            // 2. Eliminar el registro de StoredFile
+            _db.StoredFiles.Remove(orphan);
+        }
+
+        if (logicalOrphans.Any())
+            await _db.SaveChangesAsync(ct);
 
         return result;
     }

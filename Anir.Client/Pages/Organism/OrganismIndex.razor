@@ -1,6 +1,9 @@
 ﻿@page "/organisms"
-
-
+@using Anir.Client.Components.Tables
+@using Anir.Shared.Contracts.Organisms
+@using Anir.Shared.Contracts.Common
+@using Anir.Client.Services.Organism
+@using MudBlazor
 
 <MudContainer MaxWidth="MaxWidth.False" Class="pa-3">
 
@@ -10,195 +13,137 @@
         return;
     }
 
-    <!-- ============================================================
-     ENCABEZADO PRINCIPAL (Profesional, limpio, con jerarquía)
-     ============================================================ -->
-    <MudGrid Class="mb-2">
-        <MudItem xs="12">
-            <div class="d-flex align-center">
-                <MudIcon Icon="@Icons.Material.TwoTone.AccountBalance" Style="font-size: 3rem;" />
-             
-                <div class="ml-3">
-                    <MudText Typo="Typo.h5" Class="fw-bold">Clasificador de Organismos</MudText>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">
-                        Gestión de organismos: búsqueda, filtros y acciones masivas
-                    </MudText>
-                </div>
-            </div>
-        </MudItem>
-    </MudGrid>
-
-    <MudDivider Class="mb-3" />
-
-    <!-- ============================================================
-     ACTION BAR (Profesional, alineada, con peso visual)
-     ============================================================ -->
-    <MudPaper Elevation="0" Outlined="true" Class="pa-3 mb-3">
-
-        <MudGrid AlignItems="AlignItems.Center">
-
-            <!-- IZQUIERDA (3 columnas) -->
-            <MudItem xs="12" sm="3">
-                <MudButton Color="Color.Primary"
-                           Variant="Variant.Filled"
-                           StartIcon="@Icons.Material.Rounded.AddCircleOutline"
-                           OnClick="OpenAddModal">
+    <!-- ENCABEZADO (igual que Companies) -->
+    <MudPaper Elevation="0" Outlined="true" Class="pa-3 mb-4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+        
+            <!-- Icono + (título/subtítulo) -->
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudAvatar Rounded="true" Color="Color.Primary">
+                    <MudIcon Icon="@Icons.Material.TwoTone.AccountBalance" Size="Size.Medium" />
+                </MudAvatar>
+            
+                <MudStack AlignItems="AlignItems.Start" Spacing="0">
+                    <MudText Typo="Typo.h6" Class="font-weight-medium">Clasificador de Organismos</MudText>
+                    <MudText Typo="Typo.caption">Gestión de organismos: búsqueda, filtros y acciones masivas</MudText>
+                </MudStack>
+            </MudStack>
+        
+            <!-- Botón de acción a la derecha -->
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudButton StartIcon="@Icons.Material.TwoTone.Add" Color="Color.Primary" Variant="Variant.Filled" OnClick="OpenAddModal">
                     Agregar
                 </MudButton>
-            </MudItem>
-
-            <!-- CENTRO (6 columnas, centrado REAL) -->
-            <MudItem xs="12" sm="6" Class="d-flex justify-center align-end">
-                <MudTextField T="string"
-                              Value="@SearchText"
-                              ValueChanged="OnSearchInput"
-                              Immediate="true"
-                              Clearable="true"
-                              Placeholder="Buscar..."
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Rounded.Search" />
-            </MudItem>
-
-            <!-- DERECHA (3 columnas, alineado a la derecha) -->
-            
-        </MudGrid>
-
+            </MudStack>
+        </MudStack>
     </MudPaper>
 
-
-    <!-- ============================================================
-         ACCIONES MASIVAS (Banner profesional)
-         ============================================================ -->
+    <!-- ACCIONES MASIVAS (MudCollapse con Top tooltips) -->
     <MudCollapse Expanded="@(SelectedItems.Any() || IsGlobalSelected)">
-        <MudPaper Outlined="true" Elevation="0"
-                  Class="px-4 mb-3 d-flex align-center justify-space-between flex-wrap gap-2">
+        <MudPaper Outlined="true" Elevation="0" Class="px-4 py-3 mb-3">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudTooltip Text="@(IsGlobalSelected ? "Cancelar selección global" : "Seleccionar global")" Arrow="true" Placement="Placement.Top">
+                        <MudIconButton Icon="@(IsGlobalSelected ? Icons.Material.Filled.Deselect : Icons.Material.Filled.SelectAll)"
+                                       Size="Size.Medium" Edge="Edge.Start"
+                                       OnClick="@(() => ToggleGlobalSelection())" />
+                    </MudTooltip>
+                    <MudText Typo="Typo.body2" Class="font-weight-medium">@BulkSelectionText</MudText>
+                </MudStack>
 
-            <!-- IZQUIERDA: Icono + texto corto -->
-            <div class="d-flex align-center">
-
-                <MudTooltip Text="@(IsGlobalSelected ? "Cancelar selección global" : "Seleccionar global")" Arrow="true">
-                    <MudIconButton Icon="@(IsGlobalSelected
-                                                       ? Icons.Material.Filled.Deselect
-                                                   : Icons.Material.Filled.SelectAll)"
-                                   Edge="Edge.Start"
-                                   Color="Color.Primary"
-                                   Size="Size.Medium"
-                                   OnClick="@(() => ToggleGlobalSelection())" />
-                </MudTooltip>
-
-                <MudText Typo="Typo.body2" Class="ml-2 font-weight-medium">
-                    @BulkSelectionText
-                </MudText>
-
-            </div>
-
-
-            <!-- DERECHA: Acciones -->
-            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-
-               <MudTooltip Text="Exportar PDF" Arrow="true">
-                    <MudIconButton OnClick="@(() => ExportPdf())"
-                                   Icon="@Icons.Custom.FileFormats.FilePdf"
-                                   Color="Color.Default"
-                                   Size="Size.Medium"
-                                   aria-label="PDF"
-                                   Variant="Variant.Text" />
-                </MudTooltip>
-
-                <MudTooltip Text="Exportar Excel" Arrow="true">
-                    <MudIconButton OnClick="@(() => ExportExcel())"
-                                   Icon="@Icons.Custom.FileFormats.FileExcel"
-                                   Color="Color.Default"
-                                   Size="Size.Medium"
-                                   aria-label="Excel" />
-                </MudTooltip>
-
-                <MudTooltip Text="Eliminar seleccionados" Arrow="true">
-                    <MudIconButton OnClick="@(() => DeleteSelected())"
-                                   Icon="@Icons.Material.Rounded.DeleteForever"
-                                   Color="Color.Error"
-                                   Size="Size.Medium"
-                                   Edge="Edge.End"
-                                   aria-label="Eliminar" />
-                </MudTooltip>
-
+                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                    <MudTooltip Text="Ver reporte pdf" Arrow="true" Placement="Placement.Top">
+                        <MudIconButton OnClick="ViewPdf" Icon="@Icons.Custom.FileFormats.FilePdf" />
+                    </MudTooltip>
+                    <MudTooltip Text="Descargar reportes" Arrow="true" Placement="Placement.Top">
+                        <MudMenu Icon="@Icons.Material.Outlined.SaveAlt" Dense="true" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                            <MudMenuItem label="Descargar PDF" Icon="@Icons.Custom.FileFormats.FilePdf" OnClick="DownloadPdf" />
+                            <MudDivider />
+                            <MudMenuItem label="Descargar Excel" Icon="@Icons.Custom.FileFormats.FileExcel" OnClick="ExportExcel" />
+                        </MudMenu>
+                    </MudTooltip>
+                    <MudTooltip Text="Eliminar registros seleccionados" Arrow="true" Placement="Placement.Top">
+                        <MudIconButton OnClick="@(() => DeleteSelected())" Icon="@Icons.Material.Outlined.DeleteForever" Color="Color.Error" Edge="Edge.End" />
+                    </MudTooltip>
+                </MudStack>
             </MudStack>
-
         </MudPaper>
     </MudCollapse>
 
+    <!-- TABLA PRINCIPAL -->
+    <MudTable T="OrganismDto" ServerData="ServerReload" @ref="TableRef" Hover="true" Dense="true" MultiSelection="true" @bind-SelectedItems="SelectedItems" SelectOnRowClick="true" Loading="@IsLoadingTable" HorizontalScrollbar="true" Elevation="0" Outlined="true">
+        
+        <ToolBarContent>
+            <!-- Contador de registros con tooltip Top -->
+            @if (_totalFilteredCount > 0)
+            {
+                <MudTooltip Text="Numero de registros en tabla" Arrow="true" Placement="Placement.Top">
+                    <MudBadge Content="@_totalFilteredCount.ToString()" Color="Color.Primary" Overlap="true">
+                        <MudIcon Icon="@Icons.Material.Rounded.TableRows" Size="Size.Medium" />
+                    </MudBadge>
+                </MudTooltip>
+            }
 
-
-    <!-- ============================================================
-         TABLA PRINCIPAL (Respira, se ve limpia)
-     ============================================================ -->
-    <MudTable T="OrganismDto"
-              ServerData="ServerReload"
-              @ref="TableRef"
-              Hover="true"
-              Striped="true"
-              Dense="true"
-              MultiSelection="true"
-              @bind-SelectedItems="SelectedItems"
-              SelectOnRowClick="true"
-              Loading="@IsLoadingTable"
-              HorizontalScrollbar="true" Elevation="0" Outlined="true">
-
+            <MudSpacer />
+            <MudTextField T="string"
+                          Variant="Variant.Text"
+                          Margin="Margin.Dense"
+                          Class="flex-grow-1"
+                          Value="@SearchText"
+                          ValueChanged="OnSearchInput"
+                          Immediate="true"
+                          Clearable="true"
+                          Placeholder="Buscar por valores de la tabla..."
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Rounded.Search" />
+        </ToolBarContent>
 
         <HeaderContent>
-            <MudTh><MudTableSortLabel T="OrganismDto" SortLabel="Code">Codigo</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="OrganismDto" SortLabel="Code">Código</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="OrganismDto" SortLabel="ShortName">Abreviatura</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="OrganismDto" SortLabel="Name">Nombre</MudTableSortLabel></MudTh>
-         
             <MudTh Style="width: 120px; text-align:end">Acciones</MudTh>
         </HeaderContent>
-
+        
         <RowTemplate Context="organism">
             <MudTd>@organism.Code</MudTd>
             <MudTd>@organism.ShortName</MudTd>
             <MudTd>@organism.Name</MudTd>
             <MudTd Style="width: 120px; text-align:end">
-                    <MudIconButton Icon="@Icons.Material.Rounded.Visibility" OnClick="@(() => Vieworganism(organism))" Size="Size.Small" /> 
-                    <MudIconButton Icon="@Icons.Material.Rounded.Edit" OnClick="@(() => Editorganism(organism))" Size="Size.Small" />
-                    <MudIconButton Icon="@Icons.Material.Rounded.Delete" Color="Color.Error" OnClick="@(() => Deleteorganism(organism))" Size="Size.Small" />
-                
+                <MudTooltip Text="Visualizar registro seleccionado" Arrow="true" Placement="Placement.Left">
+                    <MudIconButton Icon="@Icons.Material.Rounded.Visibility" OnClick="@(() => ViewOrganism(organism))" Size="Size.Small" />
+                </MudTooltip>
+                <MudTooltip Text="Editar registro seleccionado" Arrow="true" Placement="Placement.Left">
+                    <MudIconButton Icon="@Icons.Material.Rounded.Edit" OnClick="@(() => EditOrganism(organism))" Size="Size.Small" />
+                </MudTooltip>
+                <MudTooltip Text="Eliminar registro seleccionado" Arrow="true" Placement="Placement.Left">
+                    <MudIconButton Icon="@Icons.Material.Rounded.Delete" Color="Color.Error" Variant="Variant.Text" OnClick="@(() => DeleteOrganism(organism))" Size="Size.Small" />
+                </MudTooltip>
             </MudTd>
         </RowTemplate>
-
+        
         <NoRecordsContent>
-            <MudText Typo="Typo.body2" Class="pa-4 text-center">
-                No se encontraron datos para mostrar.
-            </MudText>
+            <MudText Typo="Typo.body2" Class="pa-4 text-center">No se encontraron datos para mostrar.</MudText>
         </NoRecordsContent>
-
+        
         <PagerContent>
-            <MudTablePager PageSizeOptions="new int[] { 5, 10, 15, 20, 50, 100, int.MaxValue }"
-                           RowsPerPageString="Registros por página:"
-                           InfoFormat="{first_item}-{last_item} de {all_items}"
-                           AllItemsText="Todos"
-                           HorizontalAlignment="HorizontalAlignment.Right" />
-
-
+            <MudTablePager PageSizeOptions="new int[] { 5, 10, 15, 20, 50, 100, int.MaxValue }" RowsPerPageString="Registros por página:" InfoFormat="{first_item}-{last_item} de {all_items}" AllItemsText="Todos" HorizontalAlignment="HorizontalAlignment.Right" />
         </PagerContent>
-
-
     </MudTable>
 
 </MudContainer>
-
-
 
 @code {
     // ============================================================
     // DEPENDENCIAS
     // ============================================================
-    [Inject] public IOrganismService OrganismService { get; set; } = default!;
+    [Inject] private IOrganismService OrganismService { get; set; } = default!;
     [Inject] private NavigationManager NavManager { get; set; } = default!;
     [Inject] private IConfiguration Config { get; set; } = default!;
     [Inject] private IDialogService DialogService { get; set; } = default!;
     [Inject] private IAlertService AlertService { get; set; } = default!;
     [Inject] private ILogger<OrganismIndex> Logger { get; set; } = default!;
-    [Inject] IJSRuntime JS { get; set; } = default!;
+    [Inject] private IJSRuntime JS { get; set; } = default!;
 
     // ============================================================
     // ESTADO GENERAL
@@ -214,14 +159,12 @@
     private int _totalFilteredCount = 0;
 
     private string SearchText = string.Empty;
-    private string StatusFilterValue = "Todos";
 
     private IReadOnlyList<OrganismDto> LastPageItems = Array.Empty<OrganismDto>();
 
     private CancellationTokenSource? _searchDebounceCts;
     private CancellationTokenSource? _serverReloadCts;
 
-   
     protected override Task OnInitializedAsync()
     {
         IsInitializingPage = false;
@@ -272,22 +215,20 @@
             ? "Code"
             : state.SortLabel;
 
-        var desc = state.SortDirection == SortDirection.Descending;
-
-        // Si el usuario seleccionó "Todas"
-        var pageSize = state.PageSize == int.MaxValue
-              ? Math.Max(_totalFilteredCount, 1)
-              : state.PageSize;
+        var desc = state.SortDirection switch
+        {
+            SortDirection.Descending => true,
+            _ => false
+        };
 
         return new OrganismQueryDto
         {
             Page = state.Page + 1,
-            Size = pageSize,
+            Size = state.PageSize,
             Sort = sortLabel,
             Desc = desc,
-            Search = string.IsNullOrWhiteSpace(SearchText) ? null : SearchText,
+            Search = string.IsNullOrWhiteSpace(SearchText) ? null : SearchText
         };
-        
     }
 
     // ============================================================
@@ -315,15 +256,6 @@
     }
 
     // ============================================================
-    // FILTRO DE ESTADO
-    // ============================================================
-    private async Task OnStatusFilterChanged(string value)
-    {
-        StatusFilterValue = value;
-        if (TableRef != null) await TableRef.ReloadServerData();
-    }
-
-    // ============================================================
     // CRUD: MODALES
     // ============================================================
     private async Task OpenAddModal()
@@ -331,7 +263,7 @@
         var parameters = new DialogParameters
         {
             ["CurrentMode"] = OrganismModal.ModalMode.Add,
-            ["organism"] = null
+            ["Organism"] = null
         };
 
         var options = new DialogOptions
@@ -351,12 +283,12 @@
             await TableRef.ReloadServerData();
     }
 
-    private async Task Editorganism(OrganismDto organism)
+    private async Task EditOrganism(OrganismDto organism)
     {
         var parameters = new DialogParameters
         {
             ["CurrentMode"] = OrganismModal.ModalMode.Edit,
-            ["organism"] = organism
+            ["Organism"] = organism
         };
 
         var options = new DialogOptions
@@ -376,12 +308,12 @@
             await TableRef.ReloadServerData();
     }
 
-    private async Task Vieworganism(OrganismDto organism)
+    private async Task ViewOrganism(OrganismDto organism)
     {
         var parameters = new DialogParameters
         {
             ["CurrentMode"] = OrganismModal.ModalMode.View,
-            ["organism"] = organism
+            ["Organism"] = organism
         };
 
         var options = new DialogOptions
@@ -395,16 +327,16 @@
         await DialogService.ShowAsync<OrganismModal>(
             "Detalle Organismo", parameters, options);
     }
-    
+
     // ============================================================
     // CRUD: ELIMINAR INDIVIDUAL
     // ============================================================
-    private async Task Deleteorganism(OrganismDto dto)
+    private async Task DeleteOrganism(OrganismDto organism)
     {
         var confirmed = await ConfirmDialog.Show(
             DialogService,
             "¿Está seguro de que desea eliminar este registro?",
-            $"¿Eliminar {dto.ShortName}?",
+            $"¿Eliminar {organism.ShortName}?",
             type: "Delete",
             confirmText: "Eliminar",
             centerMessage: true
@@ -413,12 +345,11 @@
         if (!confirmed)
             return;
 
-        var response = await OrganismService.DeleteAsync(dto.Id);
+        var response = await OrganismService.DeleteAsync(organism.Id);
 
-        // ÉXITO
         if (response.Result == ResponseStatus.Success)
         {
-            SelectedItems.RemoveWhere(c => c.Id == dto.Id);
+            SelectedItems.RemoveWhere(c => c.Id == organism.Id);
 
             if (TableRef != null)
                 await TableRef.ReloadServerData();
@@ -427,33 +358,23 @@
             return;
         }
 
-        // RESTRICCIONES (misma lógica que el batch-delete)
+        // Manejo de restricciones de FK (igual que en Companies)
         if (response.ValidationErrors != null &&
             response.ValidationErrors.TryGetValue("Restricciones", out var ids))
         {
             await AlertService.ShowWarning(
                 "Borrado no completado",
-                "Este registro tiene dependencias asociadas. " +
-                "La acción de borrado no se realizó."
+                "Este registro tiene dependencias asociadas. La acción de borrado no se realizó."
             );
             return;
         }
 
-        // ERROR GENÉRICO
         await AlertService.ShowError("Error", response.ErrorMessage ?? "No se pudo eliminar.");
     }
-
 
     // ============================================================
     // SELECCIÓN
     // ============================================================
-    private void SelectAllVisible()
-    {
-        SelectedItems.Clear();
-        foreach (var item in LastPageItems)
-            SelectedItems.Add(item);
-    }
-
     private void ToggleGlobalSelection()
     {
         IsGlobalSelected = !IsGlobalSelected;
@@ -465,30 +386,23 @@
                 SelectedItems.Add(item);
         }
     }
-        
-    /// <summary>
-    /// Texto dinámico para mostrar la selección:
-    /// - Local: cuántos elementos en SelectedItems.
-    /// - Global: cuántos registros en el filtro.
-    /// - Ninguno: mensaje claro.
-    /// </summary>
+
     private string BulkSelectionText =>
         IsGlobalSelected
-            ? $"Selección global: {_totalFilteredCount}registro{(SelectedItems.Count == 1 ? "" : "s")} seleccionado{(SelectedItems.Count == 1 ? "" : "s")} del resultado actual"
+            ? $"Selección global: {_totalFilteredCount} registro{(SelectedItems.Count == 1 ? "" : "s")} seleccionado{(SelectedItems.Count == 1 ? "" : "s")} del resultado actual"
             : $"{SelectedItems.Count} registro{(SelectedItems.Count == 1 ? "" : "s")} seleccionado{(SelectedItems.Count == 1 ? "" : "s")} del resultado actual";
 
     // ============================================================
-    // ACCIONES MASIVAS
+    // ACCIONES MASIVAS (PDF, EXCEL, ELIMINAR)
     // ============================================================
     private async Task DeleteSelected()
     {
-        // Confirmación previa
         var confirmed = await ConfirmDialog.Show(
             DialogService,
             "¿Desea eliminar los registros seleccionados?",
             IsGlobalSelected
                 ? $"¿Eliminar todos los {_totalFilteredCount} registros del filtro?"
-                : $"¿Eliminar {SelectedItems.Count} registro{(SelectedItems.Count == 1 ? "" : "s")} seleccionado{(SelectedItems.Count == 1 ? "" : "s")}?",
+                : $"¿Eliminar {SelectedItems.Count} registro(s) seleccionados?",
             type: "Delete",
             confirmText: "Eliminar",
             centerMessage: true
@@ -501,19 +415,14 @@
 
         try
         {
-            // Construcción de la solicitud
             var request = new BulkSelectionRequest
             {
                 SelectAll = IsGlobalSelected,
-                Ids = IsGlobalSelected
-                    ? new List<int>()
-                    : SelectedItems.Select(x => x.Id).ToList()
+                Ids = IsGlobalSelected ? new List<int>() : SelectedItems.Select(x => x.Id).ToList()
             };
 
-            // Llamada al servicio
             var response = await OrganismService.DeleteBatchAsync(request);
 
-            // Éxito
             if (response.Result == ResponseStatus.Success)
             {
                 SelectedItems.Clear();
@@ -526,21 +435,15 @@
                 return;
             }
 
-            // Error con IDs bloqueados
             if (response.ValidationErrors != null && response.ValidationErrors.TryGetValue("Restricciones", out var ids))
             {
                 await AlertService.ShowWarning(
                     "Borrado no completado",
-                    $"{ids.Length} registro(s) tienen dependencias asociadas. " +
-                    "El borrado masivo no se realizó y todos los cambios fueron revertidos."
+                    $"{ids.Length} registro(s) tienen dependencias asociadas. El borrado masivo no se realizó y todos los cambios fueron revertidos."
                 );
-
                 return;
             }
 
-
-
-            // Error genérico
             await AlertService.ShowError("Error", response.ErrorMessage ?? "No se pudo eliminar.");
         }
         finally
@@ -549,24 +452,52 @@
         }
     }
 
-  
-    private async Task ExportPdf()
+    private async Task ViewPdf()
     {
-        var request = new BulkSelectionRequest
+        try
         {
-            SelectAll = IsGlobalSelected,
-            Ids = IsGlobalSelected ? new List<int>() : SelectedItems.Select(x => x.Id).ToList()
-        };
+            var request = new BulkSelectionRequest
+            {
+                SelectAll = IsGlobalSelected,
+                Ids = IsGlobalSelected ? new List<int>() : SelectedItems.Select(x => x.Id).ToList()
+            };
 
-        var response = await OrganismService.ExportPdfAsync(request);
-        if (response.IsSuccessStatusCode)
-        {
+            var response = await OrganismService.ExportPdfAsync(request);
+            response.EnsureSuccessStatusCode();
+
             var bytes = await response.Content.ReadAsByteArrayAsync();
-            await JS.InvokeVoidAsync("openPdfBlob", bytes);
+            var fileName = response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? "Listado_Organismos.pdf";
+
+            await JS.InvokeVoidAsync("openPdfBlob", bytes, fileName);
         }
-        else
+        catch (Exception)
         {
-            await AlertService.ShowError("Error", "No se pudo generar el PDF.");
+            await AlertService.ShowError("Error", "Ocurrió un error al generar el PDF.");
+        }
+    }
+
+    private async Task DownloadPdf()
+    {
+        try
+        {
+            var request = new BulkSelectionRequest
+            {
+                SelectAll = IsGlobalSelected,
+                Ids = IsGlobalSelected ? new List<int>() : SelectedItems.Select(x => x.Id).ToList()
+            };
+
+            var response = await OrganismService.ExportPdfAsync(request);
+            response.EnsureSuccessStatusCode();
+
+            var bytes = await response.Content.ReadAsByteArrayAsync();
+            var fileName = response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? "Listado_Organismos.pdf";
+
+            await JS.InvokeVoidAsync("downloadBlob", bytes, fileName, "application/pdf");
+            await AlertService.ShowSuccess("Éxito", $"PDF '{fileName}' descargado correctamente.");
+        }
+        catch (Exception)
+        {
+            await AlertService.ShowError("Error", "Ocurrió un error al generar el PDF.");
         }
     }
 
@@ -582,9 +513,10 @@
         if (response.IsSuccessStatusCode)
         {
             var bytes = await response.Content.ReadAsByteArrayAsync();
-            await JS.InvokeVoidAsync("downloadFile", "CompaniesReport.xlsx",
+            await JS.InvokeVoidAsync("downloadFile", "OrganismosReport.xlsx",
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 Convert.ToBase64String(bytes));
+            await AlertService.ShowSuccess("Éxito", "Reporte Excel descargado correctamente.");
         }
         else
         {
@@ -612,5 +544,3 @@
         public int GetHashCode(OrganismDto obj) => obj.Id.GetHashCode();
     }
 }
-
-    

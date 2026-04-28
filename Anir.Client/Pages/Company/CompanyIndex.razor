@@ -23,7 +23,7 @@
             
                 <MudStack AlignItems="AlignItems.Start" Spacing="0">
                     <MudText Typo="Typo.h6" Class="font-weight-medium">Directorio de Empresas</MudText>
-                    <MudText Typo="Typo.caption">Gestione las empresas</MudText>
+                    <MudText Typo="Typo.caption">Gestione las empresas: búsqueda, filtros y acciones masivas</MudText>
                 </MudStack>
             </MudStack>
         
@@ -41,7 +41,7 @@
         <MudPaper Outlined="true" Elevation="0" Class="px-4 py-3 mb-3">
             <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                    <MudTooltip Text="@(IsGlobalSelected ? "Cancelar selección global" : "Seleccionar global")" Arrow="true">
+                    <MudTooltip Text="@(IsGlobalSelected ? "Cancelar selección global" : "Seleccionar global")" Arrow="true" Placement="Placement.Top">
                         <MudIconButton Icon="@(IsGlobalSelected ? Icons.Material.Filled.Deselect : Icons.Material.Filled.SelectAll)"
                                        Size="Size.Medium" Edge="Edge.Start"
                                        OnClick="@(() => ToggleGlobalSelection())" />
@@ -50,16 +50,19 @@
                 </MudStack>
 
                 <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-                    <MudIconButton OnClick="ViewPdf" Icon="@Icons.Custom.FileFormats.FilePdf"/>
-                    
+                    <MudTooltip Text="Ver reporte pdf" Arrow="true" Placement="Placement.Top">
+                        <MudIconButton OnClick="ViewPdf" Icon="@Icons.Custom.FileFormats.FilePdf"/>
+                    </MudTooltip>
+                    <MudTooltip Text="Descargar reportes" Arrow="true" Placement="Placement.Top">
                         <MudMenu Icon="@Icons.Material.Outlined.SaveAlt" Dense="true" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
                             <MudMenuItem label="Descargar PDF" Icon="@Icons.Custom.FileFormats.FilePdf" OnClick="DownloadPdf" />
                             <MudDivider />
                             <MudMenuItem label="Descargar Excel" Icon="@Icons.Custom.FileFormats.FileExcel" OnClick="ExportExcel" />
                         </MudMenu>
-                    
-                    <MudIconButton OnClick="@(() => DeleteSelected())" Icon="@Icons.Material.Outlined.DeleteForever" Color="Color.Error" Edge="Edge.End"/>
-                    
+                    </MudTooltip>
+                    <MudTooltip Text="Eliminar registros seleccionados" Arrow="true" Placement="Placement.Top">
+                        <MudIconButton OnClick="@(() => DeleteSelected())" Icon="@Icons.Material.Outlined.DeleteForever" Color="Color.Error" Edge="Edge.End"/>
+                    </MudTooltip>
                 </MudStack>
             </MudStack>
         </MudPaper>
@@ -73,9 +76,11 @@
             <!-- IZQUIERDA: Contador tipo Chip (Amigable y estructurado visualmente) -->
             @if (_totalFilteredCount > 0)
             {
-                <MudBadge Content="@_totalFilteredCount.ToString()" Color="Color.Primary" Overlap="true">
-                    <MudIcon Icon="@Icons.Material.Rounded.TableRows" Size="Size.Medium" />
-                </MudBadge>
+                <MudTooltip Text="Numero de registros en tabla" Arrow="true" Placement="Placement.Top">
+                    <MudBadge Content="@_totalFilteredCount.ToString()" Color="Color.Primary" Overlap="true">
+                        <MudIcon Icon="@Icons.Material.Rounded.TableRows" Size="Size.Medium" />
+                    </MudBadge>
+                </MudTooltip>
             }
 
             <MudSpacer />
@@ -122,9 +127,15 @@
                 </MudChip>
             </MudTd>
             <MudTd Style="width: 120px; text-align:end">
-                <MudIconButton Icon="@Icons.Material.Rounded.Visibility" OnClick="@(() => ViewCompany(company))" Size="Size.Small" />
-                <MudIconButton Icon="@Icons.Material.Rounded.Edit" OnClick="@(() => EditCompany(company))" Size="Size.Small" />
-                <MudIconButton Icon="@Icons.Material.Rounded.Delete" Color="Color.Error" Variant="Variant.Text" OnClick="@(() => DeleteCompany(company))" Size="Size.Small" />
+                <MudTooltip Text="Visualizar registro seleccionado" Arrow="true" Placement="Placement.Left">
+                    <MudIconButton Icon="@Icons.Material.Rounded.Visibility" OnClick="@(() => ViewCompany(company))" Size="Size.Small" />
+                </MudTooltip>
+                <MudTooltip Text="Editar registro seleccionado" Arrow="true" Placement="Placement.Left">
+                    <MudIconButton Icon="@Icons.Material.Rounded.Edit" OnClick="@(() => EditCompany(company))" Size="Size.Small" />
+                </MudTooltip>
+                <MudTooltip Text="Eliminar registro seleccionado" Arrow="true" Placement="Placement.Left">
+                    <MudIconButton Icon="@Icons.Material.Rounded.Delete" Color="Color.Error" Variant="Variant.Text" OnClick="@(() => DeleteCompany(company))" Size="Size.Small" />
+                </MudTooltip>
             </MudTd>
         </RowTemplate>
         

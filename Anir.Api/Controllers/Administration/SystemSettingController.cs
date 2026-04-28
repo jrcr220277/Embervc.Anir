@@ -6,6 +6,7 @@ using Anir.Shared.Contracts.Common;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
+
 namespace Anir.Api.Controllers.Administration;
 
 [ApiController]
@@ -86,10 +87,7 @@ public class SystemSettingController : ControllerBase
         MaxBackupFiles = entity.MaxBackupFiles,
         LastUpdated = entity.LastUpdated,
         ScheduledTime = entity.ScheduledTime,
-
-        // ============================================================
-        // ¡ESTAS DOS LÍNEAS ERAN LAS QUE FALTABAN!
-        // ============================================================
+             
         AutoBackupEnabled = entity.AutoBackupEnabled,
         AutoMaintenanceEnabled = entity.AutoMaintenanceEnabled
     };

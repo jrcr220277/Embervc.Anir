@@ -1,6 +1,10 @@
 ﻿@page "/system/settings"
 @attribute [Authorize]
 
+@using Microsoft.AspNetCore.Components.Routing
+@inject NavigationManager Navigation
+
+
 @using Anir.Shared.Contracts.Common
 @inject SystemSettingService SettingService
 @inject MaintenanceService MaintenanceService
@@ -67,7 +71,12 @@
                     <ChildContent>
                         <MudGrid Spacing="3">
                             <MudItem xs="12" Class="d-flex justify-center">
-                                <PhotoUploader Value="@(_formModel.ImageFile?.Url)" IsProfile="false" PixelSize="120" OnUploaded="HandleImageUploaded" />
+                                <PhotoUploader Value="@(_formModel.ImageFile?.Url)"
+                                               IsProfile="false"
+                                               PixelSize="150"
+                                               Folder="images/systemsettings"
+                                               OnUploaded="HandleImageUploaded"
+                                               Disabled="@_isDirty" />   <!-- esto evita que suba otra mientras el formulario está sucio -->
                             </MudItem>
                             <MudItem xs="12" md="6">
                                 <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.ShortName)" For="@(() => _formModel.ShortName)" @bind-Value="_formModel.ShortName" Variant="Variant.Outlined" Margin="Margin.Dense" />
@@ -315,6 +324,7 @@
         
     </EditForm>
 
+    <NavigationLock OnBeforeInternalNavigation="OnBeforeInternalNavigation" />
 </MudContainer>
 
 @code {
@@ -427,6 +437,8 @@
         _isDirty = false;
         _editContext?.NotifyValidationStateChanged();
     }
+
+
 
     private async Task HandleSaveAsync()
     {
@@ -660,4 +672,23 @@
         AutoMaintenanceEnabled = src.AutoMaintenanceEnabled,
         ScheduledTime = src.ScheduledTime
     };
+
+    private async Task OnBeforeInternalNavigation(LocationChangingContext context)
+    {
+        if (_isDirty && !_isSaving)
+        {
+            var confirmed = await ConfirmDialog.Show(
+                DialogService,
+                "Cambios sin guardar",
+                "Tienes cambios pendientes. ¿Deseas abandonar esta página sin guardar?",
+                type: "warning",
+                confirmText: "Sí, salir",
+                cancelText: "Quedarme");
+        
+            if (!confirmed)
+            {
+                context.PreventNavigation();
+            }
+        }
+    }
 }

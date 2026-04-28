@@ -2,7 +2,6 @@
 @page "/anirworks/edit/{Id:int}"
 @page "/anirworks/view/{Id:int}"
 
-@using Anir.Client.Pages.AnirWork
 @using Anir.Client.Services.Ueb
 @using Anir.Shared.Contracts.Uebs
 @using Anir.Shared.Enums
@@ -50,9 +49,7 @@
             
             <MudStack Spacing="3">
                 
-                <!-- ============================================================ -->
-                <!-- SECCIÓN 1: DATOS GENERALES Y MULTIMEDIA (Ficha Técnica) -->
-                <!-- ============================================================ -->
+                <!-- SECCIÓN 1: DATOS GENERALES Y MULTIMEDIA -->
                 <MudPaper Elevation="0" Outlined="true" Class="pa-4">
                     <div class="d-flex align-center mb-3">
                         <MudIcon Icon="@Icons.Material.Outlined.Info" Class="mr-2" Color="Color.Primary" />
@@ -61,7 +58,7 @@
                     
                     <MudGrid Spacing="4" AlignItems="AlignItems.Start">
                         
-                        <!-- COLUMNA IZQUIERDA: ARCHIVOS (Ocupa 1/3) -->
+                        <!-- COLUMNA IZQUIERDA: ARCHIVOS -->
                         <MudItem xs="12" md="4">
                             <MudStack Spacing="3">
                                 <div class="d-flex justify-center">
@@ -74,7 +71,7 @@
                             </MudStack>
                         </MudItem>
 
-                        <!-- COLUMNA DERECHA: CAMPOS DE TEXTO (Ocupa 2/3) -->
+                        <!-- COLUMNA DERECHA: CAMPOS DE TEXTO -->
                         <MudItem xs="12" md="8">
                             <MudGrid Spacing="2">
                                 <MudItem xs="12" md="6">
@@ -113,9 +110,7 @@
                     </MudGrid>
                 </MudPaper>
 
-                <!-- ============================================================ -->
-                <!-- SECCIÓN 2: TÉCNICO Y EVALUACIÓN (Split 50/50) -->
-                <!-- ============================================================ -->
+                <!-- SECCIÓN 2: TÉCNICO Y EVALUACIÓN -->
                 <MudPaper Elevation="0" Outlined="true" Class="pa-4">
                     <MudGrid Spacing="4">
                         
@@ -177,9 +172,7 @@
                     </MudGrid>
                 </MudPaper>
 
-                <!-- ============================================================ -->
-                <!-- SECCIÓN 3: RELACIONES (Tabs limpios) -->
-                <!-- ============================================================ -->
+                <!-- SECCIÓN 3: RELACIONES -->
                 <MudPaper Elevation="0" Outlined="true" Class="pa-4">
                     <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true">
                         <MudTabPanel Text="Personas" Icon="@Icons.Material.Outlined.Group">
@@ -207,7 +200,7 @@
                     </MudButton>
                     @if (!IsViewMode)
                     {
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit" Disabled="_isSaving" Size="Size.Large">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit" Disabled="_isSaving || !AllCompanies.Any()" Size="Size.Large">
                             @if (_isSaving)
                             {
                                 <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
@@ -227,13 +220,12 @@
     }
 </MudContainer>
 
-    @code {
+@code {
     [Inject] private ICompanyService CompanyService { get; set; } = default!;
     [Inject] private IUebService UebService { get; set; } = default!;
     [Inject] private IAnirWorkService WorkService { get; set; } = default!;
     [Inject] private IAlertService AlertService { get; set; } = default!;
-    [Inject]
-    private NavigationManager Nav { get; set; } = default!;
+    [Inject] private NavigationManager Nav { get; set; } = default!;
 
     [Parameter] public int? Id { get; set; }
 
@@ -249,9 +241,12 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Usamos CancellationToken.None por simplicidad, pero se podría propagar
         var companyResponse = await CompanyService.GetPagedAsync(new CompanyQueryDto { Page = 1, Size = 9999, Sort = "Name" });
-        if (companyResponse.Result == ResponseStatus.Success) AllCompanies = companyResponse.Value!.Items.ToList();
-        else await AlertService.ShowError("Error", "No se pudieron cargar las empresas.");
+        if (companyResponse.Result == ResponseStatus.Success && companyResponse.Value != null)
+            AllCompanies = companyResponse.Value.Items.ToList();
+        else
+            await AlertService.ShowError("Error", "No se pudieron cargar las empresas. No se puede continuar.");
 
         if (Id is null)
         {
@@ -263,7 +258,8 @@
             if (response?.Result == ResponseStatus.Success)
             {
                 _formModel = response.Value!;
-                if (_formModel.CompanyId != 0) FilteredUebs = await UebService.GetByCompanyIdAsync(_formModel.CompanyId) ?? new();
+                if (_formModel.CompanyId != 0)
+                    FilteredUebs = await UebService.GetByCompanyIdAsync(_formModel.CompanyId) ?? new();
             }
             else
             {
@@ -275,11 +271,26 @@
         IsInitializingPage = false;
     }
 
-    private Task HandleImageUploaded(FileResponse? file) { _formModel.ImageFile = file; return Task.CompletedTask; }
-    private Task HandlePdfUploaded(FileResponse? file) { _formModel.PdfFile = file; return Task.CompletedTask; }
+    private Task HandleImageUploaded(FileResponse? file)
+    {
+        _formModel.ImageFile = file;
+        return Task.CompletedTask;
+    }
+    
+    private Task HandlePdfUploaded(FileResponse? file)
+    {
+        _formModel.PdfFile = file;
+        return Task.CompletedTask;
+    }
 
     private async Task Save()
     {
+        if (!AllCompanies.Any())
+        {
+            await AlertService.ShowError("Error", "No hay empresas cargadas. Recargue la página.");
+            return;
+        }
+
         _isSaving = true;
         try
         {
@@ -289,9 +300,15 @@
                 await AlertService.ShowSuccess("Éxito", Id is null ? "Trabajo creado correctamente." : "Trabajo actualizado correctamente.");
                 Nav.NavigateTo("/anirworks");
             }
-            else await AlertService.ShowError("Error", res?.ErrorMessage ?? res?.PrettyMessage ?? "Error al guardar.");
+            else
+            {
+                await AlertService.ShowError("Error", res?.ErrorMessage ?? res?.PrettyMessage ?? "Error al guardar.");
+            }
         }
-        finally { _isSaving = false; }
+        finally
+        {
+            _isSaving = false;
+        }
     }
 
     private async Task OnCompanyChanged(int companyId)
@@ -302,9 +319,18 @@
         if (companyId > 0)
         {
             _isLoadingUebs = true;
-            try { FilteredUebs = await UebService.GetByCompanyIdAsync(companyId) ?? new(); }
-            catch { await AlertService.ShowError("Error", "No se pudieron cargar las UEBs."); }
-            finally { _isLoadingUebs = false; }
+            try
+            {
+                FilteredUebs = await UebService.GetByCompanyIdAsync(companyId) ?? new();
+            }
+            catch
+            {
+                await AlertService.ShowError("Error", "No se pudieron cargar las UEBs.");
+            }
+            finally
+            {
+                _isLoadingUebs = false;
+            }
         }
     }
 
