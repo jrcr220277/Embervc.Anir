@@ -14,7 +14,17 @@ namespace Anir.Data.Entities
         public string FullName { get; set; } = null!;
         public string? CellPhone { get; set; }
         public string? Email { get; set; }
-        public PersonAffiliation Affiliation { get; set; } = PersonAffiliation.ANIR;
+        
+        // ═══════════════════════════════════════════════════════════
+        // CAMPOS ENUM
+        // ═══════════════════════════════════════════════════════════
+        public SchoolLevel? SchoolLevel { get; set; }
+        public Sex? Sex { get; set; }
+        public Affiliation? Affiliation { get; set; } 
+        public ExecutiveRole? ExecutiveRole { get; set; }
+        public Militancy? Militancy { get; set; }
+        // ═══════════════════════════════════════════════════════════
+
         public string? Description { get; set; }
         public bool Active { get; set; } = true;
 

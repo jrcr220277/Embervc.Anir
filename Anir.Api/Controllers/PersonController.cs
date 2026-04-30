@@ -62,6 +62,16 @@ public class PersonController : ControllerBase
         entity.CellPhone = dto.CellPhone;
         entity.Email = dto.Email;
         entity.Affiliation = dto.Affiliation;
+
+        // ═══════════════════════════════════════════════════════════
+        // NUEVOS CAMPOS ENUM - Mapeo
+        // ═══════════════════════════════════════════════════════════
+        entity.SchoolLevel = dto.SchoolLevel;
+        entity.Sex = dto.Sex;
+        entity.ExecutiveRole = dto.ExecutiveRole;
+        entity.Militancy = dto.Militancy;
+        // ═══════════════════════════════════════════════════════════
+
         entity.Description = dto.Description;
         entity.Active = dto.Active;
     }
@@ -75,6 +85,16 @@ public class PersonController : ControllerBase
         CellPhone = entity.CellPhone,
         Email = entity.Email,
         Affiliation = entity.Affiliation,
+
+        // ═══════════════════════════════════════════════════════════
+        // NUEVOS CAMPOS ENUM - Mapeo
+        // ═══════════════════════════════════════════════════════════
+        SchoolLevel = entity.SchoolLevel,
+        Sex = entity.Sex,
+        ExecutiveRole = entity.ExecutiveRole,
+        Militancy = entity.Militancy,
+        // ═══════════════════════════════════════════════════════════
+
         Description = entity.Description,
         Active = entity.Active
     };
@@ -112,8 +132,8 @@ public class PersonController : ControllerBase
     // ============================================================
     [HttpPost("getpaged")]
     public async Task<ActionResult<ProcessResponse<PagedResponse<PersonDto>>>> GetPaged(
- [FromBody] PersonQueryDto queryDto,
- CancellationToken ct = default)
+        [FromBody] PersonQueryDto queryDto,
+        CancellationToken ct = default)
     {
         if (!ModelState.IsValid)
             return BadRequest(ProcessResponse<PagedResponse<PersonDto>>.Fail("Datos inválidos."));
@@ -127,10 +147,30 @@ public class PersonController : ControllerBase
         {
             var searchTerm = queryDto.Search.Trim();
 
-            if (Enum.TryParse<PersonAffiliation>(searchTerm, true, out var affiliation))
+            if (Enum.TryParse<Affiliation>(searchTerm, true, out var affiliation))
             {
                 query = query.Where(x => x.Affiliation == affiliation);
             }
+            // ═══════════════════════════════════════════════════════════
+            // NUEVOS CAMPOS ENUM - Búsqueda
+            // ═══════════════════════════════════════════════════════════
+            else if (Enum.TryParse<SchoolLevel>(searchTerm, true, out var schoolLevel))
+            {
+                query = query.Where(x => x.SchoolLevel == schoolLevel);
+            }
+            else if (Enum.TryParse<Sex>(searchTerm, true, out var sex))
+            {
+                query = query.Where(x => x.Sex == sex);
+            }
+            else if (Enum.TryParse<ExecutiveRole>(searchTerm, true, out var executiveRole))
+            {
+                query = query.Where(x => x.ExecutiveRole == executiveRole);
+            }
+            else if (Enum.TryParse<Militancy>(searchTerm, true, out var militancy))
+            {
+                query = query.Where(x => x.Militancy == militancy);
+            }
+            // ═══════════════════════════════════════════════════════════
             else
             {
                 query = query.Where(x =>
@@ -155,6 +195,16 @@ public class PersonController : ControllerBase
             CellPhone = x.CellPhone,
             Email = x.Email,
             Affiliation = x.Affiliation,
+
+            // ═══════════════════════════════════════════════════════════
+            // NUEVOS CAMPOS ENUM - Proyección
+            // ═══════════════════════════════════════════════════════════
+            SchoolLevel = x.SchoolLevel,
+            Sex = x.Sex,
+            ExecutiveRole = x.ExecutiveRole,
+            Militancy = x.Militancy,
+            // ═══════════════════════════════════════════════════════════
+
             Description = x.Description,
             Active = x.Active,
 

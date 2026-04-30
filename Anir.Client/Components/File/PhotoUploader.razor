@@ -26,7 +26,6 @@
                 <div class="d-flex align-center gap-2 pa-2"
                      style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); border-radius: 24px;">
                     
-                    @* SOLO BOTÓN DE ELIMINAR - EL BOTÓN DE CAMBIAR SE HA ELIMINADO *@
                     @if (ShowDelete)
                     {
                         <MudTooltip Text="Eliminar imagen">
@@ -50,7 +49,6 @@
         }
         else
         {
-            <!-- Área de subida solo visible cuando NO hay imagen -->
             <div @onclick="Disabled ? null : TriggerUpload"
                  class="cursor-pointer d-flex justify-center align-center @(Disabled ? "opacity-50" : "")"
                  Style="@($"width:{PixelSize}px; height:{PixelSize}px; border-radius: {(IsProfile ? "50%" : "8px")}; border: 2px dashed var(--mud-palette-primary); background-color: var(--mud-palette-action-disabled-background);")">
@@ -103,9 +101,7 @@
     {
         if (Disabled) return;
         if (FileUploadRef != null)
-        {
             await FileUploadRef.OpenFilePickerAsync();
-        }
     }
 
     private async Task OnFileChanged(IBrowserFile file)
@@ -113,12 +109,9 @@
         if (Disabled) return;
         if (file == null) return;
 
-        // Impedir subir si ya hay una imagen pendiente o cargada
-        if (HasImage)
-        {
-            await AlertService.ShowWarning("Imagen existente", "Debe eliminar la imagen actual antes de subir una nueva.");
-            return;
-        }
+        // Si ya hay imagen, la eliminamos automáticamente (mejor UX)
+        if (HasImage && ShowDelete)
+            await HandleDelete();
 
         if (file.Size > MaxFileSize)
         {
@@ -180,7 +173,6 @@
         await OnUploaded.InvokeAsync(response);
     }
 
-    // Sincronización con cambios externos (Value)
     protected override void OnParametersSet()
     {
         if (!isUploading)
@@ -201,10 +193,10 @@
             _needsCleanup = false;
             await CleanupOrphanIfNeeded();
 
-            var externalUrl = Value;
-            PreviewUrl = externalUrl;
+            // Actualizamos la vista interna SIN notificar al padre
+            PreviewUrl = Value;
             UploadedResponse = null;
-            await OnUploaded.InvokeAsync(null);
+            // ⚠️ ELIMINADO: await OnUploaded.InvokeAsync(null);
             StateHasChanged();
         }
     }
@@ -221,13 +213,12 @@
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error eliminando huérfano {UploadedResponse.Id}: {ex.Message}");
+                    Console.WriteLine($"Error eliminando imagen huérfana {UploadedResponse.Id}: {ex.Message}");
                 }
             }
         }
     }
 
-    // Al destruir el componente, si hay una imagen temporal sin confirmar, la eliminamos
     public void Dispose()
     {
         if (!isUploading && UploadedResponse != null && UploadedResponse.Id > 0)
@@ -237,7 +228,7 @@
                 _ = Task.Run(async () =>
                 {
                     try { await FileService.DeleteAsync(UploadedResponse.Id); }
-                    catch { /* Ignorar errores en dispose */ }
+                    catch { }
                 });
             }
         }

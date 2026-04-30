@@ -21,6 +21,17 @@ namespace Anir.Data.Configurations
 
             builder.HasIndex(p => p.Dni).IsUnique();
 
+            // ═══════════════════════════════════════════════════════════
+            // NUEVOS CAMPOS ENUM - EF Core los mapea como int por defecto
+            // Si necesitas almacenar como string, usar: .HasConversion<string>()
+            // ═══════════════════════════════════════════════════════════
+            builder.Property(p => p.Affiliation).HasConversion<int>();
+            builder.Property(p => p.SchoolLevel).HasConversion<int>();
+            builder.Property(p => p.Sex).HasConversion<int>();
+            builder.Property(p => p.ExecutiveRole).HasConversion<int>();
+            builder.Property(p => p.Militancy).HasConversion<int>();
+            // ═══════════════════════════════════════════════════════════
+
             // RELACIÓN CON StoredFile
             builder.HasOne(p => p.ImageFile)
                    .WithMany()

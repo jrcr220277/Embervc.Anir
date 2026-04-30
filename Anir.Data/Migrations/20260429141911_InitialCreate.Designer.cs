@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Anir.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260426153051_InitialCreate")]
+    [Migration("20260429141911_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -307,7 +307,7 @@ namespace Anir.Data.Migrations
                     b.Property<bool>("Active")
                         .HasColumnType("boolean");
 
-                    b.Property<int>("Affiliation")
+                    b.Property<int?>("Affiliation")
                         .HasColumnType("integer");
 
                     b.Property<string>("CellPhone")
@@ -326,12 +326,24 @@ namespace Anir.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<int?>("ExecutiveRole")
+                        .HasColumnType("integer");
+
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
                     b.Property<int?>("ImageFileId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Militancy")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SchoolLevel")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Sex")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");

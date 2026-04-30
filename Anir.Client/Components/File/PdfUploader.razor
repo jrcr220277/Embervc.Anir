@@ -49,15 +49,11 @@ else if (HasPdf)
                 <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small" Color="Color.Primary" OnClick="OpenPdf" />
             </MudTooltip>
 
-            @if (!IsViewMode)
+            @if (!IsViewMode && ShowDelete)
             {
-                @* ELIMINADO EL BOTÓN DE CAMBIAR *@
-                @if (ShowDelete)
-                {
-                    <MudTooltip Text="Eliminar">
-                        <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Error" OnClick="HandleDelete" />
-                    </MudTooltip>
-                }
+                <MudTooltip Text="Eliminar">
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Error" OnClick="HandleDelete" />
+                </MudTooltip>
             }
         </div>
     </MudPaper>
@@ -115,12 +111,9 @@ else
         if (IsViewMode) return;
         if (file == null) return;
 
-        // No permitir subir si ya hay un PDF
-        if (HasPdf)
-        {
-            await AlertService.ShowWarning("PDF existente", "Debe eliminar el PDF actual antes de subir uno nuevo.");
-            return;
-        }
+        // Si ya hay PDF, lo eliminamos automáticamente
+        if (HasPdf && ShowDelete)
+            await HandleDelete();
 
         if (file.Size > MaxFileSize)
         {
@@ -182,7 +175,6 @@ else
         await OnUploaded.InvokeAsync(response);
     }
 
-    // Sincronización con cambios externos
     protected override void OnParametersSet()
     {
         if (!isUploading)
@@ -203,9 +195,9 @@ else
             _needsCleanup = false;
             await CleanupOrphanIfNeeded();
 
-            var externalUrl = Value;
+            // Sincronizar la vista sin notificar al padre
             UploadedResponse = null;
-            await OnUploaded.InvokeAsync(null);
+            // ⚠️ ELIMINADO: await OnUploaded.InvokeAsync(null);
             StateHasChanged();
         }
     }

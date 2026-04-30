@@ -181,6 +181,4 @@ public class PersonService : IPersonService
         using var content = ToJsonContent(request);
         return await _httpClient.PostAsync("/api/person/export-excel", content, ct);
     }
-
-
 }

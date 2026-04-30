@@ -30,8 +30,24 @@ public class PersonDto
     [Display(Name = "Correo electrónico")]
     public string? Email { get; set; }
 
-    [Display(Name = "Afiliacion")]
-    public PersonAffiliation Affiliation { get; set; }
+    // ═══════════════════════════════════════════════════════════
+    // CAMPOS ENUM
+    // ═══════════════════════════════════════════════════════════
+    [Display(Name = "Afiliación")]
+    public Affiliation? Affiliation { get; set; }
+
+    [Display(Name = "Nivel escolar")]
+    public SchoolLevel? SchoolLevel { get; set; }
+
+    [Display(Name = "Sexo")]
+    public Sex? Sex { get; set; }
+
+    [Display(Name = "Cargo ejecutivo")]
+    public ExecutiveRole? ExecutiveRole { get; set; }
+
+    [Display(Name = "Militancia")]
+    public Militancy? Militancy { get; set; }
+    // ═══════════════════════════════════════════════════════════
 
     [StringLength(250, ErrorMessage = "La descripción no puede exceder {1} caracteres.")]
     [Display(Name = "Descripción")]

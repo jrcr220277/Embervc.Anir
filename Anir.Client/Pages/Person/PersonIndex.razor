@@ -3,6 +3,7 @@
 @using Anir.Shared.Contracts.Persons
 @using Anir.Shared.Contracts.Common
 @using Anir.Client.Services.Person
+@using Anir.Shared.Enums
 @using MudBlazor
 
 <MudContainer MaxWidth="MaxWidth.False" Class="pa-3">
@@ -102,8 +103,10 @@
             <MudTh>Foto</MudTh>
             <MudTh><MudTableSortLabel T="PersonDto" SortLabel="Dni">CI</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="PersonDto" SortLabel="Name">Nombre</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="PersonDto" SortLabel="CellPhone">Teléfono</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="PersonDto" SortLabel="Email">Correo</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="PersonDto" SortLabel="Sex">Sexo</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="PersonDto" SortLabel="SchoolLevel">Nivel Escolar</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="PersonDto" SortLabel="Militancy">Militancia</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="PersonDto" SortLabel="ExecutiveRole">Cargo Ejec.</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="PersonDto" SortLabel="Affiliation">Afiliación</MudTableSortLabel></MudTh>
             <MudTh>
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
@@ -134,8 +137,41 @@
             </MudTd>
             <MudTd>@person.Dni</MudTd>
             <MudTd>@person.FullName</MudTd>
-            <MudTd>@person.CellPhone</MudTd>
-            <MudTd>@person.Email</MudTd>
+            <MudTd>
+                @if (person.Sex.HasValue)
+                {
+                    <MudChip T="string"
+                             Color="@(person.Sex == Sex.F ? Color.Default : Color.Info)"
+                             Variant="Variant.Text"
+                             Size="Size.Small">
+                        @(person.Sex == Sex.F ? "Femenino" : "Masculino")
+                    </MudChip>
+                }
+            </MudTd>
+            <MudTd>
+                @if (person.SchoolLevel.HasValue)
+                {
+                    <MudChip T="string" Color="Color.Warning" Variant="Variant.Text" Size="Size.Small">
+                        @GetSchoolLevelDisplay(person.SchoolLevel.Value)
+                    </MudChip>
+                }
+            </MudTd>
+            <MudTd>
+                @if (person.Militancy.HasValue)
+                {
+                    <MudChip T="string" Color="Color.Secondary" Variant="Variant.Text" Size="Size.Small">
+                        @person.Militancy.Value.ToString()
+                    </MudChip>
+                }
+            </MudTd>
+            <MudTd>
+                @if (person.ExecutiveRole.HasValue)
+                {
+                    <MudChip T="string" Color="Color.Tertiary" Variant="Variant.Text" Size="Size.Small">
+                        @GetExecutiveRoleDisplay(person.ExecutiveRole.Value)
+                    </MudChip>
+                }
+            </MudTd>
             <MudTd>
                 <MudChip T="string" Color="Color.Info" Variant="Variant.Text" Size="Size.Small">
                     @person.Affiliation.ToString()
@@ -209,6 +245,25 @@
         IsInitializingPage = false;
         return Task.CompletedTask;
     }
+
+    // ============================================================
+    // HELPER METHODS PARA DISPLAY DE ENUMS
+    // ============================================================
+    private static string GetSchoolLevelDisplay(SchoolLevel level) => level switch
+    {
+        SchoolLevel.ES => "ES",
+        SchoolLevel.EMS => "EMS",
+        SchoolLevel.Twelve => "12mo",
+        _ => level.ToString()
+    };
+
+    private static string GetExecutiveRoleDisplay(ExecutiveRole role) => role switch
+    {
+        ExecutiveRole.Presidente => "Presidente",
+        ExecutiveRole.Vicepresidente => "Vicepresidente",
+        ExecutiveRole.Miembro => "Miembro",
+        _ => role.ToString()
+    };
 
     // ============================================================
     // SERVER DATA (Paginación + Orden + Filtros)

@@ -1,6 +1,7 @@
 ﻿@using Anir.Client.Services
 @using Anir.Client.Services.Company
 @using Anir.Shared.Enums
+@using Anir.Shared.Helpers @* <-- ASEGÚRATE DE TENER ESTE USING *@
 @using MudBlazor
 @using Anir.Shared.Contracts
 @using Anir.Shared.Contracts.Companies
@@ -14,9 +15,9 @@
     <TitleContent>
         <MudStack Row="true" AlignItems="AlignItems.Center">
             <MudIcon Icon="@(CurrentMode == ModalMode.Add ? Icons.Material.TwoTone.AddCircle
-                                                                                      : CurrentMode == ModalMode.Edit
-                                                                                          ? Icons.Material.TwoTone.Edit
-                                                                                          : Icons.Material.TwoTone.Visibility)"
+                                                                                                                                                        : CurrentMode == ModalMode.Edit
+                                                                                                                                                            ? Icons.Material.TwoTone.Edit
+                                                                                                                                                            : Icons.Material.TwoTone.Visibility)"
                      Size="Size.Large" />
             <MudStack Spacing="0">
                 <MudText Typo="Typo.h6" Class="font-weight-semibold">
@@ -40,8 +41,9 @@
         }
         else
         {
-            <EditForm Model="_formModel" OnValidSubmit="HandleSubmitAsync" id="form-entity">
+            <EditForm EditContext="_editContext" OnValidSubmit="HandleSubmitAsync" id="form-entity">
                 <DataAnnotationsValidator />
+                <ValidationSummary />
 
                 <MudGrid Spacing="3">
                     <!-- FOTO -->
@@ -53,7 +55,6 @@
                             </MudStack>
 
                             <div class="d-flex justify-center">
-                                <!-- CORREGIDO: PixelSize, Value extrae la URL, OnUploaded recibe FileResponse -->
                                 <PhotoUploader Value="@(_formModel.ImageFile?.Url)"
                                                IsProfile="true"
                                                PixelSize="150"
@@ -61,7 +62,6 @@
                                                OnUploaded="HandleImageUploaded"
                                                IsViewMode="IsViewMode" />
                             </div>
-
                         </MudPaper>
                     </MudItem>
 
@@ -131,6 +131,7 @@
                                             {
                                                 <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.CellPhone)"
                                                               For="@(() => _formModel.CellPhone)"
+                                                              @bind-Value="_formModel.CellPhone"
                                                               InputType="InputType.Telephone"
                                                               Variant="Variant.Outlined"
                                                               FullWidth="true"
@@ -151,6 +152,7 @@
                                             {
                                                 <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Email)"
                                                               For="@(() => _formModel.Email)"
+                                                              @bind-Value="_formModel.Email"
                                                               InputType="InputType.Email"
                                                               Variant="Variant.Outlined"
                                                               FullWidth="true"
@@ -159,27 +161,27 @@
                                             }
                                         </MudItem>
                                    
+                                        <!-- SEXO -->
                                         <MudItem xs="12" sm="5">
                                             @if (IsViewMode)
                                             {
                                                 <MudStack>
-                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@ModelMetadataHelper.GetDisplayName(() => _formModel.Affiliation)</MudText>
-                                                    <MudText Typo="Typo.body1">@_formModel.Affiliation</MudText>
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@ModelMetadataHelper.GetDisplayName(() => _formModel.Sex)</MudText>
+                                                    <MudText Typo="Typo.body1">@ModelMetadataHelper.GetEnumDisplayName(_formModel.Sex)</MudText>
                                                 </MudStack>
                                             }
                                             else
                                             {
-                                                <MudSelect T="PersonAffiliation"
-                                                           Label="Afiliación"
-                                                           @bind-Value="_formModel.Affiliation"
+                                                <MudSelect T="int"
+                                                           Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Sex)"
+                                                           @bind-Value="_sexValue"
                                                            Variant="Variant.Outlined"
                                                            Margin="Margin.Dense"
                                                            Dense="true"
                                                            FullWidth="true">
-                                                    @foreach (var value in Enum.GetValues<PersonAffiliation>())
-                                                    {
-                                                        <MudSelectItem Value="@value">@value.ToString()</MudSelectItem>
-                                                    }
+                                                    <MudSelectItem T="int" Value="0">- Seleccionar -</MudSelectItem>
+                                                    <MudSelectItem T="int" Value="@((int)Sex.F)">Femenino</MudSelectItem>
+                                                    <MudSelectItem T="int" Value="@((int)Sex.M)">Masculino</MudSelectItem>
                                                 </MudSelect>
                                             }
                                         </MudItem>
@@ -187,12 +189,130 @@
                                 </MudPaper>
                             </MudItem>
 
+                            <!-- ═══════════════════════════════════════════════════════════ -->
                             <!-- INFORMACIÓN ADICIONAL -->
+                            <!-- ═══════════════════════════════════════════════════════════ -->
+                            <MudItem xs="12">
+                                <MudPaper Elevation="1" Class="pa-3" Outlined="true">
+                                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Start" Class="mb-2">
+                                        <MudIcon Icon="@Icons.Material.Outlined.Badge" Size="Size.Small" />
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">Información adicional</MudText>
+                                    </MudStack>
+
+                                    <MudGrid Spacing="1">
+                                        <!-- AFILIACIÓN (Corregido con patrón int) -->
+                                        <MudItem xs="12" sm="3">
+                                            @if (IsViewMode)
+                                            {
+                                                <MudStack>
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@ModelMetadataHelper.GetDisplayName(() => _formModel.Affiliation)</MudText>
+                                                    <MudText Typo="Typo.body1">@ModelMetadataHelper.GetEnumDisplayName(_formModel.Affiliation)</MudText>
+                                                </MudStack>
+                                            }
+                                            else
+                                            {
+                                                <MudSelect T="int"
+                                                           Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Affiliation)"
+                                                           @bind-Value="_affiliationValue"
+                                                           Variant="Variant.Outlined"
+                                                           Margin="Margin.Dense"
+                                                           Dense="true"
+                                                           FullWidth="true">
+                                                    <MudSelectItem T="int" Value="0">- Seleccionar -</MudSelectItem>
+                                                    @foreach (var value in Enum.GetValues<Affiliation>())
+                                                    {
+                                                        <MudSelectItem T="int" Value="@((int)value)">@value.ToString()</MudSelectItem>
+                                                    }
+                                                </MudSelect>
+                                            }
+                                        </MudItem>
+
+                                        <!-- NIVEL ESCOLAR -->
+                                        <MudItem xs="12" sm="3">
+                                            @if (IsViewMode)
+                                            {
+                                                <MudStack>
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@ModelMetadataHelper.GetDisplayName(() => _formModel.SchoolLevel)</MudText>
+                                                    <MudText Typo="Typo.body1">@ModelMetadataHelper.GetEnumDisplayName(_formModel.SchoolLevel)</MudText>
+                                                </MudStack>
+                                            }
+                                            else
+                                            {
+                                                <MudSelect T="int"
+                                                           Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.SchoolLevel)"
+                                                           @bind-Value="_schoolLevelValue"
+                                                           Variant="Variant.Outlined"
+                                                           Margin="Margin.Dense"
+                                                           Dense="true"
+                                                           FullWidth="true">
+                                                    <MudSelectItem T="int" Value="0">- Seleccionar -</MudSelectItem>
+                                                    <MudSelectItem T="int" Value="@((int)SchoolLevel.ES)">ES</MudSelectItem>
+                                                    <MudSelectItem T="int" Value="@((int)SchoolLevel.EMS)">EMS</MudSelectItem>
+                                                    <MudSelectItem T="int" Value="@((int)SchoolLevel.Twelve)">12mo Grado</MudSelectItem>
+                                                </MudSelect>
+                                            }
+                                        </MudItem>
+
+                                        <!-- MILITANCIA -->
+                                        <MudItem xs="12" sm="3">
+                                            @if (IsViewMode)
+                                            {
+                                                <MudStack>
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@ModelMetadataHelper.GetDisplayName(() => _formModel.Militancy)</MudText>
+                                                    <MudText Typo="Typo.body1">@ModelMetadataHelper.GetEnumDisplayName(_formModel.Militancy)</MudText>
+                                                </MudStack>
+                                            }
+                                            else
+                                            {
+                                                <MudSelect T="int"
+                                                           Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Militancy)"
+                                                           @bind-Value="_militancyValue"
+                                                           Variant="Variant.Outlined"
+                                                           Margin="Margin.Dense"
+                                                           Dense="true"
+                                                           FullWidth="true">
+                                                    <MudSelectItem T="int" Value="0">- Seleccionar -</MudSelectItem>
+                                                    <MudSelectItem T="int" Value="@((int)Militancy.PCC)">PCC</MudSelectItem>
+                                                    <MudSelectItem T="int" Value="@((int)Militancy.UJC)">UJC</MudSelectItem>
+                                                </MudSelect>
+                                            }
+                                        </MudItem>
+
+                                        <!-- CARGO EJECUTIVO -->
+                                        <MudItem xs="12" sm="3">
+                                            @if (IsViewMode)
+                                            {
+                                                <MudStack>
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@ModelMetadataHelper.GetDisplayName(() => _formModel.ExecutiveRole)</MudText>
+                                                    <MudText Typo="Typo.body1">@ModelMetadataHelper.GetEnumDisplayName(_formModel.ExecutiveRole)</MudText>
+                                                </MudStack>
+                                            }
+                                            else
+                                            {
+                                                <MudSelect T="int"
+                                                           Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.ExecutiveRole)"
+                                                           @bind-Value="_executiveRoleValue"
+                                                           Variant="Variant.Outlined"
+                                                           Margin="Margin.Dense"
+                                                           Dense="true"
+                                                           FullWidth="true">
+                                                    <MudSelectItem T="int" Value="0">- Seleccionar -</MudSelectItem>
+                                                    <MudSelectItem T="int" Value="@((int)ExecutiveRole.Presidente)">Presidente</MudSelectItem>
+                                                    <MudSelectItem T="int" Value="@((int)ExecutiveRole.Vicepresidente)">Vicepresidente</MudSelectItem>
+                                                    <MudSelectItem T="int" Value="@((int)ExecutiveRole.Miembro)">Miembro</MudSelectItem>
+                                                </MudSelect>
+                                            }
+                                        </MudItem>
+                                    </MudGrid>
+                                </MudPaper>
+                            </MudItem>
+                            <!-- ═══════════════════════════════════════════════════════════ -->
+                            <!-- DESCRIPCIÓN -->
                             <MudItem xs="12">
                                 <MudPaper Class="pa-3" Outlined="true">
                                     <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Start" Class="mb-2">
                                         <MudIcon Icon="@Icons.Material.Outlined.Description" Color="Color.Default" Size="Size.Small" />
-                                        <MudText Typo="Typo.body2" Color="Color.Secondary">Información adicional</MudText>
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">Descripción</MudText>
                                     </MudStack>
 
                                     @if (IsViewMode)
@@ -206,6 +326,7 @@
                                     {
                                         <MudTextField Label="@ModelMetadataHelper.GetDisplayName(() => _formModel.Description)"
                                                       For="@(() => _formModel.Description)"
+                                                      @bind-Value="_formModel.Description"
                                                       Variant="Variant.Outlined"
                                                       FullWidth="true"
                                                       Margin="Margin.Dense"
@@ -274,7 +395,7 @@
 
 
 @code {
-    // INYECCIONES (FileService eliminado, ya no hace falta aquí)
+    // INYECCIONES
     [Inject] private IPersonService PersonService { get; set; } = default!;
     [Inject] private IAlertService AlertService { get; set; } = default!;
     [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
@@ -284,40 +405,64 @@
     [Parameter] public EventCallback OnListUpdated { get; set; }
    
     public enum ModalMode { Add, Edit, View }
+    private EditContext? _editContext;
 
     private bool _isLoading = true;
     private bool _isSaving = false;
     private bool IsViewMode => CurrentMode == ModalMode.View;
     private PersonDto _formModel = new();
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // PROPIEDADES AUXILIARES (Patrón int para evitar bug de MudBlazor)
+    // ═══════════════════════════════════════════════════════════════════════
+    private int _affiliationValue = 0;
+    private int _sexValue = 0;
+    private int _schoolLevelValue = 0;
+    private int _militancyValue = 0;
+    private int _executiveRoleValue = 0;
+    // ═══════════════════════════════════════════════════════════════════════
        
     void Close() => Dialog.Close();
-    
+
     protected override async Task OnInitializedAsync()
     {
+        _editContext = new EditContext(_formModel);
         _isLoading = true;
 
         if (Person != null)
         {
-            // ASIGNACIÓN DIRECTA. El nuevo DTO maneja FileResponse
             _formModel = new PersonDto
             {
                 Id = Person.Id,
-                ImageFile = Person.ImageFile, // <-- NUEVO
+                ImageFile = Person.ImageFile,
                 Dni = Person.Dni,
                 FullName = Person.FullName,
                 CellPhone = Person.CellPhone,
                 Email = Person.Email,
                 Affiliation = Person.Affiliation,
+                SchoolLevel = Person.SchoolLevel,
+                Sex = Person.Sex,
+                ExecutiveRole = Person.ExecutiveRole,
+                Militancy = Person.Militancy,
                 Description = Person.Description,
                 Active = Person.Active
             };
+
+            // ═══════════════════════════════════════════════════════════
+            // SINCRONIZAR: Modelo (Enum?) → UI (int)
+            // ═══════════════════════════════════════════════════════════
+            _affiliationValue = (int?)Person.Affiliation ?? 0;
+            _sexValue = (int?)Person.Sex ?? 0;
+            _schoolLevelValue = (int?)Person.SchoolLevel ?? 0;
+            _militancyValue = (int?)Person.Militancy ?? 0;
+            _executiveRoleValue = (int?)Person.ExecutiveRole ?? 0;
+            // ═══════════════════════════════════════════════════════════
         }
         
         _isLoading = false;
         StateHasChanged();
     }
 
-    // HANDLER ULTRA LIMPIO
     private Task HandleImageUploaded(FileResponse? file)
     {
         _formModel.ImageFile = file;
@@ -331,6 +476,16 @@
 
         try
         {
+            // ═══════════════════════════════════════════════════════════
+            // SINCRONIZAR: UI (int) → Modelo (Enum?)
+            // ═══════════════════════════════════════════════════════════
+            _formModel.Affiliation = _affiliationValue == 0 ? null : (Affiliation)_affiliationValue;
+            _formModel.Sex = _sexValue == 0 ? null : (Sex)_sexValue;
+            _formModel.SchoolLevel = _schoolLevelValue == 0 ? null : (SchoolLevel)_schoolLevelValue;
+            _formModel.Militancy = _militancyValue == 0 ? null : (Militancy)_militancyValue;
+            _formModel.ExecutiveRole = _executiveRoleValue == 0 ? null : (ExecutiveRole)_executiveRoleValue;
+            // ═══════════════════════════════════════════════════════════
+
             ProcessResponse<PersonDto>? response;
 
             if (CurrentMode == ModalMode.Add)

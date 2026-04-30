@@ -47,6 +47,22 @@ namespace Anir.Shared.Helpers
             }
             return "Texto no definido";
         }
+   
+
+        /// <summary>
+        /// Obtiene el Display(Name) de un valor de Enum directamente.
+        /// Ideal para usar en vistas de solo lectura (ViewMode).
+        /// </summary>
+        public static string GetEnumDisplayName<T>(T? enumValue, string nullText = "No especificado") where T : struct, Enum
+        {
+            if (!enumValue.HasValue)
+                return nullText;
+
+            var field = enumValue.Value.GetType().GetField(enumValue.Value.ToString());
+            var attribute = field?.GetCustomAttribute<DisplayAttribute>();
+
+            return attribute?.Name ?? enumValue.Value.ToString();
+        }
 
         /// <summary>
         /// Obtiene un texto de ayuda basado en las restricciones de DataAnnotations

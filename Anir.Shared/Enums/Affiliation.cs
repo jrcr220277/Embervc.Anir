@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Anir.Shared.Enums
 {
-    public enum PersonAffiliation
+    public enum Affiliation
     {
         ANIR = 1,
         BTJ = 2,
